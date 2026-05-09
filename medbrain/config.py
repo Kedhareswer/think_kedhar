@@ -23,6 +23,8 @@ DERIVATIVE_DIR: Path = BRAIN_DIR / "derivative"
 ARCHIVE_DIR: Path = BRAIN_DIR / "archive"
 CHANGELOG_DIR: Path = BRAIN_DIR / "changelog"
 GRAPH_DIR: Path = BRAIN_DIR / "graph"
+MEMORY_DIR: Path = BRAIN_DIR / "memory"
+QUESTIONS_DIR: Path = BRAIN_DIR / "questions"
 
 MEMORY_FILE: Path = BRAIN_DIR / "memory.md"
 QUESTIONS_FILE: Path = BRAIN_DIR / "questions.md"
@@ -52,5 +54,7 @@ def ensure_brain_dirs() -> None:
         ARCHIVE_DIR,
         CHANGELOG_DIR,
         GRAPH_DIR,
+        MEMORY_DIR,
+        QUESTIONS_DIR,
     ):
         d.mkdir(parents=True, exist_ok=True)

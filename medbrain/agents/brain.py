@@ -1,4 +1,12 @@
-"""Brain agent: read changed concepts/notes, regenerate memory.md + update questions.md."""
+"""Brain agent: read changed concepts/notes, regenerate memory and questions.
+
+Two output modes:
+  - **Topic-scoped (preferred):** pass `topic="..."`. Writes
+    `brain/memory/<slug>.md` + `brain/questions/<slug>.md`. Use this after each
+    Student run so each topic has its own synthesis.
+  - **Global (legacy):** no topic. Writes the single `brain/memory.md` +
+    `brain/questions.md` files. Kept for back-compat with older callers.
+"""
 
 from __future__ import annotations
 
@@ -9,16 +17,11 @@ from pathlib import Path
 from sqlalchemy import select
 
 from medbrain import config
-from medbrain.agents.questions_io import (
-    Question,
-    QuestionsFile,
-    load as load_questions,
-    next_qid,
-)
 from medbrain.db import session_scope
-from medbrain.llm import LLMError, call, call_json
+from medbrain.llm import LLMError, call
 from medbrain.models import BrainRun
 from medbrain.regen.atomic import atomic_write_text
+from medbrain.regen.slug import slugify
 
 SYNTH_PROMPT = Path(__file__).resolve().parent.parent.parent / "prompts" / "brain_synthesize.md"
 QUESTIONS_PROMPT = Path(__file__).resolve().parent.parent.parent / "prompts" / "brain_questions.md"
@@ -28,11 +31,9 @@ QUESTIONS_PROMPT = Path(__file__).resolve().parent.parent.parent / "prompts" / "
 class BrainResult:
     started_at: datetime
     completed_at: datetime | None = None
+    topic: str | None = None
     concepts_read: int = 0
     topics_read: int = 0
-    questions_added: int = 0
-    questions_updated: int = 0
-    questions_resolved: int = 0
     memory_path: str | None = None
     questions_path: str | None = None
     errors: list[str] = field(default_factory=list)
@@ -82,21 +83,38 @@ def _record_run(result: BrainResult) -> None:
                 completed_at=result.completed_at,
                 concepts_read=result.concepts_read,
                 topics_read=result.topics_read,
-                questions_added=result.questions_added,
-                questions_resolved=result.questions_resolved,
+                questions_added=0,
+                questions_resolved=0,
                 error="; ".join(result.errors)[:500] if result.errors else None,
             )
         )
 
 
-def run_brain(*, force_full: bool = False) -> BrainResult:
-    """One Brain pass: rewrite memory.md and update questions.md based on recent changes.
+def _resolve_paths(topic: str | None) -> tuple[Path, Path, str]:
+    """Return (memory_path, questions_path, header_label) for the run."""
+    if topic:
+        slug = slugify(topic)
+        return (
+            config.MEMORY_DIR / f"{slug}.md",
+            config.QUESTIONS_DIR / f"{slug}.md",
+            topic,
+        )
+    return (config.MEMORY_FILE, config.QUESTIONS_FILE, "general")
 
-    By default reads only files modified since the last successful Brain run.
-    Pass force_full=True to read all .md files.
+
+def run_brain(
+    *,
+    topic: str | None = None,
+    force_full: bool = False,
+) -> BrainResult:
+    """One Brain pass.
+
+    Topic-scoped (recommended): pass topic="<the research topic>". Writes the
+    synthesis + classified questions to per-topic files so each Student run has
+    its own knowledge package.
     """
     started = datetime.now(UTC)
-    result = BrainResult(started_at=started)
+    result = BrainResult(started_at=started, topic=topic)
 
     since = None if force_full else _last_brain_run()
 
@@ -113,13 +131,20 @@ def run_brain(*, force_full: bool = False) -> BrainResult:
     concepts_payload = _file_payload(concept_paths, config.BRAIN_DIR)
     topics_payload = _file_payload(topic_paths, config.BRAIN_DIR)
 
-    current_memory = (
-        config.MEMORY_FILE.read_text(encoding="utf-8") if config.MEMORY_FILE.exists() else ""
-    )
+    memory_path, questions_path, label = _resolve_paths(topic)
 
-    # --- 1. Synthesize memory.md ---
+    current_memory = memory_path.read_text(encoding="utf-8") if memory_path.exists() else ""
+
+    # --- 1. Synthesize memory ---
     try:
         synth_system = SYNTH_PROMPT.read_text(encoding="utf-8")
+        topic_clause = (
+            f"This synthesis is scoped to the research topic: **{topic}**. "
+            "Restrict the narrative to claims, mechanisms, and patterns that bear on this topic. "
+            "If a supplied note is unrelated, you may omit it from the synthesis.\n\n"
+            if topic
+            else ""
+        )
         synth_user = (
             "# TASK\n"
             "Emit a single Markdown document as your message text. Do NOT use any tools. "
@@ -127,6 +152,7 @@ def run_brain(*, force_full: bool = False) -> BrainResult:
             "will persist your text output to disk on your behalf. Your first character "
             "MUST be `#`. Output ONLY the rewritten document — no prose, no preamble, "
             "no questions back to the user.\n\n"
+            f"{topic_clause}"
             f"# Existing document state\n\n{current_memory or '(empty)'}\n\n"
             f"# Source: changed concept notes ({len(concepts_payload)})\n\n"
             f"{_render_files(concepts_payload)}\n\n"
@@ -135,68 +161,29 @@ def run_brain(*, force_full: bool = False) -> BrainResult:
             f"# Now\n{datetime.now(UTC).isoformat()}\n"
         )
         memory_body = call(synth_system, synth_user, timeout=180.0)
-        atomic_write_text(config.MEMORY_FILE, memory_body.strip() + "\n")
-        result.memory_path = str(config.MEMORY_FILE)
+        atomic_write_text(memory_path, memory_body.strip() + "\n")
+        result.memory_path = str(memory_path)
     except LLMError as e:
         result.errors.append(f"synthesize: {e}")
 
-    # --- 2. Update questions.md ---
+    # --- 2. Generate questions (Answerable / Gaps classification) ---
     try:
-        qfile = load_questions(config.QUESTIONS_FILE)
-        existing_open = [q for q in qfile.questions if q.status != "resolved"]
-
         q_system = QUESTIONS_PROMPT.read_text(encoding="utf-8")
         q_user = (
-            f"# Current open questions ({len(existing_open)})\n\n"
-            f"```json\n{[{'qid': q.qid, 'priority': q.priority, 'status': q.status, 'topic': q.topic, 'body': q.body} for q in existing_open]!r}\n```\n\n"
-            f"# Changed concepts ({len(concepts_payload)})\n\n"
+            "# TASK\n"
+            "Emit a single Markdown document as your message text. No tools. "
+            "Do NOT request permissions. The Python caller persists your output. "
+            "First character MUST be `#`. Output ONLY the markdown.\n\n"
+            f"# Topic context\n{label}\n\n"
+            f"# Source: concept notes ({len(concepts_payload)})\n\n"
             f"{_render_files(concepts_payload)}\n\n"
-            f"# Changed notes ({len(topics_payload)})\n\n"
-            f"{_render_files(topics_payload)}\n"
+            f"# Source: topic notes ({len(topics_payload)})\n\n"
+            f"{_render_files(topics_payload)}\n\n"
+            f"# Now\n{datetime.now(UTC).isoformat()}\n"
         )
-        delta = call_json(q_system, q_user, timeout=180.0)
-
-        new_questions: list[Question] = []
-        now = datetime.now(UTC)
-        for nq in delta.get("new_questions", []):
-            qid = next_qid(qfile.questions + new_questions, today=now)
-            new_questions.append(
-                Question(
-                    qid=qid,
-                    priority=int(nq.get("priority", 3)),
-                    status="open",
-                    created=now,
-                    topic=str(nq.get("topic", "")).strip(),
-                    body=str(nq.get("body", "")).strip(),
-                )
-            )
-
-        update_qs: list[Question] = []
-        existing_by_id = qfile.by_id()
-        for upd in delta.get("updates", []):
-            qid = upd.get("qid")
-            if not qid or qid not in existing_by_id:
-                continue
-            base = existing_by_id[qid]
-            update_qs.append(
-                Question(
-                    qid=qid,
-                    priority=int(upd.get("priority", base.priority)),
-                    status=upd.get("status", base.status),
-                    created=base.created,
-                    topic=base.topic,
-                    body=base.body,
-                )
-            )
-
-        added, updated_n = qfile.merge(new_questions + update_qs)
-        result.questions_added = added
-        result.questions_updated = updated_n
-        result.questions_resolved = sum(
-            1 for u in update_qs if u.status == "resolved"
-        )
-        atomic_write_text(config.QUESTIONS_FILE, qfile.serialize())
-        result.questions_path = str(config.QUESTIONS_FILE)
+        questions_body = call(q_system, q_user, timeout=180.0)
+        atomic_write_text(questions_path, questions_body.strip() + "\n")
+        result.questions_path = str(questions_path)
     except LLMError as e:
         result.errors.append(f"questions: {e}")
     except Exception as e:
