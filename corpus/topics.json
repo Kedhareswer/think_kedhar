@@ -1,0 +1,34 @@
+{
+  "_doc": "Phase 7 validation corpus. Topic-driven (Researcher plans + searches PubMed). Each entry exercises one or more architectural axes (study type, geo, demographic). Target: ≥50 distinct PMIDs landed across the run + every category covered. Categories also drive the per-axis coverage report in scripts/phase7_run.py.",
+  "version": "1.0",
+  "categories": {
+    "rct": "Randomized controlled trial (highest evidence_grade auto-promote path)",
+    "cohort": "Prospective/retrospective cohort (mid-grade)",
+    "case_report": "Case report / series (low grade, should land in review queue)",
+    "contradicting": "Topics with known opposing findings (exercises novelty-gate contradiction detector)",
+    "geographic": "Region-specific (population_region qualifier exercise)",
+    "pediatric": "Pediatric scope (age qualifier)",
+    "adult": "Adult scope (age qualifier)",
+    "pregnancy": "Pregnancy scope (pregnancy qualifier; firewall test)",
+    "guideline_proxy": "Society/consensus guideline (proxy for WHO PDFs deferred to Phase 1.5)"
+  },
+  "topics": [
+    {"id": "T01", "category": "rct",            "topic": "artemisinin-based combination therapy versus chloroquine for uncomplicated malaria randomized trial", "min_papers": 5},
+    {"id": "T02", "category": "rct",            "topic": "remdesivir versus placebo for hospitalized covid-19 randomized trial",                              "min_papers": 4},
+    {"id": "T03", "category": "rct",            "topic": "fluconazole single dose versus seven day topical for vulvovaginal candidiasis randomized trial",   "min_papers": 3},
+    {"id": "T04", "category": "cohort",         "topic": "sepsis 30-day mortality cohort study antibiotic timing",                                            "min_papers": 4},
+    {"id": "T05", "category": "cohort",         "topic": "tuberculosis treatment outcomes retrospective cohort multidrug resistance",                        "min_papers": 4},
+    {"id": "T06", "category": "case_report",    "topic": "atypical presentation cerebral malaria case report",                                                "min_papers": 3},
+    {"id": "T07", "category": "case_report",    "topic": "drug induced agranulocytosis case series",                                                         "min_papers": 2},
+    {"id": "T08", "category": "contradicting",  "topic": "hydroxychloroquine for covid-19 efficacy contradictory evidence",                                  "min_papers": 4},
+    {"id": "T09", "category": "contradicting",  "topic": "vitamin D supplementation prevention of acute respiratory infection conflicting trials",           "min_papers": 3},
+    {"id": "T10", "category": "geographic",     "topic": "artemisinin resistance Greater Mekong Subregion molecular markers",                                "min_papers": 4},
+    {"id": "T11", "category": "geographic",     "topic": "chloroquine resistance sub-Saharan Africa Plasmodium falciparum",                                  "min_papers": 3},
+    {"id": "T12", "category": "pediatric",      "topic": "severe falciparum malaria treatment in children intravenous artesunate",                           "min_papers": 3},
+    {"id": "T13", "category": "pediatric",      "topic": "neonatal sepsis empirical antibiotic guidelines",                                                  "min_papers": 3},
+    {"id": "T14", "category": "adult",          "topic": "adult community-acquired pneumonia empirical therapy",                                             "min_papers": 3},
+    {"id": "T15", "category": "pregnancy",      "topic": "intermittent preventive treatment of malaria in pregnancy sulfadoxine-pyrimethamine",              "min_papers": 4},
+    {"id": "T16", "category": "pregnancy",      "topic": "antiretroviral therapy in pregnancy mother to child transmission HIV",                             "min_papers": 3},
+    {"id": "T17", "category": "guideline_proxy","topic": "IDSA guidelines for management of candidiasis recommendation",                                     "min_papers": 2}
+  ]
+}

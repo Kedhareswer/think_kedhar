@@ -1,0 +1,41 @@
+[project]
+name = "medbrain"
+version = "0.1.0"
+description = "Perpetually-learning medical knowledge base for malaria"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "sqlalchemy>=2.0",
+    "httpx>=0.27",
+    "pypdf>=4.0",
+    "python-dotenv>=1.0",
+    "pydantic>=2.0",
+    "fastapi>=0.110",
+    "uvicorn>=0.30",
+    "lxml>=5.0",
+    "networkx>=3.2",
+]
+# LLM backend: Claude Code CLI (`claude` on PATH). Uses Claude Max subscription.
+# No anthropic SDK dep — see medbrain/llm.py.
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.5",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["medbrain*"]

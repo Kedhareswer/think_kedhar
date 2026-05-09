@@ -1,0 +1,1191 @@
+<!--
+  MedBrain — Investor Pitch Replay
+  Self-contained scripted "video" — open in any modern browser, double-click to play.
+  No external CSS / JS / fonts / images. Reload to replay.
+  Add ?dev=1 for scene-jump panel; add ?scene=N to jump straight to scene N.
+  See spec: docs/superpowers/specs/2026-05-01-medbrain-pitch-design.md
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>MedBrain — Investor Pitch</title>
+<style>
+  :root {
+    --bg: #fafafa;
+    --surface: #ffffff;
+    --text: #1a1a1a;
+    --gray-2: #f3f3f3;
+    --gray-3: #e6e6e6;
+    --gray-4: #d4d4d4;
+    --gray-9: #6f6f6f;
+    --gray-12: #2a2a2a;
+    --accent: #2563eb;
+    --good: #16a34a;
+    --warn: #d97706;
+    --bad: #dc2626;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-sans); overflow: hidden; }
+
+  #stage-wrap { position: fixed; inset: 0; overflow: hidden; background: linear-gradient(180deg, #fafafa 0%, #f5f5f5 100%); }
+  #stage {
+    position: absolute; top: 0; left: 0;
+    width: 1440px; height: 900px;
+    transform-origin: 0 0;
+    transition: transform 1200ms cubic-bezier(.65,.05,.36,1);
+  }
+
+  #cursor { position: fixed; top: 0; left: 0; width: 24px; height: 24px; pointer-events: none; z-index: 999; transform: translate(40px, 40px); transition: transform 900ms cubic-bezier(.65,.05,.36,1); }
+  #cursor svg { display: block; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); }
+  #cursor.click::before { content: ""; position: absolute; left: 4px; top: 4px; width: 16px; height: 16px; border-radius: 999px; border: 2px solid var(--accent); animation: clickRipple .55s ease-out; }
+
+  #hud { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; background: rgba(20,20,20,0.85); color: white; padding: 8px 14px; border-radius: 999px; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; z-index: 1000; backdrop-filter: blur(8px); opacity: 0; transition: opacity 600ms ease; }
+  #hud.shown { opacity: 1; }
+  #hud .progress { width: 220px; height: 4px; background: #fff2; border-radius: 999px; overflow: hidden; }
+  #hud .progress > .bar { height: 100%; width: 0%; background: linear-gradient(90deg, #6ee7b7 0%, #2563eb 100%); transition: width 200ms linear; }
+  #hud .badge { padding: 3px 8px; border-radius: 999px; background: #ffffff14; font-size: 10px; }
+  #replay-btn { background: #ffffff14; border: 1px solid #ffffff22; color: white; padding: 4px 10px; border-radius: 999px; font-family: var(--font-mono); font-size: 10px; cursor: pointer; }
+  #replay-btn:hover { background: #ffffff22; }
+  #replay-btn.glow { animation: replayGlow 1.6s ease-in-out infinite; }
+
+  #devpanel { position: fixed; top: 60px; right: 14px; display: none; flex-direction: column; gap: 4px; background: rgba(20,20,20,0.85); color: white; padding: 10px; border-radius: 8px; font-family: var(--font-mono); font-size: 10px; z-index: 1000; max-height: 80vh; overflow-y: auto; }
+  #devpanel.shown { display: flex; }
+  #devpanel button { background: #ffffff14; border: 1px solid #ffffff22; color: white; padding: 3px 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 10px; cursor: pointer; text-align: left; }
+
+  /* Reusable explainer caption — sub-line under stage content */
+  .explainer { font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--gray-12); max-width: 760px; text-align: center; opacity: 0; transition: opacity 700ms ease; }
+  .explainer.shown { opacity: 1; }
+  .explainer em { font-style: normal; color: var(--text); font-weight: 600; }
+  .explainer .muted { color: var(--gray-9); }
+
+  /* Scene 1 — cold open */
+  .s1-stage { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; }
+  .s1-wordmark { font-family: var(--font-mono); font-size: 64px; letter-spacing: 0.18em; color: var(--text); opacity: 0; transition: opacity 800ms ease, transform 600ms cubic-bezier(.65,.05,.36,1); }
+  .s1-wordmark.shown { opacity: 1; }
+  .s1-wordmark.up { transform: translateY(-200px); }
+  .s1-tagline { font-family: var(--font-sans); font-size: 20px; color: var(--gray-9); min-height: 28px; }
+  .s1-sub { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.14em; color: var(--gray-4); min-height: 18px; }
+
+  /* Scene 2 — problem */
+  .s2-stage { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 40px; opacity: 0; transition: opacity 600ms ease; padding: 80px 60px; }
+  .s2-stage.shown { opacity: 1; }
+  .s2-row { display: flex; align-items: flex-start; justify-content: center; gap: 96px; }
+  .s2-stat { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; max-width: 380px; }
+  .s2-stat .label { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em; }
+  .s2-stat .value { font-family: var(--font-sans); font-size: 36px; font-weight: 600; line-height: 1.15; }
+  .s2-stat .sub { font-family: var(--font-sans); font-size: 14px; line-height: 1.5; margin-top: 2px; }
+  .s2-stat.dim .label { color: var(--gray-9); }
+  .s2-stat.dim .value { color: var(--gray-9); }
+  .s2-stat.dim .sub { color: var(--gray-9); }
+  .s2-stat.lit .label { color: var(--accent); }
+  .s2-stat.lit .value { color: var(--text); }
+  .s2-stat.lit .sub { color: var(--gray-12); }
+  .s2-stat .ticker { font-family: var(--font-mono); font-size: 14px; color: var(--accent); margin-top: 6px; }
+
+  /* Scene 3 — architecture loop */
+  .s3-stage { position: absolute; inset: 0; opacity: 0; transition: opacity 500ms ease; }
+  .s3-stage.shown { opacity: 1; }
+  .agent-box { position: absolute; width: 280px; padding: 18px 20px; background: var(--surface); border: 1px solid var(--gray-3); border-radius: 14px; opacity: 0; }
+  .agent-box .name { font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.14em; color: var(--text); }
+  .agent-box .cadence { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; color: var(--gray-9); margin-top: 6px; }
+  .agent-box .role { font-family: var(--font-sans); font-size: 12px; color: var(--gray-12); margin-top: 10px; line-height: 1.5; }
+  .s3-arrows { position: absolute; inset: 0; pointer-events: none; }
+  .s3-arrows path { fill: none; stroke: var(--gray-4); stroke-width: 1.5; }
+  .s3-explainer { position: absolute; left: 50%; bottom: 80px; transform: translateX(-50%); }
+
+  /* Scene 4-5 — STUDENT terminal */
+  .term { position: absolute; left: 360px; top: 360px; width: 720px; height: 440px; background: var(--gray-12); border-radius: 14px; padding: 22px 26px; font-family: var(--font-mono); font-size: 13px; color: #e6e6e6; overflow: hidden; opacity: 0; transition: opacity 400ms ease; }
+  .term.shown { opacity: 1; }
+  .term .prompt { color: var(--gray-4); }
+  .term .cmd { color: white; }
+  .term .line { line-height: 1.7; white-space: pre-wrap; }
+  .term .line.dim { color: var(--gray-4); }
+  .term .line.warn { color: #f59e0b; }
+  .term .line.good { color: #6ee7b7; }
+  .term .pulse-dots { display: inline-block; }
+  .term .pulse-dots span { animation: pulse 1.2s ease-in-out infinite; }
+  .term .pulse-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .term .pulse-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+  /* Scene 6 — claim cards */
+  .s6-stage { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 22px; opacity: 0; transition: opacity 500ms ease; padding-top: 110px; }
+  .s6-stage.shown { opacity: 1; }
+  .s6-intro { max-width: 800px; text-align: center; opacity: 0; transition: opacity 600ms ease; }
+  .s6-intro.shown { opacity: 1; }
+  .s6-intro .lead { font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--gray-12); }
+  .s6-intro .lead em { font-style: normal; color: var(--text); font-weight: 700; }
+  #s6-cards { display: flex; flex-direction: column; gap: 18px; }
+  .claim-card { width: 760px; background: var(--surface); border: 1px solid var(--gray-3); border-radius: 14px; padding: 18px 22px; opacity: 0; transition: opacity 450ms ease, transform 450ms ease; }
+  .claim-card .triple { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 14.5px; }
+  .claim-card .pill { display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px; border-radius: 6px; font-size: 14px; line-height: 1; }
+  .claim-card .pill .badge { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.08em; padding: 2px 6px; border-radius: 4px; background: rgba(0,0,0,.08); color: rgba(0,0,0,.55); }
+  .claim-card .pred { font-family: var(--font-mono); font-size: 11px; color: var(--gray-9); padding: 0 4px; }
+  .claim-card .quals { margin-top: 12px; font-family: var(--font-mono); font-size: 11px; color: var(--gray-12); display: grid; grid-template-columns: 140px 1fr; gap: 4px 14px; padding: 10px 12px; background: var(--gray-2); border-radius: 8px; }
+  .claim-card .quals .k { color: var(--gray-9); letter-spacing: 0.08em; }
+  .claim-card .status-row { margin-top: 12px; display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 11px; }
+  .claim-card .status-row .from { color: var(--gray-9); }
+  .claim-card .status-row .to { color: var(--good); font-weight: 600; }
+  .pill.condition   { background: #FFCDD2; color: #B71C1C; }
+  .pill.condition   .badge { background: rgba(183,28,28,.15); color: #B71C1C; }
+  .pill.medication  { background: #C8E6C9; color: #1B5E20; }
+  .pill.medication  .badge { background: rgba(27,94,32,.15); color: #1B5E20; }
+  .pill.dosage      { background: #E1BEE7; color: #4A148C; }
+  .pill.dosage      .badge { background: rgba(74,20,140,.15); color: #4A148C; }
+  .pill.test        { background: #BBDEFB; color: #0D47A1; }
+  .pill.test        .badge { background: rgba(13,71,161,.15); color: #0D47A1; }
+  .pill.risk_factor { background: #FFCCBC; color: #BF360C; }
+  .pill.risk_factor .badge { background: rgba(191,54,12,.15); color: #BF360C; }
+  .pill.symptom     { background: #FFF9C4; color: #F57F17; }
+  .pill.symptom     .badge { background: rgba(245,127,23,.15); color: #F57F17; }
+  .pill.context     { background: #E0E0E0; color: #37474F; }
+  .pill.context     .badge { background: rgba(55,71,79,.15); color: #37474F; }
+  .pill.vital       { background: #B2DFDB; color: #004D40; }
+  .pill.vital       .badge { background: rgba(0,77,64,.15); color: #004D40; }
+  .pill.anatomy     { background: #D7CCC8; color: #3E2723; }
+  .pill.anatomy     .badge { background: rgba(62,39,35,.15); color: #3E2723; }
+  .pill.duration    { background: #D7CCC8; color: #4E342E; }
+  .pill.duration    .badge { background: rgba(78,52,46,.15); color: #4E342E; }
+
+  /* Scene 7 — auto-promote gate */
+  .s7-panel { position: absolute; right: 80px; top: 200px; width: 380px; background: var(--surface); border: 1px solid var(--gray-3); border-radius: 14px; padding: 22px 24px; opacity: 0; transform: translateX(40px); transition: opacity 500ms ease, transform 500ms cubic-bezier(.65,.05,.36,1); box-shadow: 0 12px 40px rgba(0,0,0,0.06); z-index: 5; }
+  .s7-panel.shown { opacity: 1; transform: translateX(0); }
+  .s7-panel .head { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.14em; color: var(--gray-9); margin-bottom: 14px; }
+  .s7-panel .subhead { font-family: var(--font-sans); font-size: 12px; color: var(--gray-12); margin-bottom: 12px; line-height: 1.5; }
+  .s7-panel .row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; font-family: var(--font-mono); font-size: 11.5px; line-height: 1.5; opacity: 0; transition: opacity 300ms ease; border-bottom: 1px solid var(--gray-2); }
+  .s7-panel .row.shown { opacity: 1; }
+  .s7-panel .row .mark { font-size: 14px; font-weight: 700; min-width: 16px; }
+  .s7-panel .row.pass .mark { color: var(--good); }
+  .s7-panel .row.fail .mark { color: var(--bad); }
+  .s7-panel .verdict { margin-top: 14px; font-family: var(--font-mono); font-size: 14px; letter-spacing: 0.14em; padding: 10px 12px; border-radius: 6px; text-align: center; font-weight: 600; }
+  .s7-panel .verdict.good { background: #ecfdf5; color: var(--good); }
+  .s7-panel .verdict.warn { background: #fff7ed; color: var(--warn); }
+  .claim-card.dimmed { opacity: 0.35; transition: opacity 400ms ease; }
+  .claim-card.focus  { transform: scale(1.04); transition: transform 400ms ease; box-shadow: 0 12px 40px rgba(0,0,0,0.06); }
+
+  /* Scene 8 — supersession */
+  .s8-stage { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; opacity: 0; transition: opacity 500ms ease; padding: 60px; }
+  .s8-stage.shown { opacity: 1; }
+  .s8-old { width: 600px; opacity: 0; transition: opacity 400ms ease; }
+  .s8-old .claim-card { background: var(--gray-2); border-style: dashed; width: 100%; }
+  .s8-old.shown { opacity: 0.5; }
+  .s8-arrow { font-family: var(--font-mono); font-size: 11px; color: var(--gray-9); padding: 6px 10px; border: 1px solid var(--gray-3); border-radius: 4px; background: var(--surface); opacity: 0; transition: opacity 400ms ease; }
+  .s8-arrow.shown { opacity: 1; }
+  .s8-new { width: 600px; opacity: 0; transition: opacity 400ms ease; }
+  .s8-new .claim-card { width: 100%; }
+  .s8-new.shown { opacity: 1; }
+  .s8-archived-badge { display: inline-block; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.14em; padding: 2px 6px; border: 1px solid var(--gray-9); color: var(--gray-9); border-radius: 4px; margin-left: 8px; }
+
+  /* Scene 9 — BRAIN files */
+  .s9-stage { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px; opacity: 0; transition: opacity 500ms ease; padding: 60px; }
+  .s9-stage.shown { opacity: 1; }
+  .s9-files { display: flex; gap: 32px; }
+  .md-file { width: 420px; min-height: 320px; background: var(--surface); border: 1px solid var(--gray-3); border-radius: 12px; padding: 18px 22px; opacity: 0; transform: translateY(8px); transition: opacity 450ms ease, transform 450ms ease; }
+  .md-file.shown { opacity: 1; transform: translateY(0); }
+  .md-file .filebar { display: flex; align-items: center; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--gray-3); margin-bottom: 14px; }
+  .md-file .filebar .icon { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; padding: 3px 6px; background: var(--gray-12); color: white; border-radius: 4px; }
+  .md-file .filebar .name { font-family: var(--font-mono); font-size: 12px; color: var(--text); }
+  .md-file .body { font-family: var(--font-mono); font-size: 12px; line-height: 1.7; color: var(--gray-12); white-space: pre-wrap; min-height: 200px; }
+  .s9-feedback { font-family: var(--font-mono); font-size: 11px; color: var(--gray-9); opacity: 0; transition: opacity 600ms ease; padding: 6px 12px; border: 1px dashed var(--gray-4); border-radius: 999px; background: var(--surface); }
+  .s9-feedback.shown { opacity: 1; }
+
+  /* Scene 10 — graph */
+  .s10-stage { position: absolute; inset: 0; opacity: 0; transition: opacity 500ms ease; }
+  .s10-stage.shown { opacity: 1; }
+  #s10-svg { width: 100%; height: 78%; display: block; }
+  .s10-stage .node-anim { transition: opacity 320ms ease, transform 320ms cubic-bezier(.34,1.4,.64,1); transform-origin: 0 0; }
+  .s10-stage .edge { stroke: var(--gray-4); stroke-width: 1; fill: none; opacity: 0.6; }
+  .s10-stage .label { font-family: var(--font-mono); font-size: 9px; fill: var(--gray-12); }
+  .s10-counter { position: absolute; top: 60px; right: 80px; font-family: var(--font-mono); font-size: 13px; color: var(--gray-12); text-align: right; line-height: 1.6; }
+  .s10-counter .k { color: var(--gray-9); font-size: 10px; letter-spacing: 0.12em; }
+  .s10-explainer { position: absolute; bottom: 60px; left: 50%; transform: translateX(-50%); }
+  .node-condition   { fill: #FFCDD2; stroke: #B71C1C; }
+  .node-medication  { fill: #C8E6C9; stroke: #1B5E20; }
+  .node-test        { fill: #BBDEFB; stroke: #0D47A1; }
+  .node-risk_factor { fill: #FFCCBC; stroke: #BF360C; }
+  .node-symptom     { fill: #FFF9C4; stroke: #F57F17; }
+  .node-context     { fill: #E0E0E0; stroke: #37474F; }
+  .node-vital       { fill: #B2DFDB; stroke: #004D40; }
+  .node-duration    { fill: #D7CCC8; stroke: #4E342E; }
+
+  /* Scene 11 — DREAM */
+  .s11-stage { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; opacity: 0; transition: opacity 500ms ease; padding: 80px 60px; }
+  .s11-stage.shown { opacity: 1; }
+  .s11-grid { display: grid; grid-template-columns: 320px 320px; gap: 16px; }
+  .deriv-card { background: var(--surface); border: 1px solid var(--warn); border-radius: 12px; padding: 14px 16px; opacity: 0; }
+  .deriv-card .head { display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; border-bottom: 1px solid var(--gray-3); margin-bottom: 8px; }
+  .deriv-card .head .label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; color: var(--warn); }
+  .deriv-card .head .ns { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; color: var(--gray-9); padding: 2px 6px; border: 1px solid var(--warn); border-radius: 4px; }
+  .deriv-card .body { font-family: var(--font-mono); font-size: 11px; line-height: 1.6; color: var(--gray-12); white-space: pre-wrap; }
+
+  /* Scene 12 — retrieval menu */
+  .s12-stage { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px; opacity: 0; transition: opacity 500ms ease; padding: 60px; }
+  .s12-stage.shown { opacity: 1; }
+  .s12-row { display: flex; align-items: center; gap: 28px; }
+  .s12-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 22px; }
+  .s12-prim { font-family: var(--font-mono); font-size: 14px; padding: 10px 18px; border: 1px solid var(--gray-3); border-radius: 999px; background: var(--surface); color: var(--text); opacity: 0; }
+  .s12-line { width: 80px; height: 1px; background: var(--gray-4); border-top: 1px dashed var(--gray-4); border-style: dashed; }
+  .s12-cds { font-family: var(--font-mono); font-size: 14px; padding: 12px 22px; border: 1px solid var(--gray-12); border-radius: 999px; color: var(--text); background: var(--gray-2); opacity: 0; }
+  .s12-cds.shown, .s12-prim.shown { opacity: 1; }
+
+  /* Scene 13 — moat */
+  .s13-stage { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; opacity: 0; transition: opacity 500ms ease; padding: 80px 40px; }
+  .s13-stage.shown { opacity: 1; }
+  .s13-host { display: flex; gap: 24px; }
+  .moat-card { width: 320px; min-height: 280px; background: var(--surface); border: 1px solid var(--gray-3); border-radius: 14px; padding: 26px 28px; display: flex; flex-direction: column; gap: 14px; opacity: 0; }
+  .moat-card .num { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.14em; color: var(--accent); }
+  .moat-card .title { font-family: var(--font-sans); font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: 0.04em; }
+  .moat-card .rule { width: 36px; height: 1px; background: var(--gray-3); }
+  .moat-card .body { font-family: var(--font-sans); font-size: 13px; line-height: 1.6; color: var(--gray-12); }
+  .moat-card .footer { font-family: var(--font-mono); font-size: 11px; color: var(--gray-9); margin-top: auto; padding-top: 12px; border-top: 1px solid var(--gray-3); }
+
+  /* Scene 14 — status dashboard (closing scene) */
+  .s14-stage { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 30px; opacity: 0; transition: opacity 500ms ease; padding: 60px; }
+  .s14-stage.shown { opacity: 1; }
+  .s14-block { background: var(--surface); border: 1px solid var(--gray-3); border-radius: 14px; padding: 28px 32px; min-width: 520px; }
+  .s14-block .row { display: grid; grid-template-columns: 220px 1fr; gap: 12px; padding: 10px 0; font-family: var(--font-mono); font-size: 13px; border-bottom: 1px solid var(--gray-2); }
+  .s14-block .row:last-child { border-bottom: none; }
+  .s14-block .row .k { color: var(--gray-9); letter-spacing: 0.12em; font-size: 11px; align-self: center; }
+  .s14-block .row .v { color: var(--text); }
+  .s14-closing { font-family: var(--font-sans); font-size: 22px; color: var(--text); opacity: 0; transition: opacity 700ms ease; text-align: center; }
+  .s14-closing.shown { opacity: 1; }
+  .s14-closing .small { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.14em; color: var(--gray-9); display: block; margin-top: 10px; }
+
+  /* Animations */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.55; transform: scale(0.85); } }
+  @keyframes caret { 50% { opacity: 0; } }
+  @keyframes clickRipple { from { opacity: 0.9; transform: scale(0.6); } to { opacity: 0; transform: scale(2.2); } }
+  @keyframes replayGlow { 0%, 100% { box-shadow: 0 0 0 0 rgba(37,99,235,0.0); } 50% { box-shadow: 0 0 0 6px rgba(37,99,235,0.4); } }
+</style>
+</head>
+<body>
+
+<div id="hud">
+  <span class="progress"><span class="bar"></span></span>
+  <span class="badge"><span id="step-num">0</span>/<span id="step-total">0</span></span>
+  <button id="replay-btn" onclick="window.location.reload()">↻ Replay</button>
+</div>
+
+<div id="devpanel"></div>
+
+<div id="stage-wrap">
+  <div id="stage">
+
+    <!-- Scene 1: cold open -->
+    <div class="s1-stage" id="s1">
+      <div class="s1-wordmark" id="s1-wordmark">MEDBRAIN</div>
+      <div class="s1-tagline" id="s1-tagline"></div>
+      <div class="s1-sub" id="s1-sub"></div>
+    </div>
+
+    <!-- Scene 2: problem -->
+    <div class="s2-stage" id="s2" style="display:none;">
+      <div class="s2-row">
+        <div class="s2-stat dim">
+          <div class="label">WHAT THE DOCTOR LEARNED</div>
+          <div class="value">Slowly drifts<br/>out of date.</div>
+          <div class="sub">Med school + residency = 8 years. After that, the textbook ages while the patients keep coming.</div>
+        </div>
+        <div class="s2-stat lit">
+          <div class="label">WHAT'S NEW SINCE BREAKFAST</div>
+          <div class="value">~1 paper<br/>every 30 seconds.</div>
+          <div class="sub">PubMed indexes 2,500+ biomedical papers a day. No human reads even 1%.</div>
+          <div class="ticker"><span id="s2-tick">0</span> papers since this slide started.</div>
+        </div>
+      </div>
+      <div class="explainer" id="s2-explainer">
+        <em>Result:</em> by the time the doctor sees the patient, parts of their textbook are already wrong. Nobody has time to keep up. <span class="muted">So patients get whatever the doctor remembers from training.</span>
+      </div>
+    </div>
+
+    <!-- Scene 3: architecture loop (also hosts scene 4 terminal as overlay) -->
+    <div class="s3-stage" id="s3" style="display:none;">
+      <svg class="s3-arrows" viewBox="0 0 1440 900" preserveAspectRatio="none" width="1440" height="900">
+        <defs><marker id="s3-head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#d4d4d4"/></marker></defs>
+        <path id="s3-arrow-1" d="M 640 410 Q 730 410 800 410" marker-end="url(#s3-head)"/>
+        <path id="s3-arrow-2" d="M 960 460 Q 960 520 960 580" marker-end="url(#s3-head)"/>
+        <path id="s3-arrow-3" d="M 800 630 Q 730 630 640 630" marker-end="url(#s3-head)"/>
+        <path id="s3-arrow-4" d="M 480 580 Q 480 520 480 460" marker-end="url(#s3-head)"/>
+      </svg>
+      <div class="agent-box" id="ab-student"  style="left:360px; top:360px;"><div class="name">STUDENT</div><div class="cadence">RUNS CONSTANTLY</div><div class="role">Reads new papers. Pulls out facts.</div></div>
+      <div class="agent-box" id="ab-brain"    style="left:820px; top:360px;"><div class="name">BRAIN</div><div class="cadence">ONCE AN HOUR</div><div class="role">Looks for patterns. Notices what's missing.</div></div>
+      <div class="agent-box" id="ab-graphify" style="left:820px; top:580px;"><div class="name">GRAPHIFY</div><div class="cadence">ONCE AN HOUR</div><div class="role">Connects facts into a map.</div></div>
+      <div class="agent-box" id="ab-dream"    style="left:360px; top:580px;"><div class="name">DREAM</div><div class="cadence">ONCE A WEEK</div><div class="role">Tidies up. Throws nothing away.</div></div>
+
+      <div class="explainer s3-explainer" id="s3-explainer">
+        Four small workers, each doing one job.<br/>
+        <span class="muted">Together they read the literature so the doctor doesn't have to.</span>
+      </div>
+
+      <div class="term" id="s4-term">
+        <div class="line"><span class="prompt">medbrain $ </span><span class="cmd" id="s4-cmd"></span></div>
+        <div id="s4-output"></div>
+      </div>
+    </div>
+
+    <!-- Scene 6: claim cards -->
+    <div class="s6-stage" id="s6" style="display:none;">
+      <div class="s6-intro" id="s6-intro">
+        <div class="lead">A <em>claim</em> is one fact, stored as a row in a table — with the situation it applies in.</div>
+        <div class="lead muted" style="margin-top:6px; color:var(--gray-9);">Not a paragraph. Not a vibe. Something a database can find.</div>
+      </div>
+      <div id="s6-cards"></div>
+    </div>
+
+    <!-- Scene 7: auto-promote gate panel (overlays scene 6) -->
+    <div class="s7-panel" id="s7-panel">
+      <div class="head">CAN WE TRUST THIS CLAIM?</div>
+      <div class="subhead">Before any claim shows up to a doctor, it has to clear four checks.</div>
+      <div id="s7-rows"></div>
+      <div class="verdict good" id="s7-verdict" style="display:none;">→ TRUSTED</div>
+    </div>
+
+    <!-- Scene 8: supersession -->
+    <div class="s8-stage" id="s8" style="display:none;">
+      <div class="s8-old" id="s8-old">
+        <div class="claim-card">
+          <div class="triple">
+            <span class="pill condition">Plasmodium falciparum<span class="badge">CONDITION</span></span>
+            <span class="pred">─ treats →</span>
+            <span class="pill medication">chloroquine<span class="badge">MEDICATION</span></span>
+          </div>
+          <div class="quals">
+            <span class="k">evidence_grade</span><span>RCT (1995)</span>
+            <span class="k">valid_until</span><span>2003</span>
+          </div>
+          <div class="status-row">
+            <span class="from">status:</span> <span class="from">archived</span><span class="s8-archived-badge">ARCHIVED</span>
+          </div>
+        </div>
+      </div>
+      <div class="s8-arrow" id="s8-arrow">↓ replaced by ↓</div>
+      <div class="s8-new" id="s8-new">
+        <div class="claim-card">
+          <div class="triple">
+            <span class="pill condition">Plasmodium falciparum<span class="badge">CONDITION</span></span>
+            <span class="pred">─ resists →</span>
+            <span class="pill medication">chloroquine<span class="badge">MEDICATION</span></span>
+          </div>
+          <div class="quals">
+            <span class="k">evidence_grade</span><span>meta_analysis</span>
+            <span class="k">valid_from</span><span>2003</span>
+            <span class="k">certainty</span><span>high</span>
+          </div>
+          <div class="status-row">
+            <span class="from">status:</span> <span class="to">trusted ✓</span>
+          </div>
+        </div>
+      </div>
+      <div class="explainer" id="s8-caption" style="margin-top: 18px;">
+        <em>When the science changes, we don't delete the old fact.</em><br/>
+        We mark the new one and link them. The old advice is still readable.<br/>
+        <span class="muted">You can audit why advice changed in 1995, in 2003, in 2024.</span>
+      </div>
+    </div>
+
+    <!-- Scene 9: BRAIN files -->
+    <div class="s9-stage" id="s9" style="display:none;">
+      <div class="explainer" id="s9-intro">
+        <em>BRAIN reads everything STUDENT found</em> and writes two things.
+      </div>
+      <div class="s9-files">
+        <div class="md-file" id="s9-memory">
+          <div class="filebar"><span class="icon">MD</span><span class="name">memory.md  ←  patterns I noticed</span></div>
+          <div class="body" id="s9-memory-body"></div>
+        </div>
+        <div class="md-file" id="s9-questions">
+          <div class="filebar"><span class="icon">MD</span><span class="name">questions.md  ←  what I still don't know</span></div>
+          <div class="body" id="s9-questions-body"></div>
+        </div>
+      </div>
+      <div class="s9-feedback" id="s9-feedback">questions.md → STUDENT goes hunting for those answers next.</div>
+    </div>
+
+    <!-- Scene 10: knowledge graph -->
+    <div class="s10-stage" id="s10" style="display:none;">
+      <svg id="s10-svg" viewBox="0 0 1440 720" preserveAspectRatio="xMidYMid meet">
+        <g id="s10-edges"></g>
+        <g id="s10-nodes"></g>
+      </svg>
+      <div class="s10-counter">
+        <div><span class="k">FACTS</span> <span id="s10-nodes-count">0</span></div>
+        <div><span class="k">CONNECTIONS</span> <span id="s10-edges-count">0</span></div>
+      </div>
+      <div class="explainer s10-explainer" id="s10-explainer">
+        <em>Same facts, drawn as a map.</em><br/>
+        <span class="muted">A clinician asking "what affects falciparum?" walks the lines.</span>
+      </div>
+    </div>
+
+    <!-- Scene 11: DREAM derivatives -->
+    <div class="s11-stage" id="s11" style="display:none;">
+      <div class="explainer" id="s11-intro">
+        <em>Once a week, DREAM rewrites the easy stuff.</em><br/>
+        <span class="muted">Flashcards, mnemonics, analogies, gap lists.</span>
+      </div>
+      <div class="s11-grid" id="s11-grid"></div>
+      <div class="explainer" id="s11-caption">
+        These are study aids — <em>never treated as evidence.</em><br/>
+        <span class="muted">Hallucinations live here. The brain stays clean.</span>
+      </div>
+    </div>
+
+    <!-- Scene 12: retrieval menu -->
+    <div class="s12-stage" id="s12" style="display:none;">
+      <div class="explainer" id="s12-intro">
+        <em>We aren't the doctor-facing app.</em><br/>
+        <span class="muted">We're the brain underneath. Any clinical app talks to us through these eight calls.</span>
+      </div>
+      <div class="s12-row">
+        <div class="s12-grid" id="s12-grid"></div>
+        <div class="s12-line"></div>
+        <div class="s12-cds" id="s12-cds">CLINICAL APP</div>
+      </div>
+      <div class="explainer" id="s12-caption">
+        <em>Any CDS plugs in.</em> We are the substrate.
+      </div>
+    </div>
+
+    <!-- Scene 13: moat -->
+    <div class="s13-stage" id="s13" style="display:none;">
+      <div class="explainer" id="s13-intro">
+        <em>Three reasons this is hard to copy.</em>
+      </div>
+      <div class="s13-host" id="s13-host"></div>
+    </div>
+
+    <!-- Scene 14: status (closing) -->
+    <div class="s14-stage" id="s14" style="display:none;">
+      <div class="s14-block" id="s14-block"></div>
+      <div class="s14-closing" id="s14-closing">
+        Always learning. Always current. Auditable.
+        <span class="small">↻ replay to watch again</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="cursor">
+  <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M3 2 L3 18 L7.5 14 L10.5 21 L13 20 L10 13 L16 13 Z" fill="#1a1a1a" stroke="white" stroke-width="1.4" stroke-linejoin="round"/>
+  </svg>
+</div>
+
+<script>
+/* ────────────────────────────────────────────────────────────────────
+   Engine primitives — cursor, camera, typing, streaming, fades
+──────────────────────────────────────────────────────────────────── */
+
+const $ = (id) => document.getElementById(id);
+const stage = $('stage');
+const cursor = $('cursor');
+const stepNumEl = $('step-num');
+const progressBar = document.querySelector('#hud .bar');
+
+let stageTx = { sx: 1, tx: 0, ty: 0 };
+
+function applyCamera({ scale = 1, tx = 0, ty = 0, ms = 1200 } = {}) {
+  stage.style.transition = `transform ${ms}ms cubic-bezier(.65,.05,.36,1)`;
+  stage.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+  stageTx = { sx: scale, tx, ty };
+}
+
+function moveCursorTo(viewportX, viewportY, ms = 800) {
+  cursor.style.transition = `transform ${ms}ms cubic-bezier(.65,.05,.36,1)`;
+  cursor.style.transform = `translate(${viewportX}px, ${viewportY}px)`;
+}
+
+function clickFx() {
+  cursor.classList.add('click');
+  setTimeout(() => cursor.classList.remove('click'), 600);
+}
+
+const wait = (ms) => new Promise(r => setTimeout(r, ms));
+
+async function typeInto(targetEl, text, perCharMs = 24) {
+  targetEl.textContent = '';
+  for (const ch of text) {
+    targetEl.textContent += ch;
+    if (ch === ' ' && Math.random() < 0.05) await wait(perCharMs * 6);
+    else await wait(perCharMs + (Math.random() < 0.07 ? 80 : 0));
+  }
+}
+
+async function streamText(targetEl, text, perCharMs = 14) {
+  targetEl.textContent = '';
+  for (const ch of text) {
+    targetEl.textContent += ch;
+    await wait(perCharMs + (Math.random() < 0.05 ? 90 : 0));
+  }
+}
+
+function fadeInCard(el, ms = 450) {
+  el.style.transition = `opacity ${ms}ms ease, transform ${ms}ms ease`;
+  el.style.opacity = '0';
+  el.style.transform = 'translateY(8px)';
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    el.style.opacity = '1';
+    el.style.transform = 'translateY(0)';
+  }));
+}
+
+/* SVG node with translate position kept on the OUTER wrapper, scale animation on the INNER. */
+function popInSvgNode(innerEl, ms = 320) {
+  innerEl.style.transition = `opacity ${ms}ms ease, transform ${ms}ms cubic-bezier(.34,1.4,.64,1)`;
+  innerEl.style.opacity = '0';
+  innerEl.style.transform = 'scale(0.5)';
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    innerEl.style.opacity = '1';
+    innerEl.style.transform = 'scale(1)';
+  }));
+}
+
+function drawGraphEdge(pathEl, ms = 600) {
+  const len = pathEl.getTotalLength();
+  pathEl.style.strokeDasharray = len;
+  pathEl.style.strokeDashoffset = len;
+  pathEl.style.transition = `stroke-dashoffset ${ms}ms cubic-bezier(.65,.05,.36,1)`;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    pathEl.style.strokeDashoffset = '0';
+  }));
+}
+
+function tickCounter(el, from, to, ms = 1500, formatter = (n) => Math.round(n).toLocaleString()) {
+  const start = performance.now();
+  function frame(now) {
+    const t = Math.min(1, (now - start) / ms);
+    const eased = 1 - Math.pow(1 - t, 3);
+    el.textContent = formatter(from + (to - from) * eased);
+    if (t < 1) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function resetStageBetweenScenes() {
+  applyCamera({ scale: 1, tx: 0, ty: 0, ms: 600 });
+}
+
+const ALL_SCENE_IDS = ['s1','s2','s3','s6','s8','s9','s10','s11','s12','s13','s14'];
+const SCENE_DISPLAY = { s1: 'flex', s2: 'flex', s3: 'block', s6: 'flex', s8: 'flex', s9: 'flex', s10: 'block', s11: 'flex', s12: 'flex', s13: 'flex', s14: 'flex' };
+
+function showOnly(id) {
+  for (const sid of ALL_SCENE_IDS) {
+    const el = $(sid);
+    if (!el) continue;
+    if (sid === id) {
+      el.style.display = SCENE_DISPLAY[sid] || 'flex';
+    } else {
+      el.style.display = 'none';
+      el.classList.remove('shown');
+    }
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────────
+   Content constants
+──────────────────────────────────────────────────────────────────── */
+
+const STUDENT_LOG_LINES = [
+  { cls: 'dim',  text: '[plan] breaking topic into 3 sub-questions...' },
+  { cls: '',     text: '[search] PubMed: "artemisinin resistance pregnancy" → 247 papers found' },
+  { cls: '',     text: '[rerank] picking top 12 by recency × evidence quality' },
+  { cls: 'dim',  text: '[fetch] reading abstract 1/12 (PMID 38117392)' },
+  { cls: 'dim',  text: '[fetch] reading abstract 2/12 (PMID 37994551)' },
+  { cls: 'dim',  text: '[fetch] reading abstract 3/12 (PMID 37811204)' },
+  { cls: 'warn', text: '[think] ● ● ●', isThink: true },
+  { cls: 'good', text: '[extract] pulling out facts with their context...' },
+];
+
+const CLAIMS = [
+  {
+    subject:    { text: 'Plasmodium falciparum', cat: 'condition' },
+    predicate:  'resists',
+    object:     { text: 'artemether', cat: 'medication' },
+    qualifiers: [
+      ['where',          'Greater Mekong region'],
+      ['who',            'pregnancy (T2-T3)'],
+      ['evidence',       'RCT (high quality)'],
+      ['certainty',      'high'],
+      ['dose',           '80 mg/kg · 3 days · oral'],
+    ],
+    initialStatus: 'reviewing',
+    finalStatus:   'trusted',
+  },
+  {
+    subject:    { text: 'artemether-lumefantrine', cat: 'medication' },
+    predicate:  'requires',
+    object:     { text: 'taking with food', cat: 'context' },
+    qualifiers: [
+      ['who',            'all adults'],
+      ['evidence',       'WHO guideline'],
+      ['certainty',      'high'],
+      ['dose',           '6 doses over 3 days'],
+    ],
+    initialStatus: 'reviewing',
+    finalStatus:   'trusted',
+  },
+  {
+    subject:    { text: 'severe falciparum malaria', cat: 'condition' },
+    predicate:  'recommends',
+    object:     { text: 'IV artesunate', cat: 'medication' },
+    qualifiers: [
+      ['when',           'parasitemia >5% OR cerebral signs'],
+      ['evidence',       'meta-analysis (highest quality)'],
+      ['certainty',      'high'],
+    ],
+    initialStatus: 'reviewing',
+    finalStatus:   'trusted',
+  },
+];
+
+const GATE_CHECKS = [
+  { text: 'Evidence is strong (RCT, meta-analysis, or guideline)', pass: true },
+  { text: 'Nothing else in the brain contradicts it',              pass: true },
+  { text: 'All terms are recognized concepts',                     pass: true },
+  { text: 'Has at least 3 pieces of context (who, where, dose...)', pass: true },
+];
+const GATE_FAIL_EXAMPLE = { text: 'Other claim: "certainty: low" → blocked', pass: false };
+
+const BRAIN_MEMORY_TEXT = `## What I noticed
+
+- Resistance to artemisinin keeps showing up
+  alongside the K13 mutation. 4 studies. High confidence.
+
+- Pregnancy + endemic-region claims cluster
+  around adjusted dosing. The standard dose
+  may not be right for these patients.`;
+
+const BRAIN_QUESTIONS_TEXT = `## What I don't know yet
+
+- How common is K13 in the Greater Mekong
+  in 2025? My data is from 2023.
+
+- Any RCT data on AL dosing in
+  first-trimester pregnancy?`;
+
+const GRAPH_NODES = [
+  { id: 'pf',     label: 'P. falciparum',    cat: 'condition',   x: 600, y: 300 },
+  { id: 'pv',     label: 'P. vivax',         cat: 'condition',   x: 760, y: 220 },
+  { id: 'pm',     label: 'P. malariae',      cat: 'condition',   x: 920, y: 280 },
+  { id: 'sev',    label: 'severe malaria',   cat: 'condition',   x: 460, y: 220 },
+  { id: 'unc',    label: 'uncomplicated',    cat: 'condition',   x: 460, y: 380 },
+  { id: 'al',     label: 'artemether-lume',  cat: 'medication',  x: 320, y: 300 },
+  { id: 'art',    label: 'artesunate',       cat: 'medication',  x: 220, y: 220 },
+  { id: 'qn',     label: 'quinine',          cat: 'medication',  x: 220, y: 380 },
+  { id: 'cq',     label: 'chloroquine',      cat: 'medication',  x: 280, y: 100 },
+  { id: 'pyr',    label: 'pyrimethamine',    cat: 'medication',  x: 380, y: 80  },
+  { id: 'k13',    label: 'K13 mutation',     cat: 'risk_factor', x: 760, y: 380 },
+  { id: 'preg',   label: 'pregnancy',        cat: 'context',     x: 600, y: 460 },
+  { id: 'mek',    label: 'Greater Mekong',   cat: 'context',     x: 920, y: 440 },
+  { id: 'rdt',    label: 'RDT',              cat: 'test',        x: 700, y: 540 },
+  { id: 'smear',  label: 'blood smear',      cat: 'test',        x: 540, y: 560 },
+  { id: 'fever',  label: 'fever',            cat: 'symptom',     x: 1080, y: 360 },
+  { id: 'chills', label: 'chills',           cat: 'symptom',     x: 1080, y: 460 },
+  { id: 'hb',     label: 'low Hb',           cat: 'symptom',     x: 1060, y: 200 },
+  { id: 'who',    label: 'WHO 2024',         cat: 'context',     x: 380, y: 540 },
+  { id: 'cdc',    label: 'CDC',              cat: 'context',     x: 240, y: 480 },
+  { id: 'dur3',   label: '3 days',           cat: 'duration',    x: 100, y: 280 },
+  { id: 'pk',     label: 'parasitemia >5%',  cat: 'vital',       x: 380, y: 160 },
+  { id: 'cer',    label: 'cerebral signs',   cat: 'vital',       x: 580, y: 80  },
+  { id: 'jaund',  label: 'jaundice',         cat: 'symptom',     x: 720, y: 100 },
+  { id: 'kid',    label: 'AKI',              cat: 'condition',   x: 880, y: 100 },
+  { id: 'ruq',    label: 'RUQ tenderness',   cat: 'symptom',     x: 1020, y: 100 },
+  { id: 'rea',    label: 'travel hist.',     cat: 'risk_factor', x: 100, y: 460 },
+  { id: 'ic',     label: 'immunocomp.',      cat: 'risk_factor', x: 100, y: 380 },
+  { id: 'kid2',   label: 'renal fn',         cat: 'test',        x: 1180, y: 280 },
+  { id: 'dur24',  label: '24h fluid',        cat: 'duration',    x: 1180, y: 380 },
+];
+const GRAPH_EDGES = [
+  ['al','unc'], ['art','sev'], ['qn','sev'], ['cq','pf'], ['pyr','pf'],
+  ['k13','pf'], ['preg','unc'], ['mek','pf'], ['rdt','pf'], ['smear','pf'],
+  ['fever','pf'], ['chills','pf'], ['hb','sev'], ['who','al'], ['cdc','al'],
+  ['dur3','al'], ['pk','sev'], ['cer','sev'], ['jaund','sev'], ['kid','sev'],
+  ['ruq','unc'], ['rea','pf'], ['ic','sev'], ['kid2','sev'], ['dur24','sev'],
+  ['unc','pf'], ['sev','pf'], ['pv','rdt'], ['pm','smear'], ['preg','al'],
+  ['cq','rea'], ['art','dur3'], ['al','preg'], ['k13','mek'], ['hb','jaund'],
+  ['ruq','fever'], ['fever','rdt'], ['chills','rdt'], ['who','cdc'],
+  ['who','art'], ['cdc','rea'], ['pk','smear'], ['kid','kid2'], ['preg','dur24'],
+  ['art','dur24'], ['ic','rea'], ['mek','cdc'], ['k13','art'], ['k13','al'],
+];
+
+const DREAM_CARDS = [
+  { type: 'flashcard', label: 'FLASHCARD', body: 'Q: First-line for uncomplicated falciparum?\nA: Artemether-lumefantrine, 6 doses over 3 days, with food.' },
+  { type: 'mnemonic',  label: 'MNEMONIC',  body: '"AL with food, three days through —\nfalciparum needs them all to do."' },
+  { type: 'analogy',   label: 'ANALOGY',   body: 'Artemisinin combo : malaria :: HAART : HIV — no monotherapy survives selection pressure.' },
+  { type: 'gap',       label: 'GAP',       body: 'MISSING: artesunate dosing in third-trimester pregnancy — no RCT in corpus.' },
+];
+
+const RETRIEVAL_PRIMITIVES = [
+  'get_concept',
+  'find_supersession_chain',
+  'query_with_qualifiers',
+  'traverse_graph',
+  'list_recent_promotions',
+  'get_evidence_ledger',
+  'search_questions',
+  'get_derivatives',
+];
+
+const MOAT_CARDS = [
+  {
+    num: '01',
+    title: 'STRUCTURED FACTS',
+    body: 'Every fact has its context: who, where, dose, evidence quality. Searchable. Filterable. Auditable.',
+    footer: 'Not a vector blob. Not a chatbot guess.',
+  },
+  {
+    num: '02',
+    title: 'THE LEDGER NEVER FORGETS',
+    body: 'When science updates, we link old to new. The history stays readable. You can show a regulator why advice changed.',
+    footer: 'Not a delete-and-replace.',
+  },
+  {
+    num: '03',
+    title: 'HALLUCINATION FIREWALL',
+    body: 'Synthetic outputs (mnemonics, analogies, summaries) live in a separate room. They never sneak back in as evidence.',
+    footer: 'AI can\'t pollute the primary record.',
+  },
+];
+
+const STATUS_DASHBOARD = [
+  ['DOMAIN',                  'malaria'],
+  ['FACTS IN THE BRAIN',      { kind: 'tick', from: 0, to: 1247 }],
+  ['SOURCES',                 'PubMed · WHO · DailyMed'],
+  ['AUTO-TRUSTED',            '68% of new claims'],
+  ['IN HUMAN-REVIEW QUEUE',   '142 claims'],
+  ['LAST PAPER INGESTED',     '2 minutes ago'],
+];
+
+/* ────────────────────────────────────────────────────────────────────
+   SCENES
+──────────────────────────────────────────────────────────────────── */
+
+const SCENES = [
+  {
+    title: '1. Cold open',
+    run: async () => {
+      const wm = $('s1-wordmark');
+      const tl = $('s1-tagline');
+      const sb = $('s1-sub');
+      wm.classList.add('shown');
+      await wait(900);
+      await typeInto(tl, 'A medical brain that never stops learning.', 30);
+      await wait(700);
+      await typeInto(sb, 'BUILT FOR DOCTORS WHO RAN OUT OF TIME TO READ.', 22);
+      await wait(2000);
+    },
+  },
+  {
+    title: '2. Problem',
+    run: async () => {
+      $('s1-wordmark').classList.add('up');
+      await wait(500);
+      showOnly('s2');
+      requestAnimationFrame(() => $('s2').classList.add('shown'));
+      await wait(700);
+      const tickEl = $('s2-tick');
+      tickCounter(tickEl, 0, 320, 8000);
+      await wait(2500);
+      $('s2-explainer').classList.add('shown');
+      await wait(7000);
+    },
+  },
+  {
+    title: '3. Architecture loop',
+    run: async () => {
+      showOnly('s3');
+      requestAnimationFrame(() => $('s3').classList.add('shown'));
+      applyCamera({ scale: 1, tx: 0, ty: -60, ms: 800 });
+      await wait(500);
+      const order = ['ab-student', 'ab-brain', 'ab-graphify', 'ab-dream'];
+      for (const id of order) {
+        fadeInCard($(id), 500);
+        await wait(450);
+      }
+      await wait(300);
+      ['s3-arrow-1', 's3-arrow-2', 's3-arrow-3', 's3-arrow-4'].forEach(id => drawGraphEdge(document.getElementById(id), 900));
+      await wait(1100);
+      $('s3-explainer').classList.add('shown');
+      await wait(4500);
+    },
+  },
+  {
+    title: '4. Zoom STUDENT — terminal',
+    run: async () => {
+      $('s3-explainer').classList.remove('shown');
+      await wait(300);
+      applyCamera({ scale: 1.6, tx: -380, ty: -160, ms: 900 });
+      await wait(950);
+      const term = $('s4-term');
+      term.classList.add('shown');
+      await wait(400);
+      const r = term.getBoundingClientRect();
+      moveCursorTo(r.left + 80, r.top + 30, 700);
+      await wait(750);
+      clickFx();
+      await typeInto($('s4-cmd'), 'student "artemisinin resistance in pregnancy"', 18);
+      await wait(700);
+    },
+  },
+  {
+    title: '5. STUDENT streams',
+    run: async () => {
+      const out = $('s4-output');
+      for (const line of STUDENT_LOG_LINES) {
+        const div = document.createElement('div');
+        div.className = 'line ' + (line.cls || '');
+        out.appendChild(div);
+        if (line.isThink) {
+          div.innerHTML = '<span class="prompt">[think] </span><span class="pulse-dots"><span>●</span> <span>●</span> <span>●</span></span>';
+          await wait(1500);
+        } else {
+          await streamText(div, line.text, 14);
+          await wait(380);
+        }
+      }
+      await wait(1400);
+    },
+  },
+  {
+    title: '6. Claims emerge',
+    run: async () => {
+      $('s4-term').classList.remove('shown');
+      showOnly('s6');
+      resetStageBetweenScenes();
+      requestAnimationFrame(() => $('s6').classList.add('shown'));
+      await wait(700);
+      $('s6-intro').classList.add('shown');
+      await wait(2500);
+      const host = $('s6-cards');
+      host.innerHTML = '';
+      for (const c of CLAIMS) {
+        const card = document.createElement('div');
+        card.className = 'claim-card';
+        card.innerHTML = `
+          <div class="triple">
+            <span class="pill ${c.subject.cat}">${escapeHtml(c.subject.text)}<span class="badge">${c.subject.cat.toUpperCase()}</span></span>
+            <span class="pred">─ ${c.predicate} →</span>
+            <span class="pill ${c.object.cat}">${escapeHtml(c.object.text)}<span class="badge">${c.object.cat.toUpperCase()}</span></span>
+          </div>
+          <div class="quals">
+            ${c.qualifiers.map(([k, v]) => `<span class="k">${k}</span><span>${escapeHtml(v)}</span>`).join('')}
+          </div>
+          <div class="status-row">
+            <span class="from">status:</span> <span class="from">${c.initialStatus}</span> → <span class="to">${c.finalStatus} ✓</span>
+          </div>
+        `;
+        host.appendChild(card);
+        fadeInCard(card, 500);
+        await wait(1500);
+      }
+      await wait(2800);
+    },
+  },
+  {
+    title: '7. Auto-promote gate',
+    run: async () => {
+      const cards = document.querySelectorAll('#s6-cards .claim-card');
+      cards.forEach((c, i) => { if (i !== 0) c.classList.add('dimmed'); });
+      cards[0]?.classList.add('focus');
+      await wait(500);
+      const panel = $('s7-panel');
+      panel.classList.add('shown');
+      const rowsHost = $('s7-rows');
+      rowsHost.innerHTML = '';
+      const verdict = $('s7-verdict');
+      verdict.style.display = 'none';
+      verdict.classList.remove('warn');
+      verdict.classList.add('good');
+      verdict.textContent = '→ TRUSTED';
+      await wait(800);
+      for (const ck of GATE_CHECKS) {
+        const row = document.createElement('div');
+        row.className = 'row ' + (ck.pass ? 'pass' : 'fail');
+        row.innerHTML = `<span class="mark">${ck.pass ? '✓' : '✗'}</span><span>${escapeHtml(ck.text)}</span>`;
+        rowsHost.appendChild(row);
+        requestAnimationFrame(() => row.classList.add('shown'));
+        await wait(450);
+      }
+      await wait(600);
+      verdict.style.display = 'block';
+      fadeInCard(verdict, 400);
+      await wait(2200);
+      verdict.textContent = '→ HOLDING FOR REVIEW';
+      verdict.classList.remove('good');
+      verdict.classList.add('warn');
+      const failRow = document.createElement('div');
+      failRow.className = 'row fail';
+      failRow.innerHTML = `<span class="mark">✗</span><span>${escapeHtml(GATE_FAIL_EXAMPLE.text)}</span>`;
+      rowsHost.appendChild(failRow);
+      requestAnimationFrame(() => failRow.classList.add('shown'));
+      await wait(2800);
+      panel.classList.remove('shown');
+      cards.forEach(c => { c.classList.remove('dimmed'); c.classList.remove('focus'); });
+      await wait(700);
+    },
+  },
+  {
+    title: '8. Supersession',
+    run: async () => {
+      showOnly('s8');
+      resetStageBetweenScenes();
+      requestAnimationFrame(() => $('s8').classList.add('shown'));
+      await wait(600);
+      $('s8-old').classList.add('shown');
+      await wait(1100);
+      $('s8-arrow').classList.add('shown');
+      await wait(800);
+      $('s8-new').classList.add('shown');
+      await wait(1200);
+      $('s8-caption').classList.add('shown');
+      await wait(5500);
+    },
+  },
+  {
+    title: '9. BRAIN synthesis',
+    run: async () => {
+      showOnly('s9');
+      resetStageBetweenScenes();
+      requestAnimationFrame(() => $('s9').classList.add('shown'));
+      await wait(500);
+      $('s9-intro').classList.add('shown');
+      await wait(1500);
+      $('s9-memory').classList.add('shown');
+      await wait(600);
+      await streamText($('s9-memory-body'), BRAIN_MEMORY_TEXT, 9);
+      await wait(900);
+      $('s9-questions').classList.add('shown');
+      await wait(500);
+      await streamText($('s9-questions-body'), BRAIN_QUESTIONS_TEXT, 9);
+      await wait(800);
+      $('s9-feedback').classList.add('shown');
+      await wait(4000);
+    },
+  },
+  {
+    title: '10. GRAPHIFY — knowledge graph',
+    run: async () => {
+      showOnly('s10');
+      resetStageBetweenScenes();
+      requestAnimationFrame(() => $('s10').classList.add('shown'));
+      const nodesG = $('s10-nodes');
+      const edgesG = $('s10-edges');
+      nodesG.innerHTML = '';
+      edgesG.innerHTML = '';
+      $('s10-nodes-count').textContent = '0';
+      $('s10-edges-count').textContent = '0';
+      await wait(400);
+      const nodeById = {};
+      for (const n of GRAPH_NODES) nodeById[n.id] = n;
+      // Build nodes — outer wrapper holds translate (SVG attribute), inner holds the
+      // animated CSS scale. This avoids style.transform clobbering the position.
+      for (let i = 0; i < GRAPH_NODES.length; i++) {
+        const n = GRAPH_NODES[i];
+        const wrap = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        wrap.setAttribute('transform', `translate(${n.x}, ${n.y})`);
+        const inner = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        inner.setAttribute('class', 'node-anim');
+        const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        c.setAttribute('r', '9');
+        c.setAttribute('class', `node-${n.cat}`);
+        c.setAttribute('stroke-width', '1.5');
+        const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        t.setAttribute('class', 'label');
+        t.setAttribute('x', '14');
+        t.setAttribute('y', '4');
+        t.textContent = n.label;
+        inner.appendChild(c);
+        inner.appendChild(t);
+        wrap.appendChild(inner);
+        nodesG.appendChild(wrap);
+        popInSvgNode(inner, 360);
+        $('s10-nodes-count').textContent = i + 1;
+        await wait(75);
+      }
+      await wait(400);
+      for (let i = 0; i < GRAPH_EDGES.length; i++) {
+        const [from, to] = GRAPH_EDGES[i];
+        const a = nodeById[from], b = nodeById[to];
+        if (!a || !b) continue;
+        const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        p.setAttribute('class', 'edge');
+        p.setAttribute('d', `M ${a.x} ${a.y} Q ${(a.x + b.x) / 2} ${(a.y + b.y) / 2 - 30} ${b.x} ${b.y}`);
+        edgesG.appendChild(p);
+        drawGraphEdge(p, 600);
+        $('s10-edges-count').textContent = i + 1;
+        await wait(55);
+      }
+      await wait(800);
+      $('s10-explainer').classList.add('shown');
+      await wait(4500);
+    },
+  },
+  {
+    title: '11. DREAM — derivatives',
+    run: async () => {
+      showOnly('s11');
+      resetStageBetweenScenes();
+      requestAnimationFrame(() => $('s11').classList.add('shown'));
+      await wait(500);
+      $('s11-intro').classList.add('shown');
+      await wait(2200);
+      const grid = $('s11-grid');
+      grid.innerHTML = '';
+      for (const c of DREAM_CARDS) {
+        const card = document.createElement('div');
+        card.className = 'deriv-card';
+        card.innerHTML = `
+          <div class="head"><span class="label">${c.label}</span><span class="ns">derivative/</span></div>
+          <div class="body">${escapeHtml(c.body)}</div>
+        `;
+        grid.appendChild(card);
+        fadeInCard(card, 450);
+        await wait(450);
+      }
+      await wait(800);
+      $('s11-caption').classList.add('shown');
+      await wait(5000);
+    },
+  },
+  {
+    title: '12. Retrieval primitives',
+    run: async () => {
+      showOnly('s12');
+      resetStageBetweenScenes();
+      requestAnimationFrame(() => $('s12').classList.add('shown'));
+      await wait(500);
+      $('s12-intro').classList.add('shown');
+      await wait(2400);
+      const grid = $('s12-grid');
+      grid.innerHTML = '';
+      for (const p of RETRIEVAL_PRIMITIVES) {
+        const b = document.createElement('div');
+        b.className = 's12-prim';
+        b.textContent = p;
+        grid.appendChild(b);
+        fadeInCard(b, 320);
+        await wait(220);
+      }
+      await wait(500);
+      fadeInCard($('s12-cds'), 500);
+      await wait(900);
+      $('s12-caption').classList.add('shown');
+      await wait(4500);
+    },
+  },
+  {
+    title: '13. Moat',
+    run: async () => {
+      showOnly('s13');
+      resetStageBetweenScenes();
+      requestAnimationFrame(() => $('s13').classList.add('shown'));
+      await wait(500);
+      $('s13-intro').classList.add('shown');
+      await wait(1800);
+      const host = $('s13-host');
+      host.innerHTML = '';
+      for (const m of MOAT_CARDS) {
+        const c = document.createElement('div');
+        c.className = 'moat-card';
+        c.innerHTML = `
+          <div class="num">${m.num}</div>
+          <div class="title">${escapeHtml(m.title)}</div>
+          <div class="rule"></div>
+          <div class="body">${escapeHtml(m.body)}</div>
+          <div class="footer">${escapeHtml(m.footer)}</div>
+        `;
+        host.appendChild(c);
+        fadeInCard(c, 500);
+        await wait(450);
+      }
+      await wait(6500);
+    },
+  },
+  {
+    title: '14. Status — closing',
+    run: async () => {
+      showOnly('s14');
+      resetStageBetweenScenes();
+      requestAnimationFrame(() => $('s14').classList.add('shown'));
+      await wait(600);
+      const block = $('s14-block');
+      block.innerHTML = '';
+      for (const [k, v] of STATUS_DASHBOARD) {
+        const row = document.createElement('div');
+        row.className = 'row';
+        row.innerHTML = `<span class="k">${k}</span><span class="v"></span>`;
+        block.appendChild(row);
+        fadeInCard(row, 320);
+        const valEl = row.querySelector('.v');
+        if (typeof v === 'object' && v.kind === 'tick') {
+          tickCounter(valEl, v.from, v.to, 2400);
+        } else {
+          valEl.textContent = v;
+        }
+        await wait(280);
+      }
+      await wait(2200);
+      $('s14-closing').classList.add('shown');
+      await wait(1200);
+      $('replay-btn').classList.add('glow');
+    },
+  },
+];
+
+/* ────────────────────────────────────────────────────────────────────
+   Driver
+──────────────────────────────────────────────────────────────────── */
+
+async function play(startAt = 0) {
+  $('step-total').textContent = SCENES.length;
+  for (let i = 0; i < startAt; i++) {
+    const sc = SCENES[i];
+    stepNumEl.textContent = (i + 1);
+    progressBar.style.width = (((i + 1) / SCENES.length) * 100) + '%';
+    try { await Promise.race([sc.run(), wait(50)]); } catch (e) { /* ignore in ff */ }
+  }
+  for (let i = startAt; i < SCENES.length; i++) {
+    const sc = SCENES[i];
+    stepNumEl.textContent = (i + 1);
+    progressBar.style.width = (((i + 1) / SCENES.length) * 100) + '%';
+    try { await sc.run(); }
+    catch (e) { console.error('scene-error', sc.title, e); }
+  }
+}
+
+function readSceneParam() {
+  const url = new URL(window.location.href);
+  const n = parseInt(url.searchParams.get('scene') || '', 10);
+  return Number.isFinite(n) && n >= 1 && n <= SCENES.length ? n - 1 : 0;
+}
+
+function setupDevPanel() {
+  const url = new URL(window.location.href);
+  if (url.searchParams.get('dev') !== '1') return;
+  const panel = $('devpanel');
+  panel.classList.add('shown');
+  for (let i = 0; i < SCENES.length; i++) {
+    const b = document.createElement('button');
+    b.textContent = `[${i + 1}] ${SCENES[i].title}`;
+    b.onclick = () => { window.location.href = `?scene=${i + 1}&dev=1`; };
+    panel.appendChild(b);
+  }
+}
+
+window.addEventListener('load', () => {
+  moveCursorTo(60, 80, 0);
+  setupDevPanel();
+  setTimeout(() => $('hud').classList.add('shown'), 800);
+  setTimeout(() => play(readSceneParam()), 1200);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+{
+  "_doc": "10 sample CDS-style queries hitting all 8 retrieval primitives. Each query lists what a clinician/student wants and which primitive should answer. The phase7_run harness invokes the corresponding menu function and writes envelopes to brain/phase7_report.md. Target: every query returns a non-empty data block; provenance (claim_ids, sources) present where applicable; current/superseded flags accurate.",
+  "version": "1.0",
+  "queries": [
+    {"id": "Q01", "primitive": "lookup",        "args": {"entity": "artemisinin"},
+     "intent": "What do we know about artemisinin? Confirm node exists, neighbors enumerated, citations resolve."},
+    {"id": "Q02", "primitive": "lookup",        "args": {"entity": "chloroquine"},
+     "intent": "Same for chloroquine. Should surface superseded/resistance edges."},
+    {"id": "Q03", "primitive": "neighborhood",  "args": {"entity": "malaria", "hops": 2},
+     "intent": "2-hop ego network around malaria — drugs, resistance, populations."},
+    {"id": "Q04", "primitive": "path",          "args": {"from": "chloroquine", "to": "resistance", "max_paths": 3},
+     "intent": "How does the brain connect chloroquine to resistance? Path should pass through Plasmodium falciparum / region nodes."},
+    {"id": "Q05", "primitive": "scoped",        "args": {"population_region": "Greater Mekong", "min_certainty": "high", "current_only": true},
+     "intent": "High-certainty, current findings restricted to Greater Mekong. Geo qualifier exercise."},
+    {"id": "Q06", "primitive": "scoped",        "args": {"population_pregnancy": "safe", "current_only": true},
+     "intent": "Pregnancy-safe options — firewall test (no derivative; only direct claims)."},
+    {"id": "Q07", "primitive": "recent",        "args": {"since": "2020"},
+     "intent": "Sources newer than 2020. Exercises Source.publication_date sort."},
+    {"id": "Q08", "primitive": "gaps",          "args": {},
+     "intent": "Open questions + contradictions surfaced. Should include hydroxychloroquine + vitamin D contradicting topics."},
+    {"id": "Q09", "primitive": "evidence_pack", "args": {"claim_ids_from": "auto_top_n_high_grade", "n": 10},
+     "intent": "Bundle 10 highest-grade claim IDs and request their evidence pack — full provenance round-trip."},
+    {"id": "Q10", "primitive": "community",     "args": {"topic": "malaria"},
+     "intent": "Greedy-modularity community for malaria — should cluster malaria/drug/resistance/pregnancy nodes together."}
+  ]
+}

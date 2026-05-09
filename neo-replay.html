@@ -1,0 +1,841 @@
+<!--
+  Neo CDS Platform v0 — scripted replay (HTML "video")
+
+  Self-contained: no external CSS / JS / fonts / images. Open this file
+  directly in a browser to play the demo. Restart by reloading.
+
+  Scene queue lives in `SCENES` near the bottom; the engine in `Player`
+  walks it step-by-step, animating an SVG cursor between targets, doing
+  per-character typing, fading entity badges in, and shifting the
+  viewport via CSS transforms (camera-pan effect).
+
+  Lives under `.tmp/` which is gitignored.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Neo CDS Platform v0 — Replay</title>
+<style>
+  /* ────────────────────────────────────────────────────────────────
+     Tokens — mirror the real app's monochrome + chip palette.
+  ──────────────────────────────────────────────────────────────── */
+  :root {
+    --bg: #fafafa;
+    --surface: #ffffff;
+    --text: #1a1a1a;
+    --gray-2: #f3f3f3;
+    --gray-3: #e6e6e6;
+    --gray-4: #d4d4d4;
+    --gray-9: #6f6f6f;
+    --gray-12: #2a2a2a;
+    --accent: #2563eb;
+    --good: #16a34a;
+    --warn: #d97706;
+    --bad: #dc2626;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-sans); overflow: hidden; }
+
+  /* Viewport — the "stage" we pan/zoom inside */
+  #stage-wrap { position: fixed; inset: 0; overflow: hidden; background: linear-gradient(180deg, #fafafa 0%, #f5f5f5 100%); }
+  #stage {
+    position: absolute; top: 0; left: 0;
+    width: 1440px; height: 900px;
+    transform-origin: 0 0;
+    transition: transform 1200ms cubic-bezier(.65,.05,.36,1);
+  }
+
+  /* Top header */
+  .topbar { display: flex; justify-content: space-between; align-items: center; padding: 14px 28px; font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em; }
+  .topbar .left { display: flex; align-items: center; gap: 14px; color: var(--gray-9); }
+  .topbar .pid-pill { display: flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--gray-3); background: var(--surface); }
+  .topbar .pid-pill .dot { width: 7px; height: 7px; border-radius: 999px; background: var(--gray-4); }
+  .topbar .center { display: flex; align-items: center; gap: 16px; color: var(--gray-9); }
+  .topbar .ready { display: inline-flex; align-items: center; gap: 6px; }
+  .topbar .ready .dot { width: 8px; height: 8px; border-radius: 999px; background: var(--good); box-shadow: 0 0 0 4px rgba(22,163,74,0.12); }
+  .topbar .new-note { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border: 1px solid var(--gray-12); background: var(--gray-12); color: white; border-radius: 999px; font-size: 11.5px; }
+  .topbar .new-note .spinner { width: 9px; height: 9px; border: 1.5px solid #fff5; border-top-color: white; border-radius: 999px; animation: spin 1.2s linear infinite; }
+  .topbar .right { color: var(--gray-9); }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 38px; justify-content: center; padding: 4px 0 18px; font-size: 14px; color: var(--gray-9); }
+  .tabs .tab { padding: 8px 0; border-bottom: 1.5px solid transparent; cursor: default; }
+  .tabs .tab.active { color: var(--text); border-bottom-color: var(--text); }
+
+  /* Two-column layout */
+  .layout { display: grid; grid-template-columns: 1fr 480px; gap: 20px; padding: 0 24px 24px; height: calc(100% - 80px); }
+
+  /* Patient context card */
+  .ctx-card { background: var(--surface); border: 1px solid var(--gray-3); border-radius: 14px; padding: 20px 24px; display: flex; flex-direction: column; min-height: 480px; position: relative; }
+  .ctx-card .ctx-head { display: flex; justify-content: space-between; align-items: center; padding-bottom: 14px; }
+  .ctx-card .ctx-label { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em; color: var(--gray-9); }
+  .ctx-card .ctx-actions { display: flex; align-items: center; gap: 12px; }
+  #analyze-btn { padding: 10px 24px; border-radius: 999px; border: none; background: var(--gray-12); color: white; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.14em; cursor: pointer; transition: all .25s ease; }
+  #analyze-btn.analyzing { background: var(--gray-4); color: var(--gray-12); }
+  #analyze-btn.analyzing::before { content: "● "; color: var(--good); animation: pulse 1.2s ease-in-out infinite; }
+  .mic { width: 32px; height: 32px; border-radius: 999px; border: 1px solid var(--gray-3); display: inline-flex; align-items: center; justify-content: center; color: var(--gray-9); }
+
+  .ctx-inner { background: var(--gray-2); border: 1px solid var(--gray-3); border-radius: 10px; padding: 18px; min-height: 320px; flex: 1; position: relative; }
+  .ctx-saved { display: flex; align-items: center; gap: 8px; color: var(--good); font-size: 12px; margin-bottom: 12px; opacity: 0; }
+  .ctx-saved.show { opacity: 1; transition: opacity .4s ease; }
+  .ctx-saved::before { content: "✓"; }
+  .ctx-saved-actions { position: absolute; top: 12px; right: 14px; }
+  .edit-text-btn { padding: 5px 14px; font-size: 11.5px; border: 1px solid var(--gray-3); background: var(--surface); color: var(--gray-9); border-radius: 999px; }
+
+  /* The note text where entity badges fade in */
+  #note-text {
+    line-height: 2.6;
+    font-size: 15.5px;
+    color: var(--text);
+    word-spacing: 1.5px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  #note-text .span { white-space: nowrap; padding: 4px 0; }
+
+  /* Entity chip — matches CATEGORY_COLORS */
+  .ent {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 14.5px;
+    line-height: 1;
+    transform: translateY(2px);
+    opacity: 0;
+    transition: opacity .35s ease, transform .35s ease;
+    margin: 0 1px;
+  }
+  .ent.shown { opacity: 1; transform: translateY(0); }
+  .ent .badge { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.08em; padding: 2px 6px; border-radius: 4px; background: rgba(0,0,0,.08); color: rgba(0,0,0,.55); }
+  .ent.context     { background: #E0E0E0; color: #37474F; }
+  .ent.context     .badge { background: rgba(55,71,79,.15); color: #37474F; }
+  .ent.symptom     { background: #FFF9C4; color: #F57F17; }
+  .ent.symptom     .badge { background: #F57F17; color: #fff8d8; }
+  .ent.condition   { background: #FFCDD2; color: #B71C1C; }
+  .ent.condition   .badge { background: #B71C1C; color: #ffe8ea; }
+  .ent.medication  { background: #C8E6C9; color: #1B5E20; }
+  .ent.medication  .badge { background: #1B5E20; color: #d8f0d9; }
+  .ent.dosage      { background: #E1BEE7; color: #4A148C; }
+  .ent.dosage      .badge { background: #4A148C; color: #f0d8f5; }
+  .ent.duration    { background: #D7CCC8; color: #4E342E; }
+  .ent.duration    .badge { background: #4E342E; color: #f0e0d6; }
+  .ent.vital       { background: #B2DFDB; color: #004D40; }
+  .ent.vital       .badge { background: #004D40; color: #d8f0ec; }
+  .ent.anatomy     { background: #D7CCC8; color: #3E2723; }
+  .ent.anatomy     .badge { background: #3E2723; color: #f0e0d6; }
+  .ent.test        { background: #BBDEFB; color: #0D47A1; }
+  .ent.test        .badge { background: #0D47A1; color: #dceaff; }
+  .ent.risk_factor { background: #FFCCBC; color: #BF360C; }
+  .ent.risk_factor .badge { background: #BF360C; color: #ffe6dc; }
+
+  /* Right rail — INSIGHTS */
+  .rail { background: transparent; display: flex; flex-direction: column; gap: 14px; overflow: hidden; padding-top: 0; }
+  .rail-card { background: var(--surface); border: 1px solid var(--gray-3); border-radius: 12px; padding: 0; opacity: 0; transform: translateY(8px); transition: opacity .45s ease, transform .45s ease; }
+  .rail-card.shown { opacity: 1; transform: translateY(0); }
+  .rail-card .head { padding: 12px 14px 8px; display: flex; justify-content: space-between; align-items: center; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.12em; color: var(--gray-9); }
+  .rail-card .head .live { color: var(--good); display: inline-flex; align-items: center; gap: 6px; }
+  .rail-card .head .live .dot { width: 7px; height: 7px; border-radius: 999px; background: var(--good); animation: pulse 1.4s ease-in-out infinite; }
+
+  /* Insights empty state */
+  #insights-empty { padding: 60px 28px; text-align: center; color: var(--gray-9); display: flex; flex-direction: column; gap: 8px; align-items: center; }
+  #insights-empty .label { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.18em; color: var(--gray-12); }
+  #insights-empty .hint { font-size: 13px; color: var(--gray-9); }
+
+  /* Question card */
+  .qcard .body { padding: 12px 14px 16px; }
+  .qcard .qtext { font-family: var(--font-sans); font-size: 14px; color: var(--text); margin: 0 0 10px; }
+  .qcard .tags { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .qtag { display: inline-flex; padding: 3px 8px; border: 1px solid var(--gray-3); background: var(--gray-2); border-radius: 4px; font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.08em; }
+  .qtag.high { background: #fff0e9; border-color: #fbb38a; color: #b8420c; }
+  .qtag.medium { background: #fff7e6; border-color: #f0c98a; color: #8a5a00; }
+  .qtag.low { background: var(--gray-2); color: var(--gray-9); }
+  .qcard .reason { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.04em; color: var(--gray-9); padding: 8px 10px; background: var(--gray-2); border-radius: 6px; line-height: 1.5; }
+  .qnav { display: flex; justify-content: space-between; padding: 10px 14px 12px; }
+  .qnav button { padding: 4px 10px; font-family: var(--font-mono); font-size: 10.5px; border: 1px solid var(--gray-3); background: var(--surface); border-radius: 4px; color: var(--gray-9); }
+
+  /* Relations row */
+  .rcard .rrow { display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); gap: 10px; padding: 8px 14px; border-bottom: 1px solid var(--gray-3); align-items: center; font-size: 11px; }
+  .rcard .rrow:last-child { border-bottom: none; }
+  .rrow .rh, .rrow .rt { word-break: break-word; line-height: 1.3; }
+  .rrow .rt { text-align: right; }
+  .rrow .rr { font-family: var(--font-mono); font-size: 9.5px; padding: 2px 6px; border: 1px solid var(--gray-3); background: var(--gray-2); border-radius: 3px; letter-spacing: 0.06em; text-align: center; color: var(--gray-12); }
+
+  /* Differential rows */
+  .dcard .dgrid { display: grid; grid-template-columns: 28px 1fr auto auto; font-size: 11px; }
+  .dcard .dgrid > div { padding: 8px 12px; border-bottom: 1px solid var(--gray-3); display: flex; align-items: center; }
+  .dcard .dgrid > div:nth-last-child(-n+4) { border-bottom: none; }
+  .dcard .th { background: #fafafa; font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.1em; color: var(--gray-9); }
+  .dcard .name { font-weight: 600; word-break: break-word; line-height: 1.3; }
+  .dcard .code { font-family: var(--font-mono); font-size: 10px; color: var(--gray-9); white-space: nowrap; }
+  .dcard .conf { font-weight: 700; }
+
+  /* Smart bar */
+  #smartbar-wrap { position: fixed; left: 24px; bottom: 24px; right: 504px; z-index: 6; transition: opacity .4s ease, transform .4s ease; }
+  .smartbar { background: var(--surface); border: 1px solid var(--gray-3); border-radius: 14px; padding: 16px 18px; box-shadow: 0 6px 30px rgba(0,0,0,0.04); }
+  .smartbar .top { font-family: var(--font-mono); font-size: 10.5px; color: var(--gray-9); letter-spacing: 0.1em; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .smartbar .top .mode-pill { padding: 3px 8px; border: 1px solid var(--gray-3); border-radius: 999px; font-size: 9.5px; }
+  .smartbar .input-row { display: flex; align-items: center; gap: 10px; }
+  .smartbar .input-row .left { display: flex; gap: 6px; }
+  .smartbar .input-row .right { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+  .smartbar .icon-btn { width: 30px; height: 30px; border-radius: 999px; border: 1px solid var(--gray-3); background: var(--surface); display: inline-flex; align-items: center; justify-content: center; font-size: 16px; color: var(--gray-9); }
+  .smartbar .icon-btn.send { background: var(--gray-12); color: white; border-color: var(--gray-12); }
+  .smartbar #sb-input { flex: 1; min-height: 22px; line-height: 22px; font-size: 14px; color: var(--text); padding: 0 4px; }
+  .smartbar #sb-input:empty::before { content: attr(data-placeholder); color: var(--gray-4); }
+  /* Caret blink (visible only while typing in this field) */
+  .smartbar #sb-input.typing::after { content: "▍"; color: var(--gray-12); animation: caret 1s steps(1) infinite; margin-left: 1px; font-weight: 200; }
+
+  .smartbar .attachments { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .att-chip { display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border: 1px solid var(--gray-3); border-radius: 8px; background: var(--gray-2); font-size: 11.5px; opacity: 0; transform: translateY(4px); transition: opacity .35s ease, transform .35s ease; }
+  .att-chip.shown { opacity: 1; transform: translateY(0); }
+  .att-chip .meta { font-family: var(--font-mono); font-size: 9.5px; padding: 2px 6px; border-radius: 4px; background: var(--gray-12); color: white; letter-spacing: 0.06em; }
+  .att-chip .meta.indexing { background: #fff7e6; color: #8a5a00; border: 1px solid #f0c98a; }
+
+  /* Tabs row above smart bar */
+  .smartbar-tabs { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+  .smartbar-tabs .ta { padding: 6px 12px; font-size: 11px; border: 1px solid var(--gray-3); background: var(--surface); border-radius: 999px; color: var(--gray-9); }
+
+  /* Answer card */
+  #answer-wrap { position: fixed; left: 24px; right: 504px; bottom: 200px; z-index: 5; opacity: 0; transform: translateY(8px); transition: opacity .5s ease, transform .5s ease; }
+  #answer-wrap.shown { opacity: 1; transform: translateY(0); }
+  .answer-card { background: var(--surface); border: 1px solid var(--gray-3); border-radius: 14px; padding: 18px 22px; box-shadow: 0 8px 36px rgba(0,0,0,0.06); }
+  .answer-card .ahead { display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 1px solid var(--gray-3); margin-bottom: 14px; }
+  .answer-card .ahead .left { display: flex; align-items: center; gap: 10px; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.1em; color: var(--gray-9); }
+  .answer-card .ahead .label { color: var(--gray-12); font-weight: 700; letter-spacing: 0.14em; }
+  .answer-card .ahead .meta { font-size: 10px; color: var(--gray-9); }
+  .answer-card .ahead .grounded-pill { padding: 4px 10px; border: 1px solid var(--gray-3); border-radius: 999px; font-size: 10px; letter-spacing: 0.08em; }
+  .answer-card .qrow { font-family: var(--font-mono); font-size: 11px; color: var(--gray-9); margin-bottom: 8px; }
+  .answer-card .a-text { font-size: 14.5px; line-height: 1.6; color: var(--text); margin: 0; }
+  .answer-card .cites { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+  .cite-chip { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border: 1px solid var(--gray-3); border-radius: 999px; background: var(--surface); font-size: 12px; }
+  .cite-chip .num { width: 18px; height: 18px; border-radius: 999px; background: var(--gray-12); color: white; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; }
+  .cite-chip .label { font-family: var(--font-mono); font-size: 9.5px; padding: 2px 6px; border-radius: 4px; background: var(--gray-2); color: var(--gray-9); letter-spacing: 0.06em; }
+
+  /* Cursor */
+  #cursor { position: fixed; top: 0; left: 0; width: 24px; height: 24px; pointer-events: none; z-index: 999; transform: translate(40px, 40px); transition: transform 900ms cubic-bezier(.65,.05,.36,1); }
+  #cursor svg { display: block; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); }
+  #cursor.click::before { content: ""; position: absolute; left: 4px; top: 4px; width: 16px; height: 16px; border-radius: 999px; border: 2px solid var(--accent); animation: clickRipple .55s ease-out; }
+
+  /* HUD: timeline + scene title */
+  #hud { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; background: rgba(20,20,20,0.85); color: white; padding: 8px 14px; border-radius: 999px; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; z-index: 1000; backdrop-filter: blur(8px); }
+  #hud .progress { width: 220px; height: 4px; background: #fff2; border-radius: 999px; overflow: hidden; }
+  #hud .progress > .bar { height: 100%; width: 0%; background: linear-gradient(90deg, #6ee7b7 0%, #2563eb 100%); transition: width 200ms linear; }
+  #hud #scene-title { color: #d4d4d8; }
+  #hud .badge { padding: 3px 8px; border-radius: 999px; background: #ffffff14; font-size: 10px; }
+  #replay-btn { background: #ffffff14; border: 1px solid #ffffff22; color: white; padding: 4px 10px; border-radius: 999px; font-family: var(--font-mono); font-size: 10px; cursor: pointer; }
+  #replay-btn:hover { background: #ffffff22; }
+
+  /* Animations */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.55; transform: scale(0.85); } }
+  @keyframes caret { 50% { opacity: 0; } }
+  @keyframes clickRipple { from { opacity: 0.9; transform: scale(0.6); } to { opacity: 0; transform: scale(2.2); } }
+  @keyframes shimmer { 0% { background-position: -200px 0; } 100% { background-position: 200px 0; } }
+
+  /* For text-streaming chat answer */
+  .stream-text { display: inline; }
+  .stream-cursor { display: inline-block; width: 7px; height: 14px; vertical-align: middle; background: var(--gray-12); margin-left: 1px; animation: caret 0.9s steps(1) infinite; }
+
+</style>
+</head>
+<body>
+
+<div id="hud">
+  <span id="scene-title">Loading…</span>
+  <span class="progress"><span class="bar"></span></span>
+  <span class="badge"><span id="step-num">0</span>/<span id="step-total">0</span></span>
+  <button id="replay-btn" onclick="window.location.reload()">↻ Replay</button>
+</div>
+
+<div id="stage-wrap">
+<div id="stage">
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="left">
+      <div class="pid-pill"><span class="dot"></span><span>SELECT PATIENT</span></div>
+    </div>
+    <div class="center">
+      <span class="ready"><span class="dot"></span>READY</span>
+      <span class="new-note"><span class="spinner"></span>CREATE NEW NOTE</span>
+    </div>
+    <div class="right">[ EXIT ]</div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <span class="tab">Transcript</span>
+    <span class="tab active">Context</span>
+    <span class="tab">Clinical Summary</span>
+    <span class="tab">Created Notes</span>
+  </div>
+
+  <!-- Two columns -->
+  <div class="layout">
+    <!-- LEFT: Patient Context -->
+    <div class="ctx-card" id="ctx-card">
+      <div class="ctx-head">
+        <div class="ctx-label">PATIENT CONTEXT</div>
+        <div class="ctx-actions">
+          <button id="analyze-btn">ANALYZE</button>
+          <span class="mic">🎤</span>
+        </div>
+      </div>
+      <div class="ctx-inner">
+        <div class="ctx-saved" id="ctx-saved">Auto-saved</div>
+        <div class="ctx-saved-actions"><button class="edit-text-btn">Edit text</button></div>
+        <div id="note-text"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Insights rail -->
+    <div class="rail" id="rail">
+      <div id="insights-empty">
+        <div class="label">INSIGHTS</div>
+        <div class="hint" style="margin-top: 12px;">●</div>
+        <div class="hint" style="font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.14em;">NO INSIGHTS YET</div>
+        <div class="hint">Add patient context and click Analyze<br/>to see relationships and questions here.</div>
+      </div>
+
+      <!-- Question card placeholder -->
+      <div class="rail-card qcard" id="qcard">
+        <div class="head"><span><span id="q-counter">QUESTION 1 / 3</span></span><span class="live"><span class="dot"></span>LIVE</span></div>
+        <div class="body">
+          <p class="qtext" id="q-text">…</p>
+          <div class="tags"><span class="qtag" id="q-pri">PRI HIGH</span></div>
+          <div class="reason" id="q-reason">…</div>
+        </div>
+        <div class="qnav"><button>← Prev</button><button>Next →</button></div>
+      </div>
+
+      <!-- Relations card -->
+      <div class="rail-card rcard" id="rcard">
+        <div class="head"><span>RELATIONS</span><span><span id="rcount">22 ENT · 6 LINKS</span></span></div>
+        <div id="rrows"></div>
+      </div>
+
+      <!-- Differential card -->
+      <div class="rail-card dcard" id="dcard">
+        <div class="head"><span>DIFFERENTIAL <span id="dcount">5/5</span></span><span style="color:var(--gray-9)">NV-RERANK-QA-MISTRAL-4B</span></div>
+        <div class="dgrid">
+          <div class="th">#</div><div class="th">DISEASE</div><div class="th" style="justify-self:end;">CODE</div><div class="th" style="justify-self:end;">CONF</div>
+          <div>1</div><div class="name">Falciparum malaria</div><div class="code">SNOMED 62676009</div><div class="conf">97</div>
+          <div>2</div><div class="name">Plasmodium falciparum malaria</div><div class="code">ICD-10 B50</div><div class="conf">97</div>
+          <div>3</div><div class="name">Plasmodium falciparum malaria, unspecified</div><div class="code">ICD-10 B50.9</div><div class="conf">96</div>
+          <div>4</div><div class="name">Fever, unspecified</div><div class="code">ICD-10 R50.9</div><div class="conf">79</div>
+          <div>5</div><div class="name">Malarial fever</div><div class="code">SNOMED 248437004</div><div class="conf">76</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div> <!-- /#stage -->
+</div> <!-- /#stage-wrap -->
+
+<!-- Smart bar (fixed; lives outside the panned stage so it's always visible) -->
+<div id="smartbar-wrap">
+  <div class="smartbar">
+    <div class="top">
+      <span>NEO AI UNDERSTANDS YOUR CONTEXT, NOTES &amp; UPLOADS</span>
+      <span class="mode-pill">GENERAL</span>
+    </div>
+    <div class="attachments" id="attachments"></div>
+    <div class="input-row">
+      <div class="left">
+        <button class="icon-btn" id="attach-btn">+</button>
+        <button class="icon-btn">≡</button>
+      </div>
+      <div id="sb-input" data-placeholder="Ask about this patient…"></div>
+      <div class="right">
+        <button class="icon-btn">🎤</button>
+        <button class="icon-btn send" id="send-btn">↑</button>
+      </div>
+    </div>
+    <div class="smartbar-tabs">
+      <span class="ta">Vitals</span><span class="ta">History</span><span class="ta">Allergies</span><span class="ta">Labs</span>
+    </div>
+  </div>
+</div>
+
+<!-- Answer card -->
+<div id="answer-wrap">
+  <div class="answer-card">
+    <div class="ahead">
+      <div class="left"><span class="label">NEO ANSWER</span><span class="meta">GROUNDED COMPOSER · CITATION-CHECKED · <span id="ans-cite-count">3</span> SOURCES · <span id="ans-elapsed">0.0S</span></span></div>
+      <div><span class="grounded-pill">GROUNDED ANSWER</span></div>
+    </div>
+    <div class="qrow" id="ans-qrow">Q  …</div>
+    <div class="a-text"><span id="ans-text" class="stream-text"></span><span class="stream-cursor" id="ans-cursor"></span></div>
+    <div class="cites" id="ans-cites"></div>
+  </div>
+</div>
+
+<!-- Cursor -->
+<div id="cursor">
+  <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M3 2 L3 18 L7.5 14 L10.5 21 L13 20 L10 13 L16 13 Z" fill="#1a1a1a" stroke="white" stroke-width="1.4" stroke-linejoin="round"/>
+  </svg>
+</div>
+
+<script>
+/* ────────────────────────────────────────────────────────────────────
+   Demo content — malaria note + entity offsets + relations + 3 questions
+──────────────────────────────────────────────────────────────────── */
+const NOTE = `This is a 35-year-old male presenting with 3 days of fever reaching 39°C chills and severe headache after returning from a malaria-endemic region 5 days ago. Patient reports taking Paracetamol without improvement. Physical exam shows febrile patient with tachycardia pulse 98 and mild RUQ tenderness. Malaria RDT positive for Plasmodium falciparum. Blood smear pending. Assessment is uncomplicated falciparum malaria. Plan to start Artemether-lumefantrine as per protocol.`;
+
+// Each entity: surface text + category; offsets resolved at render time
+const ENTITIES = [
+  ["35-year-old male", "context"],
+  ["3 days", "duration"],
+  ["fever", "symptom"],
+  ["39°C", "vital"],
+  ["chills", "symptom"],
+  ["severe headache", "symptom"],
+  ["malaria-endemic region", "risk_factor"],
+  ["5 days ago", "context"],
+  ["Paracetamol", "medication"],
+  ["without improvement", "context"],
+  ["febrile", "symptom"],
+  ["tachycardia pulse 98", "vital"],
+  ["mild RUQ tenderness", "symptom"],
+  ["RUQ", "anatomy"],
+  ["Malaria RDT", "test"],
+  ["Plasmodium falciparum", "condition"],
+  ["Blood smear", "test"],
+  ["uncomplicated falciparum malaria", "condition"],
+  ["Artemether-lumefantrine", "medication"],
+];
+
+const RELATIONS = [
+  ["Malaria RDT", "TEST_ORDERED_FOR", "Plasmodium falciparum"],
+  ["Artemether-lumefantrine", "MEDICATION_FOR", "uncomplicated falciparum malaria"],
+  ["malaria-endemic region", "RISK_FACTOR_FOR", "uncomplicated falciparum malaria"],
+  ["3 days", "DURATION_OF", "uncomplicated falciparum malaria"],
+  ["mild RUQ tenderness", "HAS_SITE", "RUQ"],
+  ["tachycardia pulse 98", "HAS_FINDING", "uncomplicated falciparum malaria"],
+];
+
+const QUESTIONS = [
+  {
+    pri: "high",
+    text: "Have you experienced any nausea, vomiting, or abdominal pain beyond the mild RUQ tenderness noted on exam?",
+    reason: "TO ASSESS FOR POTENTIAL COMPLICATIONS SUCH AS HEMOLYSIS OR LIVER INVOLVEMENT IN SEVERE FALCIPARUM MALARIA",
+  },
+  {
+    pri: "medium",
+    text: "What is your current fluid intake and urine output? Any reduction in last 24 hours?",
+    reason: "FLUID STATUS AND RENAL FUNCTION ARE CRITICAL EARLY MARKERS FOR SEVERE MALARIA PROGRESSION",
+  },
+  {
+    pri: "low",
+    text: "Are you taking any other medications, supplements, or herbal remedies along with the paracetamol?",
+    reason: "CHECK FOR DRUG INTERACTIONS WITH ARTEMETHER-LUMEFANTRINE; SOME COMMON OTC AGENTS PROLONG QT",
+  },
+];
+
+const ANSWER_GENERAL = {
+  q: "What are the WHO guidelines for treating uncomplicated falciparum malaria?",
+  text: "WHO recommends artemisinin-based combination therapy (ACT) as first-line treatment for uncomplicated falciparum malaria in all endemic regions. Artemether-lumefantrine is one of the recommended regimens, given as 6 doses over 3 days with food to enhance absorption. Severe-malaria features (parasitemia >5%, cerebral signs, jaundice, low Hb) warrant escalation to parenteral artesunate.",
+  cites: [
+    { num: 1, label: "KNOWLEDGE", title: "WHO Malaria Guidelines 2024 §6.2" },
+    { num: 2, label: "KNOWLEDGE", title: "DailyMed: Artemether-lumefantrine SPL" },
+    { num: 3, label: "KNOWLEDGE", title: "CDC Travelers' Health: Malaria" },
+  ],
+  elapsed: "8.4s",
+};
+
+const ANSWER_GROUNDED = {
+  q: "Based on the lab report and image, what is this patient's status and recommended next step?",
+  text: "The patient has confirmed uncomplicated Plasmodium falciparum malaria with a 4% parasitemia (per the lab report) and a low hemoglobin of 7.2 g/dL. The image findings corroborate the smear-positive diagnosis. Artemether-lumefantrine is appropriate. Monitor for rising parasitemia or clinical deterioration; the low Hb may warrant transfusion if symptoms worsen.",
+  cites: [
+    { num: 1, label: "UPLOADED PDF", title: "lab_report.pdf p.1" },
+    { num: 2, label: "UPLOADED IMAGE", title: "blood_smear.png" },
+    { num: 3, label: "PATIENT CONTEXT", title: "Encounter snapshot" },
+    { num: 4, label: "KNOWLEDGE", title: "WHO §6.2 Treatment" },
+  ],
+  elapsed: "12.7s",
+};
+
+/* ────────────────────────────────────────────────────────────────────
+   Player engine — cursor, camera, typing, fades
+──────────────────────────────────────────────────────────────────── */
+
+const $ = (id) => document.getElementById(id);
+const stage = $('stage');
+const cursor = $('cursor');
+const sceneTitle = $('scene-title');
+const stepNumEl = $('step-num');
+const progressBar = document.querySelector('#hud .bar');
+
+// The entire #stage is 1440x900; we place cursor in viewport coords.
+// We translate the cursor in viewport space, accounting for stage transform.
+let stageTx = { sx: 1, tx: 0, ty: 0 };
+
+function applyCamera({ scale = 1, tx = 0, ty = 0, ms = 1200 } = {}) {
+  stage.style.transition = `transform ${ms}ms cubic-bezier(.65,.05,.36,1)`;
+  stage.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+  stageTx = { sx: scale, tx, ty };
+}
+
+function moveCursorTo(viewportX, viewportY, ms = 800) {
+  cursor.style.transition = `transform ${ms}ms cubic-bezier(.65,.05,.36,1)`;
+  cursor.style.transform = `translate(${viewportX}px, ${viewportY}px)`;
+}
+
+/* Move cursor onto a stage element, in viewport coordinates */
+function cursorOver(selector, opts = {}) {
+  const el = document.querySelector(selector);
+  if (!el) return Promise.resolve();
+  const rect = el.getBoundingClientRect();
+  const x = rect.left + (opts.dx || rect.width / 2) - 6;
+  const y = rect.top + (opts.dy || rect.height / 2) - 6;
+  moveCursorTo(x, y, opts.ms || 800);
+  return wait(opts.ms || 800);
+}
+
+function clickFx() {
+  cursor.classList.add('click');
+  setTimeout(() => cursor.classList.remove('click'), 600);
+}
+
+const wait = (ms) => new Promise(r => setTimeout(r, ms));
+
+async function typeInto(targetEl, text, perCharMs = 24) {
+  targetEl.textContent = '';
+  for (const ch of text) {
+    targetEl.textContent += ch;
+    if (ch === ' ' && Math.random() < 0.05) await wait(perCharMs * 6);
+    else await wait(perCharMs + (Math.random() < 0.07 ? 80 : 0));
+  }
+}
+
+/* Render the note as a sequence of text spans + entity placeholders */
+function renderNoteSkeleton() {
+  const container = $('note-text');
+  container.innerHTML = '';
+  let cursor = 0;
+  const lower = NOTE.toLowerCase();
+  // Build entity index: find each entity in source text; entities don't overlap.
+  const slots = [];
+  for (const [text, cat] of ENTITIES) {
+    const idx = lower.indexOf(text.toLowerCase(), cursor);
+    if (idx >= 0) {
+      slots.push({ start: idx, end: idx + text.length, cat });
+      cursor = idx + text.length;
+    }
+  }
+  slots.sort((a, b) => a.start - b.start);
+  // Now walk the note + insert spans
+  let pos = 0;
+  let entityIdx = 0;
+  for (const slot of slots) {
+    if (slot.start > pos) {
+      container.appendChild(document.createTextNode(NOTE.slice(pos, slot.start)));
+    }
+    const span = document.createElement('span');
+    span.className = 'ent ' + slot.cat;
+    span.dataset.entIdx = entityIdx++;
+    const surface = NOTE.slice(slot.start, slot.end);
+    span.innerHTML = `<span class="t">${escapeHtml(surface)}</span><span class="badge">${slot.cat.toUpperCase().replace('_',' ')}</span>`;
+    container.appendChild(span);
+    pos = slot.end;
+  }
+  if (pos < NOTE.length) container.appendChild(document.createTextNode(NOTE.slice(pos)));
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ────────────────────────────────────────────────────────────────────
+   Scene definitions — runs sequentially. Returns Promise.
+──────────────────────────────────────────────────────────────────── */
+
+const SCENES = [
+  {
+    title: '1. Open patient context',
+    run: async () => {
+      $('insights-empty').style.display = 'flex';
+      ['qcard','rcard','dcard'].forEach(id => $(id).style.display = 'none');
+      await cursorOver('#note-text', { ms: 600 });
+      await wait(400);
+    },
+  },
+  {
+    title: '2. Type the clinical note',
+    run: async () => {
+      $('ctx-saved').classList.remove('show');
+      // Type into a temporary plain text area before swapping in the entity skeleton
+      const note = $('note-text');
+      note.innerHTML = '';
+      const tmp = document.createElement('span');
+      tmp.style.whiteSpace = 'pre-wrap';
+      tmp.style.fontSize = '15.5px';
+      tmp.style.lineHeight = '2.6';
+      note.appendChild(tmp);
+      await typeInto(tmp, NOTE, 12);
+      await wait(300);
+      $('ctx-saved').classList.add('show');
+      await wait(400);
+    },
+  },
+  {
+    title: '3. Click ANALYZE',
+    run: async () => {
+      await cursorOver('#analyze-btn', { ms: 700 });
+      await wait(150);
+      clickFx();
+      $('analyze-btn').classList.add('analyzing');
+      $('analyze-btn').textContent = 'ANALYZING…';
+      await wait(700);
+      // Replace the typed text with the entity skeleton (all entities hidden)
+      renderNoteSkeleton();
+      await wait(350);
+    },
+  },
+  {
+    title: '4. Camera pan: focus the note while entities tag',
+    run: async () => {
+      // Pan to focus the note area (left side ~ x=24 to x=920)
+      applyCamera({ scale: 1.08, tx: -40, ty: -40, ms: 900 });
+      await wait(950);
+    },
+  },
+  {
+    title: '5. Entity badges fade in (streaming)',
+    run: async () => {
+      const ents = document.querySelectorAll('#note-text .ent');
+      for (const e of ents) {
+        e.classList.add('shown');
+        // Move cursor onto the entity briefly so the eye follows it
+        const r = e.getBoundingClientRect();
+        moveCursorTo(r.left + r.width / 2 - 6, r.top + r.height / 2 - 6, 280);
+        await wait(220);
+      }
+      await wait(500);
+    },
+  },
+  {
+    title: '6. Camera back out, focus the right rail',
+    run: async () => {
+      $('analyze-btn').classList.remove('analyzing');
+      $('analyze-btn').textContent = 'ANALYZE';
+      $('insights-empty').style.display = 'none';
+      // Pan right (rail is at the right side of the 1440 stage)
+      applyCamera({ scale: 1.05, tx: -560, ty: -50, ms: 1100 });
+      await wait(1150);
+    },
+  },
+  {
+    title: '7. Question card appears (Q1/3)',
+    run: async () => {
+      const qcard = $('qcard');
+      qcard.style.display = 'block';
+      $('q-counter').textContent = 'QUESTION 1 / 3';
+      $('q-text').textContent = QUESTIONS[0].text;
+      $('q-pri').className = 'qtag ' + QUESTIONS[0].pri;
+      $('q-pri').textContent = 'PRI ' + QUESTIONS[0].pri.toUpperCase();
+      $('q-reason').textContent = QUESTIONS[0].reason;
+      requestAnimationFrame(() => qcard.classList.add('shown'));
+      await cursorOver('#qcard', { ms: 700 });
+      await wait(2200);
+    },
+  },
+  {
+    title: '8. Question 2/3',
+    run: async () => {
+      $('q-counter').textContent = 'QUESTION 2 / 3';
+      $('q-text').textContent = QUESTIONS[1].text;
+      $('q-pri').className = 'qtag ' + QUESTIONS[1].pri;
+      $('q-pri').textContent = 'PRI ' + QUESTIONS[1].pri.toUpperCase();
+      $('q-reason').textContent = QUESTIONS[1].reason;
+      await wait(2000);
+    },
+  },
+  {
+    title: '9. Question 3/3',
+    run: async () => {
+      $('q-counter').textContent = 'QUESTION 3 / 3';
+      $('q-text').textContent = QUESTIONS[2].text;
+      $('q-pri').className = 'qtag ' + QUESTIONS[2].pri;
+      $('q-pri').textContent = 'PRI ' + QUESTIONS[2].pri.toUpperCase();
+      $('q-reason').textContent = QUESTIONS[2].reason;
+      await wait(2000);
+    },
+  },
+  {
+    title: '10. Pan down to RELATIONS',
+    run: async () => {
+      const rrows = $('rrows');
+      rrows.innerHTML = '';
+      RELATIONS.forEach(([h, rel, t]) => {
+        const row = document.createElement('div');
+        row.className = 'rrow';
+        row.innerHTML = `<span class="rh">${escapeHtml(h)}</span><span class="rr">${rel.replace(/_/g,' ').toLowerCase()}</span><span class="rt">${escapeHtml(t)}</span>`;
+        rrows.appendChild(row);
+      });
+      $('rcount').textContent = `${ENTITIES.length} ENT · ${RELATIONS.length} LINKS`;
+      const rcard = $('rcard');
+      rcard.style.display = 'block';
+      requestAnimationFrame(() => rcard.classList.add('shown'));
+      // Camera shifts further right + down to capture relations
+      applyCamera({ scale: 1.05, tx: -560, ty: -240, ms: 1000 });
+      await cursorOver('#rcard', { ms: 700 });
+      await wait(1800);
+    },
+  },
+  {
+    title: '11. Quick scroll → DIFFERENTIAL',
+    run: async () => {
+      const dcard = $('dcard');
+      dcard.style.display = 'block';
+      requestAnimationFrame(() => dcard.classList.add('shown'));
+      applyCamera({ scale: 1.0, tx: -460, ty: -440, ms: 1100 });
+      await cursorOver('#dcard', { ms: 700 });
+      await wait(1800);
+    },
+  },
+  {
+    title: '12. Pull camera back, prepare for RAG',
+    run: async () => {
+      applyCamera({ scale: 1.0, tx: 0, ty: 0, ms: 1100 });
+      await wait(1200);
+    },
+  },
+  {
+    title: '13. RAG #1 — type a general question',
+    run: async () => {
+      await cursorOver('#sb-input', { ms: 700 });
+      await wait(150);
+      clickFx();
+      const input = $('sb-input');
+      input.classList.add('typing');
+      await typeInto(input, ANSWER_GENERAL.q, 18);
+      input.classList.remove('typing');
+      await wait(300);
+    },
+  },
+  {
+    title: '14. Click Send → general grounded answer',
+    run: async () => {
+      await cursorOver('#send-btn', { ms: 600 });
+      await wait(100);
+      clickFx();
+      // Show answer card with streaming text
+      $('ans-qrow').textContent = 'Q  ' + ANSWER_GENERAL.q;
+      $('ans-cite-count').textContent = ANSWER_GENERAL.cites.length;
+      $('ans-elapsed').textContent = ANSWER_GENERAL.elapsed;
+      $('ans-cites').innerHTML = ANSWER_GENERAL.cites.map(c => `<span class="cite-chip"><span class="num">${c.num}</span>${c.title} <span class="label">${c.label}</span></span>`).join('');
+      $('ans-text').textContent = '';
+      $('answer-wrap').classList.add('shown');
+      await streamText('ans-text', ANSWER_GENERAL.text, 14);
+      $('ans-cursor').style.display = 'none';
+      await wait(1800);
+    },
+  },
+  {
+    title: '15. Attach PDF + PNG via the + button',
+    run: async () => {
+      await cursorOver('#attach-btn', { ms: 700 });
+      await wait(150);
+      clickFx();
+      const att = $('attachments');
+      att.innerHTML = '';
+      const pdf = document.createElement('span'); pdf.className = 'att-chip';
+      pdf.innerHTML = `📄 <strong>lab_report.pdf</strong> <span class="meta indexing">INDEXING…</span>`;
+      att.appendChild(pdf);
+      requestAnimationFrame(() => pdf.classList.add('shown'));
+      await wait(700);
+      const png = document.createElement('span'); png.className = 'att-chip';
+      png.innerHTML = `🖼️ <strong>blood_smear.png</strong> <span class="meta indexing">INDEXING…</span>`;
+      att.appendChild(png);
+      requestAnimationFrame(() => png.classList.add('shown'));
+      await wait(900);
+      // Flip both to INDEXED
+      pdf.querySelector('.meta').textContent = '3 PAGES · INDEXED';
+      pdf.querySelector('.meta').classList.remove('indexing');
+      png.querySelector('.meta').textContent = 'INDEXED';
+      png.querySelector('.meta').classList.remove('indexing');
+      await wait(700);
+    },
+  },
+  {
+    title: '16. Type the grounded follow-up question',
+    run: async () => {
+      await cursorOver('#sb-input', { ms: 600 });
+      const input = $('sb-input');
+      input.textContent = '';
+      input.classList.add('typing');
+      // Hide previous answer first
+      $('answer-wrap').classList.remove('shown');
+      $('ans-cursor').style.display = '';
+      await wait(450);
+      await typeInto(input, ANSWER_GROUNDED.q, 18);
+      input.classList.remove('typing');
+      await wait(250);
+    },
+  },
+  {
+    title: '17. Click Send → grounded multi-source answer',
+    run: async () => {
+      await cursorOver('#send-btn', { ms: 600 });
+      await wait(100);
+      clickFx();
+      $('ans-qrow').textContent = 'Q  ' + ANSWER_GROUNDED.q;
+      $('ans-cite-count').textContent = ANSWER_GROUNDED.cites.length;
+      $('ans-elapsed').textContent = ANSWER_GROUNDED.elapsed;
+      $('ans-cites').innerHTML = ANSWER_GROUNDED.cites.map(c => `<span class="cite-chip"><span class="num">${c.num}</span>${c.title} <span class="label">${c.label}</span></span>`).join('');
+      $('ans-text').textContent = '';
+      $('answer-wrap').classList.add('shown');
+      await streamText('ans-text', ANSWER_GROUNDED.text, 12);
+      $('ans-cursor').style.display = 'none';
+      await wait(2400);
+    },
+  },
+  {
+    title: '18. Final pull-back ✓',
+    run: async () => {
+      applyCamera({ scale: 0.95, tx: 30, ty: 0, ms: 1200 });
+      await cursorOver('#answer-wrap', { ms: 800 });
+      await wait(2000);
+      sceneTitle.textContent = 'DEMO COMPLETE — click ↻ Replay';
+    },
+  },
+];
+
+async function streamText(elId, text, perCharMs = 18) {
+  const el = $(elId);
+  el.textContent = '';
+  for (const ch of text) {
+    el.textContent += ch;
+    await wait(perCharMs + (Math.random() < 0.05 ? 90 : 0));
+  }
+}
+
+async function play() {
+  $('step-total').textContent = SCENES.length;
+  for (let i = 0; i < SCENES.length; i++) {
+    const sc = SCENES[i];
+    sceneTitle.textContent = sc.title;
+    stepNumEl.textContent = (i + 1);
+    progressBar.style.width = (((i + 1) / SCENES.length) * 100) + '%';
+    try { await sc.run(); }
+    catch (e) { console.error('scene-error', sc.title, e); }
+  }
+}
+
+window.addEventListener('load', () => {
+  // Cursor starts off-screen-ish at top-left of stage
+  moveCursorTo(60, 80, 0);
+  // Hide rail cards initially
+  ['qcard','rcard','dcard'].forEach(id => $(id).style.display = 'none');
+  $('answer-wrap').classList.remove('shown');
+  setTimeout(play, 600);
+});
+</script>
+</body>
+</html>

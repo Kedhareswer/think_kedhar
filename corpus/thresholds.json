@@ -1,0 +1,54 @@
+{
+  "_doc": "Tunable knobs surfaced by Phase 7. Each entry: where it lives, current default, sweep range to explore, success metric. phase7_tune.py runs sweeps and emits a sensitivity table. After the corpus run, edit the source defaults if a sweep value clearly wins.",
+  "version": "1.0",
+  "knobs": [
+    {
+      "name": "max_total_papers",
+      "lives_in": "medbrain/extractors/plan.py:StopCriteria",
+      "default": 30,
+      "sweep": [10, 20, 30, 50],
+      "metric": "claims_inserted_per_topic / pubmed_calls_per_topic — higher is better up to plateau",
+      "rationale": "Global cap per topic. Too low = under-saturated; too high = LLM cost balloons on broad topics."
+    },
+    {
+      "name": "duplicate_ratio_threshold",
+      "lives_in": "medbrain/extractors/plan.py:StopCriteria",
+      "default": 0.7,
+      "sweep": [0.5, 0.6, 0.7, 0.8, 0.9],
+      "metric": "papers_to_saturation — fewer is cheaper, but too aggressive misses tail novelty",
+      "rationale": "Saturation early-stop sensitivity inside one query."
+    },
+    {
+      "name": "saturation_window",
+      "lives_in": "medbrain/extractors/plan.py:StopCriteria",
+      "default": 3,
+      "sweep": [2, 3, 5],
+      "metric": "false_saturation_rate — % of stops that re-trigger with novelty if cap raised",
+      "rationale": "Window size for the duplicate-ratio rolling check."
+    },
+    {
+      "name": "salience.unread_threshold_days",
+      "lives_in": "medbrain/dream/decay.py:UNREAD_THRESHOLD_DAYS_DEFAULT",
+      "default": 180,
+      "sweep": [90, 180, 365],
+      "metric": "fraction_archived_in_one_pass — should be near 0 on a healthy corpus",
+      "rationale": "Days idle before grace_score decays. Too short = active concepts archived; too long = stale clutter."
+    },
+    {
+      "name": "salience.decay_step",
+      "lives_in": "medbrain/dream/decay.py:DECAY_STEP_DEFAULT",
+      "default": 0.1,
+      "sweep": [0.05, 0.1, 0.2],
+      "metric": "passes_to_archive_from_fresh — at default = 7 passes from 1.0 to ≤0.3",
+      "rationale": "Per-pass decrement. Larger = faster archival."
+    },
+    {
+      "name": "salience.archive_floor",
+      "lives_in": "medbrain/dream/decay.py:ARCHIVE_FLOOR_DEFAULT",
+      "default": 0.3,
+      "sweep": [0.1, 0.2, 0.3, 0.4],
+      "metric": "archive_recall — manual review of archived entities; floor ↑ = more aggressive",
+      "rationale": "Score at which an entity's claims move to brain/archive/."
+    }
+  ]
+}

@@ -1,0 +1,1054 @@
+<!--
+  MedBrain v1 — scripted replay (HTML "video")
+
+  Self-contained: no external CSS / JS / fonts / images. Open this file
+  directly in a browser to play the demo. Restart by reloading.
+
+  Story: a malaria knowledge brain ingests one PubMed paper end-to-end —
+  Student extracts qualified claims → trust gate → SQL → dirty tracker →
+  concepts/notes regenerate → Brain synthesizes memory.md + questions.md →
+  Graphify rebuilds the knowledge graph → CDS hits the retrieval menu →
+  Dream cycle compacts and decays.
+
+  Engine pattern is borrowed from neo-replay.html: scene queue, animated
+  cursor, camera-pan, per-character typing, fade-in chips.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>MedBrain v1 — Replay</title>
+<style>
+  /* ────────────────────────────────────────────────────────────────
+     Tokens — clinical / lab feel, predicate-coded chips.
+  ──────────────────────────────────────────────────────────────── */
+  :root {
+    --bg: #f7f7f5;
+    --surface: #ffffff;
+    --text: #1a1a1a;
+    --gray-2: #f1f1ef;
+    --gray-3: #e3e3df;
+    --gray-4: #cfcfca;
+    --gray-9: #6f6f6c;
+    --gray-12: #1f1f1d;
+    --accent: #2563eb;
+    --good: #16a34a;
+    --warn: #d97706;
+    --bad: #dc2626;
+    --gold: #b45309;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-sans); overflow: hidden; }
+
+  /* Stage / camera */
+  #stage-wrap { position: fixed; inset: 0; overflow: hidden; background: linear-gradient(180deg, #f7f7f5 0%, #efefec 100%); }
+  #stage {
+    position: absolute; top: 0; left: 0;
+    width: 1440px; height: 900px;
+    transform-origin: 0 0;
+    transition: transform 1200ms cubic-bezier(.65,.05,.36,1);
+  }
+
+  /* Top bar */
+  .topbar { display: flex; justify-content: space-between; align-items: center; padding: 12px 24px; font-family: var(--font-mono); font-size: 11.5px; letter-spacing: 0.06em; }
+  .brand { display: flex; align-items: center; gap: 10px; color: var(--gray-12); }
+  .brand .mark { width: 14px; height: 14px; border-radius: 4px; background: linear-gradient(135deg, #16a34a, #2563eb); display: inline-block; }
+  .brand .name { font-weight: 700; letter-spacing: 0.14em; }
+  .brand .sub { color: var(--gray-9); }
+  .topbar .right { display: flex; gap: 14px; align-items: center; color: var(--gray-9); }
+  .topbar .pill { padding: 4px 10px; border-radius: 999px; border: 1px solid var(--gray-3); background: var(--surface); display: inline-flex; align-items: center; gap: 6px; }
+  .topbar .pill .dot { width: 7px; height: 7px; border-radius: 999px; background: var(--gray-4); }
+  .topbar .pill.live .dot { background: var(--good); box-shadow: 0 0 0 3px rgba(22,163,74,0.15); }
+
+  /* Agent strip */
+  .agents { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding: 0 24px 14px; }
+  .agent { background: var(--surface); border: 1px solid var(--gray-3); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; transition: box-shadow .35s ease, border-color .35s ease, background .35s ease; }
+  .agent .row { display: flex; justify-content: space-between; align-items: center; }
+  .agent .name { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.14em; color: var(--gray-12); }
+  .agent .cadence { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.06em; color: var(--gray-9); }
+  .agent .state { font-size: 11.5px; color: var(--gray-9); display: inline-flex; align-items: center; gap: 6px; }
+  .agent .state .dot { width: 7px; height: 7px; border-radius: 999px; background: var(--gray-4); }
+  .agent.busy { border-color: var(--gray-12); box-shadow: 0 4px 22px rgba(0,0,0,0.06); }
+  .agent.busy .state .dot { background: var(--good); animation: pulse 1.2s ease-in-out infinite; }
+  .agent.busy .state { color: var(--gray-12); font-weight: 600; }
+  .agent .blurb { font-size: 11px; color: var(--gray-9); line-height: 1.45; }
+
+  /* Two-column body */
+  .layout { display: grid; grid-template-columns: 1fr 460px; gap: 18px; padding: 0 24px 16px; height: calc(100% - 230px); }
+
+  /* LEFT: source + extraction */
+  .panel { background: var(--surface); border: 1px solid var(--gray-3); border-radius: 12px; padding: 0; display: flex; flex-direction: column; min-height: 0; }
+  .panel > .head { padding: 12px 16px 8px; display: flex; justify-content: space-between; align-items: center; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.14em; color: var(--gray-9); border-bottom: 1px solid var(--gray-3); }
+  .panel > .head .meta { font-size: 9.5px; letter-spacing: 0.08em; color: var(--gray-12); }
+  .panel > .body { padding: 14px 18px; overflow: hidden; flex: 1; min-height: 0; }
+
+  /* Source card */
+  .src-row { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; margin-bottom: 8px; }
+  .src-row .pmid { font-family: var(--font-mono); font-size: 11px; padding: 2px 8px; background: var(--gray-2); border-radius: 4px; color: var(--gray-12); letter-spacing: 0.04em; }
+  .src-row .ptype { font-family: var(--font-mono); font-size: 9.5px; padding: 2px 6px; border-radius: 4px; background: #e0e7ff; color: #1e3a8a; letter-spacing: 0.06em; }
+  .src-row .journal { font-family: var(--font-mono); font-size: 10px; color: var(--gray-9); }
+  #src-title { font-size: 13.5px; line-height: 1.45; color: var(--text); margin-bottom: 8px; font-weight: 600; }
+  #src-abstract { font-size: 12.5px; line-height: 1.6; color: var(--gray-12); white-space: pre-wrap; min-height: 92px; max-height: 162px; overflow: hidden; border-left: 2px solid var(--gray-3); padding-left: 12px; }
+
+  .div-line { height: 1px; background: var(--gray-3); margin: 14px 0 12px; }
+
+  /* Claims list */
+  .claims-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .claims-head .title { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.14em; color: var(--gray-9); }
+  .claims-head .progress { font-family: var(--font-mono); font-size: 10px; color: var(--gray-12); }
+  #claims-list { display: flex; flex-direction: column; gap: 8px; max-height: 260px; overflow: hidden; }
+  .claim {
+    border: 1px solid var(--gray-3); border-radius: 8px; padding: 8px 10px;
+    background: var(--surface);
+    display: flex; flex-direction: column; gap: 6px;
+    opacity: 0; transform: translateY(4px);
+    transition: opacity .4s ease, transform .4s ease, border-color .35s ease, background .35s ease;
+  }
+  .claim.shown { opacity: 1; transform: translateY(0); }
+  .claim .spo { display: flex; align-items: center; gap: 6px; font-size: 12.5px; flex-wrap: wrap; }
+  .claim .ent { padding: 2px 8px; border-radius: 5px; background: var(--gray-2); border: 1px solid var(--gray-3); font-weight: 500; }
+  .claim .arrow { color: var(--gray-9); font-family: var(--font-mono); font-size: 10px; }
+  .claim .pred { font-family: var(--font-mono); font-size: 10px; padding: 2px 7px; border-radius: 4px; letter-spacing: 0.06em; }
+  .pred.treats        { background: #d1fadf; color: #045b1b; }
+  .pred.causes        { background: #ffd6d6; color: #7a1010; }
+  .pred.resists       { background: #ffe5c2; color: #8a4500; }
+  .pred.recommends    { background: #ede0ff; color: #4a148c; }
+  .pred.prevents      { background: #d6e8ff; color: #0d3a8a; }
+  .pred.contraindicates { background: #ffe1de; color: #9a1c1c; }
+  .pred.co_occurs     { background: #e3e3e0; color: #2e2e2c; }
+  .pred.requires      { background: #ccecea; color: #064b48; }
+  .pred.supersedes    { background: #fff3bf; color: #6b4400; }
+
+  .claim .meta-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.06em; color: var(--gray-9); }
+  .claim .grade { padding: 2px 6px; border-radius: 4px; }
+  .grade.RCT { background: #dbeafe; color: #1e3a8a; }
+  .grade.guideline { background: #ede9fe; color: #4c1d95; }
+  .grade.cohort { background: #ccfbf1; color: #134e4a; }
+  .grade.meta_analysis { background: #fef3c7; color: #78350f; }
+  .grade.case_report { background: #f3f4f6; color: #6b7280; }
+  .grade.expert_opinion { background: #f3f4f6; color: #6b7280; }
+
+  .claim .cert { padding: 2px 6px; border-radius: 4px; background: var(--gray-2); color: var(--gray-12); }
+  .cert-high { background: #dcfce7 !important; color: #14532d !important; }
+  .cert-moderate { background: #fef9c3 !important; color: #713f12 !important; }
+  .cert-low { background: #fee2e2 !important; color: #7f1d1d !important; }
+  .cert-very_low { background: #f4f4f5 !important; color: #71717a !important; border: 1px dashed var(--gray-4); }
+
+  .claim .status { padding: 2px 6px; border-radius: 4px; }
+  .status.auto_promoted { background: #d1fadf; color: #045b1b; }
+  .status.pending_review { background: #fff3bf; color: #6b4400; }
+  .status.rejected { background: #ffe1de; color: #9a1c1c; text-decoration: line-through; }
+  .status.contradicts { background: #ffd6d6; color: #7a1010; }
+
+  .claim.dim { opacity: 0.45; }
+  .claim.flagged { border-color: #f59e0b; background: #fffbeb; }
+
+  .claim .qual { font-family: var(--font-mono); font-size: 9.5px; color: var(--gray-9); line-height: 1.5; padding-left: 0; }
+  .claim .qual .k { color: #4338ca; }
+
+  /* RIGHT rail */
+  .rail { display: flex; flex-direction: column; gap: 14px; min-height: 0; overflow: hidden; }
+  .rail-card { background: var(--surface); border: 1px solid var(--gray-3); border-radius: 12px; }
+  .rail-card .h { padding: 10px 14px 8px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; color: var(--gray-9); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--gray-3); }
+  .rail-card .h .accent { color: var(--gray-12); }
+  .rail-card .b { padding: 10px 14px; }
+
+  /* brain.db stats */
+  .stats { display: grid; grid-template-columns: 1fr auto; row-gap: 6px; column-gap: 10px; font-size: 12px; }
+  .stats .k { font-family: var(--font-mono); font-size: 10.5px; color: var(--gray-9); letter-spacing: 0.04em; }
+  .stats .v { font-family: var(--font-mono); font-size: 11.5px; color: var(--gray-12); text-align: right; font-weight: 600; }
+  .stats .v.delta { color: var(--good); }
+
+  /* dirty tracker */
+  #dirty-list { display: flex; flex-direction: column; gap: 4px; }
+  .dirty-item { display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 10.5px; color: var(--gray-12); padding: 4px 6px; border-radius: 5px; background: #fff7e6; border: 1px solid #f0c98a; opacity: 0; transform: translateX(-4px); transition: opacity .4s ease, transform .4s ease, background .4s ease, border-color .4s ease; }
+  .dirty-item.shown { opacity: 1; transform: translateX(0); }
+  .dirty-item.processed { background: #ecfdf5; border-color: #86efac; color: #065f46; }
+  .dirty-item .kind { color: var(--gray-9); font-size: 9px; letter-spacing: 0.08em; padding: 1px 5px; border-radius: 3px; background: var(--gray-2); }
+
+  /* filesystem tree */
+  .tree { font-family: var(--font-mono); font-size: 11px; line-height: 1.7; color: var(--gray-12); }
+  .tree .row { display: flex; gap: 8px; align-items: center; }
+  .tree .row .ic { color: var(--gray-9); width: 14px; }
+  .tree .row .nm { flex: 1; }
+  .tree .row .ct { color: var(--gray-9); font-size: 10px; }
+  .tree .row.changed .nm { color: #1e3a8a; }
+  .tree .row.new .nm { color: var(--good); }
+  .tree .row.new .nm::after { content: " ●"; color: var(--good); }
+
+  /* Bottom canvas: graph + retrieval */
+  .bottom { position: absolute; left: 24px; right: 24px; bottom: 18px; display: grid; grid-template-columns: 1fr 480px; gap: 18px; height: 0; transition: height .8s ease, opacity .6s ease; opacity: 0; pointer-events: none; }
+  .bottom.shown { height: 240px; opacity: 1; }
+  .graph-card, .retrieve-card { background: var(--surface); border: 1px solid var(--gray-3); border-radius: 12px; overflow: hidden; }
+  .graph-card svg { width: 100%; height: 100%; display: block; }
+  .gnode { transition: opacity .35s ease, transform .35s ease; opacity: 0; }
+  .gnode.shown { opacity: 1; }
+  .gnode circle { fill: var(--surface); stroke: var(--gray-12); stroke-width: 1.5; }
+  .gnode.community-tx circle { stroke: #16a34a; fill: #dcfce7; }
+  .gnode.community-resist circle { stroke: #b45309; fill: #fef3c7; }
+  .gnode.community-geo circle { stroke: #1e40af; fill: #dbeafe; }
+  .gnode.community-pol circle { stroke: #4c1d95; fill: #ede9fe; }
+  .gnode text { font-family: var(--font-mono); font-size: 9.5px; fill: var(--gray-12); }
+  .gedge { stroke: var(--gray-4); stroke-width: 1.2; opacity: 0; transition: opacity .35s ease; }
+  .gedge.shown { opacity: 1; }
+  .gedge.hot { stroke: var(--accent); stroke-width: 1.6; }
+
+  /* Retrieval card */
+  .retr-h { padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; color: var(--gray-9); border-bottom: 1px solid var(--gray-3); }
+  .retr-h .accent { color: var(--gray-12); }
+  .prim-list { padding: 8px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+  .prim { padding: 6px 4px; border: 1px solid var(--gray-3); border-radius: 6px; font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.06em; text-align: center; color: var(--gray-9); background: var(--surface); opacity: 0; transition: opacity .35s ease, background .25s ease, color .25s ease, border-color .25s ease; }
+  .prim.shown { opacity: 1; }
+  .prim.active { background: var(--gray-12); color: white; border-color: var(--gray-12); }
+  .req {
+    margin: 6px 12px 4px; padding: 8px 10px;
+    border: 1px solid var(--gray-3); border-radius: 6px;
+    font-family: var(--font-mono); font-size: 10.5px; line-height: 1.5;
+    background: #fafafa; color: var(--gray-12);
+    word-break: break-all;
+    min-height: 28px;
+  }
+  .req .verb { color: var(--accent); font-weight: 700; }
+  .resp {
+    margin: 4px 12px 12px; padding: 8px 10px;
+    border: 1px solid var(--gray-3); border-radius: 6px;
+    font-family: var(--font-mono); font-size: 10px; line-height: 1.55;
+    background: #1f1f1d; color: #e6e6e6;
+    white-space: pre; overflow: hidden;
+    max-height: 140px;
+  }
+  .resp .key { color: #93c5fd; }
+  .resp .str { color: #d1fadf; }
+  .resp .num { color: #fbbf24; }
+  .resp .punct { color: #71717a; }
+
+  /* HUD */
+  #hud { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; background: rgba(20,20,20,0.85); color: white; padding: 8px 14px; border-radius: 999px; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; z-index: 1000; backdrop-filter: blur(8px); }
+  #hud .progress { width: 220px; height: 4px; background: #fff2; border-radius: 999px; overflow: hidden; }
+  #hud .progress > .bar { height: 100%; width: 0%; background: linear-gradient(90deg, #6ee7b7 0%, #2563eb 100%); transition: width 200ms linear; }
+  #hud #scene-title { color: #d4d4d8; }
+  #hud .badge { padding: 3px 8px; border-radius: 999px; background: #ffffff14; font-size: 10px; }
+  #replay-btn { background: #ffffff14; border: 1px solid #ffffff22; color: white; padding: 4px 10px; border-radius: 999px; font-family: var(--font-mono); font-size: 10px; cursor: pointer; }
+  #replay-btn:hover { background: #ffffff22; }
+
+  /* Cursor */
+  #cursor { position: fixed; top: 0; left: 0; width: 24px; height: 24px; pointer-events: none; z-index: 999; transform: translate(40px, 80px); transition: transform 900ms cubic-bezier(.65,.05,.36,1); }
+  #cursor svg { display: block; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); }
+  #cursor.click::before { content: ""; position: absolute; left: 4px; top: 4px; width: 16px; height: 16px; border-radius: 999px; border: 2px solid var(--accent); animation: clickRipple .55s ease-out; }
+
+  /* Clock */
+  #clock {
+    position: fixed; bottom: 18px; right: 24px; z-index: 4;
+    background: rgba(20,20,20,0.86); color: #e6e6e6;
+    font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.06em;
+    padding: 6px 10px; border-radius: 999px;
+    transition: opacity .4s ease;
+  }
+
+  /* Streamed text helpers */
+  .stream { white-space: pre-wrap; }
+  .stream-cursor { display: inline-block; width: 6px; height: 12px; vertical-align: middle; background: var(--gray-12); margin-left: 2px; animation: caret 0.9s steps(1) infinite; }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.55; transform: scale(0.85); } }
+  @keyframes caret { 50% { opacity: 0; } }
+  @keyframes clickRipple { from { opacity: 0.9; transform: scale(0.6); } to { opacity: 0; transform: scale(2.2); } }
+  @keyframes flash { 0% { background: var(--surface); } 50% { background: #fff7e6; } 100% { background: var(--surface); } }
+</style>
+</head>
+<body>
+
+<div id="hud">
+  <span id="scene-title">Loading…</span>
+  <span class="progress"><span class="bar"></span></span>
+  <span class="badge"><span id="step-num">0</span>/<span id="step-total">0</span></span>
+  <button id="replay-btn" onclick="window.location.reload()">↻ Replay</button>
+</div>
+
+<div id="stage-wrap">
+<div id="stage">
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="brand">
+      <span class="mark"></span>
+      <span class="name">MEDBRAIN v1</span>
+      <span class="sub">· MALARIA KNOWLEDGE BRAIN · brain/brain.db</span>
+    </div>
+    <div class="right">
+      <span class="pill" id="pill-status"><span class="dot"></span><span id="status-text">BOOTING</span></span>
+      <span style="color: var(--gray-9)">[ &nbsp;ESC ]</span>
+    </div>
+  </div>
+
+  <!-- Agent strip -->
+  <div class="agents">
+    <div class="agent" id="ag-student">
+      <div class="row"><span class="name">STUDENT</span><span class="cadence">CONTINUOUS</span></div>
+      <div class="state"><span class="dot"></span><span class="st">idle</span></div>
+      <div class="blurb">Fetches PubMed/WHO. Extracts qualified claims. Regenerates concepts/, notes/.</div>
+    </div>
+    <div class="agent" id="ag-brain">
+      <div class="row"><span class="name">BRAIN</span><span class="cadence">HOURLY</span></div>
+      <div class="state"><span class="dot"></span><span class="st">idle</span></div>
+      <div class="blurb">Cross-concept synthesis → memory.md. Emits questions.md backlog.</div>
+    </div>
+    <div class="agent" id="ag-graphify">
+      <div class="row"><span class="name">GRAPHIFY</span><span class="cadence">HOURLY +15</span></div>
+      <div class="state"><span class="dot"></span><span class="st">idle</span></div>
+      <div class="blurb">Rebuilds graph.json + communities.json from .md corpus.</div>
+    </div>
+    <div class="agent" id="ag-dream">
+      <div class="row"><span class="name">DREAM</span><span class="cadence">WEEKLY · SUN 23:00</span></div>
+      <div class="state"><span class="dot"></span><span class="st">idle</span></div>
+      <div class="blurb">Compacts .md, generates derivative/, decays low-salience to archive/.</div>
+    </div>
+  </div>
+
+  <!-- Two columns -->
+  <div class="layout">
+    <!-- LEFT: source + extraction -->
+    <div class="panel" id="panel-extract">
+      <div class="head">
+        <span>SOURCE · EXTRACTION</span>
+        <span class="meta" id="extract-meta">awaiting trigger</span>
+      </div>
+      <div class="body">
+        <div id="src-block" style="opacity: 0; transition: opacity .5s ease;">
+          <div class="src-row">
+            <span class="pmid">PMID:38217445</span>
+            <span class="ptype">RANDOMIZED CONTROLLED TRIAL</span>
+            <span class="journal">Lancet Infect Dis. 2026;26(3):412–421</span>
+          </div>
+          <div id="src-title">Six-dose artemether-lumefantrine for uncomplicated <em>Plasmodium falciparum</em> malaria in West Africa: a multi-centre RCT with Pfkelch13 surveillance</div>
+          <div id="src-abstract"></div>
+        </div>
+
+        <div class="div-line"></div>
+
+        <div class="claims-head">
+          <span class="title">EXTRACTED CLAIMS</span>
+          <span class="progress" id="claims-progress">0 / 0</span>
+        </div>
+        <div id="claims-list"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT rail -->
+    <div class="rail">
+
+      <!-- brain.db stats -->
+      <div class="rail-card">
+        <div class="h"><span>brain/brain.db</span><span class="accent">SQLite</span></div>
+        <div class="b">
+          <div class="stats">
+            <div class="k">claims</div>            <div class="v" id="s-claims">0</div>
+            <div class="k">sources</div>           <div class="v" id="s-sources">0</div>
+            <div class="k">auto_promoted</div>     <div class="v" id="s-auto">0</div>
+            <div class="k">pending_review</div>    <div class="v" id="s-pending">0</div>
+            <div class="k">supersessions</div>     <div class="v" id="s-super">0</div>
+            <div class="k">evidence_ledger</div>   <div class="v" id="s-ledger">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- dirty tracker -->
+      <div class="rail-card">
+        <div class="h"><span>DIRTY_TRACKER</span><span class="accent" id="dirty-count">0 ROWS</span></div>
+        <div class="b">
+          <div id="dirty-list"></div>
+        </div>
+      </div>
+
+      <!-- filesystem -->
+      <div class="rail-card">
+        <div class="h"><span>FILESYSTEM</span><span class="accent">brain/</span></div>
+        <div class="b">
+          <div class="tree" id="tree">
+            <div class="row" data-path="brain.db"><span class="ic">▦</span><span class="nm">brain.db</span><span class="ct">SQL</span></div>
+            <div class="row" data-path="concepts/"><span class="ic">▸</span><span class="nm">concepts/</span><span class="ct" id="ct-concepts">0 .md</span></div>
+            <div class="row" data-path="notes/"><span class="ic">▸</span><span class="nm">notes/</span><span class="ct" id="ct-notes">0 .md</span></div>
+            <div class="row" data-path="memory.md"><span class="ic">≡</span><span class="nm">memory.md</span><span class="ct" id="ct-memory">—</span></div>
+            <div class="row" data-path="questions.md"><span class="ic">?</span><span class="nm">questions.md</span><span class="ct" id="ct-questions">—</span></div>
+            <div class="row" data-path="graph/"><span class="ic">▸</span><span class="nm">graph/</span><span class="ct" id="ct-graph">—</span></div>
+            <div class="row" data-path="derivative/"><span class="ic">▸</span><span class="nm">derivative/</span><span class="ct" id="ct-deriv">—</span></div>
+            <div class="row" data-path="archive/"><span class="ic">▸</span><span class="nm">archive/</span><span class="ct" id="ct-archive">—</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Bottom canvas: graph + retrieval (revealed late) -->
+  <div class="bottom" id="bottom">
+    <div class="graph-card">
+      <div class="retr-h"><span>KNOWLEDGE GRAPH · communities</span><span class="accent" id="graph-meta">— nodes · — edges</span></div>
+      <svg viewBox="0 0 800 200" xmlns="http://www.w3.org/2000/svg">
+        <g id="g-edges"></g>
+        <g id="g-nodes"></g>
+      </svg>
+    </div>
+    <div class="retrieve-card">
+      <div class="retr-h"><span>RETRIEVAL · 8-PRIMITIVE MENU</span><span class="accent">v1.0</span></div>
+      <div class="prim-list" id="prim-list">
+        <div class="prim" data-p="lookup">lookup</div>
+        <div class="prim" data-p="neighborhood">neighborhood</div>
+        <div class="prim" data-p="path">path</div>
+        <div class="prim" data-p="community">community</div>
+        <div class="prim" data-p="scoped">scoped</div>
+        <div class="prim" data-p="recent">recent</div>
+        <div class="prim" data-p="gaps">gaps</div>
+        <div class="prim" data-p="evidence_pack">evidence_pack</div>
+      </div>
+      <div class="req"><span class="verb">GET</span> <span id="req-text"></span></div>
+      <div class="resp" id="resp-text"></div>
+    </div>
+  </div>
+
+</div> <!-- /#stage -->
+</div> <!-- /#stage-wrap -->
+
+<!-- Cursor -->
+<div id="cursor">
+  <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M3 2 L3 18 L7.5 14 L10.5 21 L13 20 L10 13 L16 13 Z" fill="#1a1a1a" stroke="white" stroke-width="1.4" stroke-linejoin="round"/>
+  </svg>
+</div>
+
+<div id="clock">SIM-TIME · <span id="clock-text">2026-05-01 14:00 UTC</span></div>
+
+<script>
+/* ────────────────────────────────────────────────────────────────────
+   Demo content — PMID, abstract, claims, graph, memory.md, dream
+──────────────────────────────────────────────────────────────────── */
+
+const ABSTRACT = `In a multi-centre randomized controlled trial of 1,241 adults with uncomplicated Plasmodium falciparum malaria across three West African sites, six-dose artemether-lumefantrine over 3 days achieved a day-28 PCR-corrected cure rate of 96.7% (95% CI 95.1–97.9). Day-3 parasite positivity was 1.2%, well below the WHO 10% threshold for artemisinin partial resistance. Pfkelch13 mutations were detected in 0.4% of isolates and did not correlate with delayed clearance. The regimen is recommended as first-line therapy for uncomplicated falciparum malaria in this region.`;
+
+const CLAIMS = [
+  {
+    s: "artemether-lumefantrine",
+    p: "treats",
+    o: "uncomplicated falciparum malaria",
+    grade: "RCT",
+    cert: "high",
+    status: "auto_promoted",
+    qual: { population: { region: "West Africa", age_range: "adults" }, dose_regimen: { drug: "artemether-lumefantrine", frequency: "6 doses", duration: "3 days" }, effect_size: { metric: "PCR-corrected day-28 cure", value: 96.7, ci_low: 95.1, ci_high: 97.9 } },
+  },
+  {
+    s: "WHO",
+    p: "recommends",
+    o: "artemether-lumefantrine for uncomplicated falciparum malaria",
+    grade: "guideline",
+    cert: "high",
+    status: "auto_promoted",
+    qual: { population: { region: "West Africa" }, setting: { care_level: "outpatient", endemic_status: "endemic" } },
+  },
+  {
+    s: "Pfkelch13 mutations",
+    p: "causes",
+    o: "artemisinin partial resistance",
+    grade: "cohort",
+    cert: "moderate",
+    status: "auto_promoted",
+    qual: { population: { region: "Greater Mekong" }, effect_size: { metric: "isolate frequency", value: 0.4 } },
+  },
+  {
+    s: "P. falciparum",
+    p: "resists",
+    o: "artemether",
+    grade: "cohort",
+    cert: "moderate",
+    status: "contradicts",   // marked: contradicts an existing claim
+    qual: { population: { region: "Greater Mekong" } },
+    note: "contradicts existing claim c-91afe (W. Africa null finding) → flagged",
+  },
+  {
+    s: "day-3 parasite positivity",
+    p: "co_occurs",
+    o: "artemisinin partial resistance",
+    grade: "cohort",
+    cert: "low",
+    status: "pending_review",
+    qual: { effect_size: { metric: "positivity rate", value: 1.2 } },
+    note: "low certainty + thin qualifiers → review queue",
+  },
+];
+
+// Dirty entities marked after extraction
+const DIRTY_ENTITIES = [
+  "artemether-lumefantrine",
+  "uncomplicated falciparum malaria",
+  "P. falciparum",
+  "Pfkelch13",
+  "WHO",
+  "artemisinin partial resistance",
+];
+
+// memory.md cross-concept synthesis (Brain output)
+const MEMORY_MD = `## Synthesis · 2026-05-01 15:00 UTC
+
+Pfkelch13 mutations are the bridge between two corpora: West-African
+treatment surveillance (this paper, n=1,241; baseline frequency 0.4%)
+and the Greater Mekong resistance literature (Ariey 2014; >50% in some
+sites). Day-3 parasite positivity functions both as a clinical marker
+AND as an epidemiological surveillance signal — same observation, two
+consumers.
+
+The 10% WHO day-3 threshold (claim c-1f3a, GUIDELINE) and West-African
+1.2% (claim c-22b8, RCT) are concordant, not contradictory.
+
+Open: confirmed dihydroartemisinin-piperaquine treatment failures
+remain Cambodia-localized — see questions.md PRI-1.`;
+
+// questions.md backlog
+const QUESTIONS_MD = [
+  { pri: 1, status: "open", q: "What is the current Pfkelch13 baseline frequency by West-African subregion?" },
+  { pri: 1, status: "open", q: "Are there confirmed dihydroartemisinin-piperaquine failures outside Cambodia?" },
+  { pri: 2, status: "open", q: "Does pregnancy modify artemether-lumefantrine PK in second trimester?" },
+  { pri: 3, status: "open", q: "WHO guideline update cadence — current expected next revision?" },
+];
+
+// Graph nodes/edges for graphify scene
+const GRAPH = {
+  nodes: [
+    { id: "AL",   label: "artemether-\nlumefantrine", x: 140, y:  90, c: "tx" },
+    { id: "UFM",  label: "uncomplicated\nfalciparum malaria", x: 280, y:  60, c: "tx" },
+    { id: "PF",   label: "P. falciparum", x: 410, y:  90, c: "resist" },
+    { id: "PFK",  label: "Pfkelch13", x: 540, y:  60, c: "resist" },
+    { id: "APR",  label: "artemisinin\npartial resistance", x: 670, y: 100, c: "resist" },
+    { id: "WHO",  label: "WHO",       x: 200, y: 160, c: "pol" },
+    { id: "WA",   label: "West Africa",  x: 360, y: 165, c: "geo" },
+    { id: "GMK",  label: "Greater Mekong", x: 600, y: 165, c: "geo" },
+    { id: "D3",   label: "day-3 positivity", x: 480, y: 130, c: "resist" },
+  ],
+  edges: [
+    ["AL","UFM","treats", true],
+    ["WHO","AL","recommends", true],
+    ["PFK","APR","causes", true],
+    ["PF","AL","resists", true],
+    ["D3","APR","co_occurs", false],
+    ["UFM","WA","has_region", false],
+    ["UFM","PF","caused_by", false],
+    ["PFK","GMK","has_region", false],
+    ["AL","WA","scoped_to", false],
+  ],
+};
+
+const RETRIEVAL_REQ_GENERAL = "/retrieve/lookup?entity=artemether-lumefantrine";
+const RETRIEVAL_RESP_GENERAL = `{
+  "version": "1.0",
+  "primitive": "lookup",
+  "args": { "entity": "artemether-lumefantrine" },
+  "data": {
+    "concept_md": "concepts/artemether-lumefantrine.md",
+    "neighbors_1hop": [
+      { "id": "uncomplicated_falciparum_malaria", "via": "treats" },
+      { "id": "WHO",            "via": "recommended_by" },
+      { "id": "West Africa",    "via": "scoped_to"      },
+      { "id": "P. falciparum",  "via": "resisted_by"    }
+    ],
+    "claim_ids": [
+      "c-7e22a1", "c-91afe2", "c-3b1c44", "c-22b8e0"
+    ],
+    "qualifiers_summary": {
+      "regions": ["West Africa", "sub-Saharan Africa"],
+      "evidence_grades": { "RCT": 4, "guideline": 1, "cohort": 2 }
+    }
+  },
+  "derivative_included": false,
+  "generated_at": "2026-05-01T15:14:08Z"
+}`;
+
+// Dream cycle artifacts
+const DREAM_FLASHCARD = `Q: WHO first-line for uncomplicated falciparum malaria?
+A: Artemisinin-based combination therapy (ACT). Example regimen:
+   artemether-lumefantrine, 6 doses over 3 days, with food.`;
+
+const DREAM_ANALOGY = `Pfkelch13 : artemisinin :: pfcrt : chloroquine
+Both are single-protein resistance markers selected by drug pressure.
+Pattern: pressure → mutation → clearance delay → frank resistance.`;
+
+const DREAM_DECAY = "atovaquone-proguanil prophylaxis dose adjustment for hepatic impairment";
+
+/* ────────────────────────────────────────────────────────────────────
+   Player engine — cursor, camera, typing, fades
+──────────────────────────────────────────────────────────────────── */
+
+const $ = (id) => document.getElementById(id);
+const stage = $('stage');
+const cursor = $('cursor');
+const sceneTitle = $('scene-title');
+const stepNumEl = $('step-num');
+const progressBar = document.querySelector('#hud .bar');
+
+function applyCamera({ scale = 1, tx = 0, ty = 0, ms = 1100 } = {}) {
+  stage.style.transition = `transform ${ms}ms cubic-bezier(.65,.05,.36,1)`;
+  stage.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+}
+function moveCursorTo(x, y, ms = 800) {
+  cursor.style.transition = `transform ${ms}ms cubic-bezier(.65,.05,.36,1)`;
+  cursor.style.transform = `translate(${x}px, ${y}px)`;
+}
+function cursorOver(selector, opts = {}) {
+  const el = document.querySelector(selector);
+  if (!el) return Promise.resolve();
+  const rect = el.getBoundingClientRect();
+  const x = rect.left + (opts.dx ?? rect.width / 2) - 6;
+  const y = rect.top + (opts.dy ?? rect.height / 2) - 6;
+  moveCursorTo(x, y, opts.ms || 700);
+  return wait(opts.ms || 700);
+}
+function clickFx() {
+  cursor.classList.add('click');
+  setTimeout(() => cursor.classList.remove('click'), 600);
+}
+const wait = (ms) => new Promise(r => setTimeout(r, ms));
+
+async function typeInto(targetEl, text, perCharMs = 14) {
+  targetEl.textContent = '';
+  for (const ch of text) {
+    targetEl.textContent += ch;
+    if (ch === ' ' && Math.random() < 0.04) await wait(perCharMs * 5);
+    else await wait(perCharMs + (Math.random() < 0.05 ? 60 : 0));
+  }
+}
+async function streamInto(targetEl, text, perCharMs = 10) {
+  targetEl.textContent = '';
+  for (const ch of text) {
+    targetEl.textContent += ch;
+    await wait(perCharMs + (Math.random() < 0.04 ? 70 : 0));
+  }
+}
+
+function setStatus(text, live) {
+  $('status-text').textContent = text;
+  const pill = $('pill-status');
+  pill.classList.toggle('live', !!live);
+}
+function setAgent(id, busy, text) {
+  const el = $(id);
+  el.classList.toggle('busy', !!busy);
+  el.querySelector('.st').textContent = text;
+}
+function setClock(t) {
+  $('clock-text').textContent = t;
+}
+
+/* JSON syntax highlighting */
+function colorJson(text) {
+  return text
+    .replace(/("(?:[^"\\]|\\.)*")(\s*:)/g, '<span class="key">$1</span><span class="punct">$2</span>')
+    .replace(/: ("(?:[^"\\]|\\.)*")/g, ': <span class="str">$1</span>')
+    .replace(/: (-?\d+\.?\d*)/g, ': <span class="num">$1</span>')
+    .replace(/([{}\[\],])/g, '<span class="punct">$1</span>');
+}
+
+/* Render a claim row */
+function renderClaim(c) {
+  const wrap = document.createElement('div');
+  wrap.className = 'claim';
+  if (c.status === 'contradicts' || c.note) wrap.classList.add('flagged');
+  const qualLines = [];
+  for (const [k, v] of Object.entries(c.qual || {})) {
+    qualLines.push(`<span class="k">${k}:</span> ${JSON.stringify(v).replace(/"/g,'').replace(/[{}]/g,'')}`);
+  }
+  wrap.innerHTML = `
+    <div class="spo">
+      <span class="ent">${escapeHtml(c.s)}</span>
+      <span class="pred ${c.p}">${c.p}</span>
+      <span class="ent">${escapeHtml(c.o)}</span>
+    </div>
+    <div class="qual">${qualLines.join(' &nbsp;·&nbsp; ')}</div>
+    <div class="meta-row">
+      <span class="grade ${c.grade}">${c.grade.toUpperCase()}</span>
+      <span class="cert cert-${c.cert}">cert: ${c.cert}</span>
+      <span class="status ${c.status}">${c.status.replace('_',' ')}</span>
+      ${c.note ? `<span style="color: var(--bad);">⚠ ${escapeHtml(c.note)}</span>` : ''}
+    </div>`;
+  return wrap;
+}
+function escapeHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* DB stat counters */
+function bumpStat(id, delta) {
+  const el = $(id);
+  const cur = parseInt(el.textContent, 10) || 0;
+  const next = cur + delta;
+  el.textContent = next;
+  el.classList.add('delta');
+  setTimeout(() => el.classList.remove('delta'), 800);
+}
+
+/* Render graph nodes/edges */
+function renderGraph() {
+  const ng = $('g-nodes');
+  const eg = $('g-edges');
+  ng.innerHTML = ''; eg.innerHTML = '';
+  // edges first
+  GRAPH.edges.forEach(([a, b, label, hot], i) => {
+    const A = GRAPH.nodes.find(n => n.id === a);
+    const B = GRAPH.nodes.find(n => n.id === b);
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', A.x); line.setAttribute('y1', A.y);
+    line.setAttribute('x2', B.x); line.setAttribute('y2', B.y);
+    line.setAttribute('class', 'gedge' + (hot ? ' hot' : ''));
+    line.dataset.idx = i;
+    eg.appendChild(line);
+  });
+  GRAPH.nodes.forEach((n, i) => {
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('class', `gnode community-${n.c}`);
+    g.dataset.idx = i;
+    const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    c.setAttribute('cx', n.x); c.setAttribute('cy', n.y); c.setAttribute('r', 18);
+    g.appendChild(c);
+    const lines = n.label.split('\n');
+    lines.forEach((ln, li) => {
+      const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      t.setAttribute('x', n.x);
+      t.setAttribute('y', n.y + 32 + li * 11);
+      t.setAttribute('text-anchor', 'middle');
+      t.textContent = ln;
+      g.appendChild(t);
+    });
+    ng.appendChild(g);
+  });
+}
+
+/* ────────────────────────────────────────────────────────────────────
+   Scene queue
+──────────────────────────────────────────────────────────────────── */
+
+const SCENES = [
+  {
+    title: '1. Boot · four agents on independent loops',
+    run: async () => {
+      setStatus('READY', true);
+      setClock('2026-05-01 14:00:00 UTC');
+      ['ag-student','ag-brain','ag-graphify','ag-dream'].forEach(id => setAgent(id, false, 'idle'));
+      await cursorOver('#ag-student', { ms: 600 });
+      await wait(400);
+      await cursorOver('#ag-brain', { ms: 500 });
+      await wait(300);
+      await cursorOver('#ag-graphify', { ms: 500 });
+      await wait(300);
+      await cursorOver('#ag-dream', { ms: 500 });
+      await wait(500);
+    },
+  },
+  {
+    title: '2. Student wakes · RSS poll picks one PMID',
+    run: async () => {
+      setAgent('ag-student', true, 'fetching PMID:38217445');
+      setStatus('STUDENT · fetch', true);
+      $('extract-meta').textContent = 'fetching pubmed eutils…';
+      $('src-block').style.opacity = 1;
+      await cursorOver('#panel-extract', { ms: 700 });
+      await wait(700);
+      $('extract-meta').textContent = 'RCT · grade=RCT (auto)';
+      bumpStat('s-sources', 1);
+      await wait(400);
+    },
+  },
+  {
+    title: '3. Stream the abstract',
+    run: async () => {
+      applyCamera({ scale: 1.04, tx: -20, ty: -20, ms: 900 });
+      const target = $('src-abstract');
+      await streamInto(target, ABSTRACT, 6);
+      await wait(400);
+    },
+  },
+  {
+    title: '4. LLM extracts qualified claims (prompts/student_extract.md)',
+    run: async () => {
+      setAgent('ag-student', true, 'extracting claims');
+      $('extract-meta').textContent = 'LLM pass · qualified-claim schema §4';
+      const list = $('claims-list');
+      list.innerHTML = '';
+      $('claims-progress').textContent = `0 / ${CLAIMS.length}`;
+      for (let i = 0; i < CLAIMS.length; i++) {
+        const node = renderClaim(CLAIMS[i]);
+        list.appendChild(node);
+        requestAnimationFrame(() => node.classList.add('shown'));
+        $('claims-progress').textContent = `${i + 1} / ${CLAIMS.length}`;
+        await wait(550);
+      }
+      await wait(500);
+    },
+  },
+  {
+    title: '5. Novelty gate · contradiction flagged, low-cert → review queue',
+    run: async () => {
+      setAgent('ag-student', true, 'novelty + trust gate');
+      $('extract-meta').textContent = 'medbrain.extractors.novelty.evaluate()';
+      // Highlight claim 4 (contradicts) and claim 5 (pending_review)
+      const claims = document.querySelectorAll('.claim');
+      claims[3].style.boxShadow = '0 0 0 2px #f59e0b';
+      claims[4].style.boxShadow = '0 0 0 2px #d97706';
+      await wait(900);
+      claims[3].style.boxShadow = '';
+      claims[4].style.boxShadow = '';
+      await wait(400);
+    },
+  },
+  {
+    title: '6. SQL insert · brain.db counters tick',
+    run: async () => {
+      setAgent('ag-student', true, 'INSERT INTO claims');
+      $('extract-meta').textContent = 'session_scope() commit';
+      bumpStat('s-claims', 5);
+      await wait(220); bumpStat('s-auto', 4);
+      await wait(220); bumpStat('s-pending', 1);
+      await wait(220); bumpStat('s-ledger', 5);
+      await wait(700);
+    },
+  },
+  {
+    title: '7. Dirty tracker · entities marked for regeneration',
+    run: async () => {
+      setAgent('ag-student', true, 'mark dirty');
+      const list = $('dirty-list');
+      list.innerHTML = '';
+      for (const ent of DIRTY_ENTITIES) {
+        const row = document.createElement('div');
+        row.className = 'dirty-item';
+        row.innerHTML = `<span class="kind">ENTITY</span><span>${escapeHtml(ent)}</span>`;
+        list.appendChild(row);
+        requestAnimationFrame(() => row.classList.add('shown'));
+        await wait(180);
+      }
+      $('dirty-count').textContent = `${DIRTY_ENTITIES.length} ROWS`;
+      await wait(400);
+    },
+  },
+  {
+    title: '8. Regenerate concepts/*.md and notes/*.md',
+    run: async () => {
+      setAgent('ag-student', true, 'regenerating .md');
+      // Animate file tree updates
+      $('ct-concepts').textContent = '4 .md';
+      document.querySelector('[data-path="concepts/"]').classList.add('changed');
+      await wait(400);
+      $('ct-notes').textContent = '2 .md';
+      document.querySelector('[data-path="notes/"]').classList.add('changed');
+      await wait(700);
+      // Mark dirty entries processed
+      document.querySelectorAll('.dirty-item').forEach((d, i) => {
+        setTimeout(() => d.classList.add('processed'), i * 120);
+      });
+      await wait(900);
+      $('dirty-count').textContent = '0 ROWS';
+      setAgent('ag-student', false, 'idle · waiting RSS');
+      $('extract-meta').textContent = 'session complete · 5 inserted';
+    },
+  },
+  {
+    title: '9. Hour ticks · BRAIN agent fires',
+    run: async () => {
+      setClock('2026-05-01 15:00:00 UTC');
+      applyCamera({ scale: 1.0, tx: 0, ty: 0, ms: 800 });
+      await cursorOver('#ag-brain', { ms: 600 });
+      setAgent('ag-brain', true, 'reading dirty + .md corpus');
+      setStatus('BRAIN · synthesis', true);
+      await wait(900);
+    },
+  },
+  {
+    title: '10. memory.md · cross-concept synthesis streams in',
+    run: async () => {
+      // Use src-abstract area to stream memory.md preview (re-using the box for visual density)
+      $('extract-meta').textContent = 'writing brain/memory.md';
+      const target = $('src-abstract');
+      target.style.borderLeft = '2px solid var(--good)';
+      await streamInto(target, MEMORY_MD, 7);
+      $('ct-memory').textContent = '1.2KB · synth';
+      document.querySelector('[data-path="memory.md"]').classList.add('new');
+      await wait(600);
+    },
+  },
+  {
+    title: '11. questions.md · research backlog (Student feedback loop)',
+    run: async () => {
+      setAgent('ag-brain', true, 'emit questions.md');
+      const list = $('claims-list');
+      list.innerHTML = '';
+      $('claims-progress').textContent = `${QUESTIONS_MD.length} questions`;
+      for (const q of QUESTIONS_MD) {
+        const row = document.createElement('div');
+        row.className = 'claim';
+        const priClass = q.pri === 1 ? 'cert-low' : q.pri === 2 ? 'cert-moderate' : 'cert-high';
+        row.innerHTML = `
+          <div class="spo">
+            <span class="pred ${q.pri === 1 ? 'causes' : q.pri === 2 ? 'resists' : 'co_occurs'}">PRI ${q.pri}</span>
+            <span style="font-size: 12.5px;">${escapeHtml(q.q)}</span>
+          </div>
+          <div class="meta-row">
+            <span class="cert ${priClass}">status: ${q.status}</span>
+            <span style="color: var(--gray-9);">→ feeds Student backlog</span>
+          </div>`;
+        list.appendChild(row);
+        requestAnimationFrame(() => row.classList.add('shown'));
+        await wait(280);
+      }
+      $('ct-questions').textContent = `${QUESTIONS_MD.length} open`;
+      document.querySelector('[data-path="questions.md"]').classList.add('new');
+      setAgent('ag-brain', false, 'idle · next tick 16:00');
+      await wait(700);
+    },
+  },
+  {
+    title: '12. GRAPHIFY · rebuild knowledge graph',
+    run: async () => {
+      setClock('2026-05-01 15:15:00 UTC');
+      setAgent('ag-graphify', true, 'reading .md corpus');
+      setStatus('GRAPHIFY · rebuild', true);
+      $('bottom').classList.add('shown');
+      renderGraph();
+      await cursorOver('.graph-card', { ms: 700 });
+      // Fade nodes by community
+      const order = ['AL','UFM','WHO','WA','PF','PFK','APR','GMK','D3'];
+      for (const id of order) {
+        const i = GRAPH.nodes.findIndex(n => n.id === id);
+        const node = document.querySelector(`#g-nodes .gnode[data-idx="${i}"]`);
+        node.classList.add('shown');
+        await wait(180);
+      }
+      // Edges
+      for (let i = 0; i < GRAPH.edges.length; i++) {
+        document.querySelector(`#g-edges .gedge[data-idx="${i}"]`).classList.add('shown');
+        await wait(120);
+      }
+      $('graph-meta').textContent = `${GRAPH.nodes.length} nodes · ${GRAPH.edges.length} edges · 4 communities`;
+      $('ct-graph').textContent = 'graph.json · communities.json';
+      document.querySelector('[data-path="graph/"]').classList.add('new');
+      setAgent('ag-graphify', false, 'idle · next tick 16:15');
+      await wait(600);
+    },
+  },
+  {
+    title: '13. Retrieval menu reveals · 8 named primitives',
+    run: async () => {
+      const prims = document.querySelectorAll('.prim');
+      for (const p of prims) {
+        p.classList.add('shown');
+        await wait(90);
+      }
+      await wait(400);
+    },
+  },
+  {
+    title: '14. CDS calls /retrieve/lookup · grounded JSON envelope',
+    run: async () => {
+      // Activate the lookup pill
+      document.querySelector('.prim[data-p="lookup"]').classList.add('active');
+      await cursorOver('.prim[data-p="lookup"]', { ms: 600 });
+      clickFx();
+      // Hot-light the AL node + edges out of it
+      document.querySelectorAll('#g-nodes .gnode').forEach((n, i) => {
+        if (GRAPH.nodes[i].id === 'AL') n.querySelector('circle').setAttribute('stroke-width', 3);
+      });
+      document.querySelectorAll('#g-edges .gedge').forEach((e, i) => {
+        const [a,b] = GRAPH.edges[i];
+        if (a === 'AL' || b === 'AL') e.classList.add('hot');
+      });
+      // Type the request
+      await typeInto($('req-text'), RETRIEVAL_REQ_GENERAL, 12);
+      await wait(300);
+      // Stream JSON response
+      const resp = $('resp-text');
+      resp.textContent = '';
+      for (const ch of RETRIEVAL_RESP_GENERAL) {
+        resp.textContent += ch;
+        await wait(3);
+      }
+      resp.innerHTML = colorJson(resp.textContent);
+      await wait(1400);
+    },
+  },
+  {
+    title: '15. Sunday 23:00 · DREAM cycle (weekly)',
+    run: async () => {
+      setClock('2026-05-04 23:00:00 UTC');
+      applyCamera({ scale: 1.0, tx: 0, ty: 0, ms: 900 });
+      await cursorOver('#ag-dream', { ms: 700 });
+      setAgent('ag-dream', true, 'compaction + derivative + decay');
+      setStatus('DREAM · weekly', true);
+      $('extract-meta').textContent = 'git branch: dream/2026-w18';
+      // Replace the panel content with dream artifacts
+      const list = $('claims-list');
+      list.innerHTML = '';
+      $('claims-progress').textContent = '3 derivative · 1 archived';
+
+      const card = (title, body, kind) => {
+        const w = document.createElement('div');
+        w.className = 'claim';
+        w.innerHTML = `
+          <div class="meta-row"><span class="grade ${kind}">${title}</span></div>
+          <div class="qual" style="font-family: var(--font-mono); white-space: pre-wrap; color: var(--gray-12); font-size: 11px; line-height: 1.55;">${escapeHtml(body)}</div>`;
+        return w;
+      };
+
+      const f = card('FLASHCARD · derivative/flashcards/al-first-line.md', DREAM_FLASHCARD, 'guideline');
+      list.appendChild(f); requestAnimationFrame(() => f.classList.add('shown'));
+      await wait(700);
+
+      const a = card('ANALOGY · derivative/analogies/pfkelch13_pfcrt.md', DREAM_ANALOGY, 'cohort');
+      list.appendChild(a); requestAnimationFrame(() => a.classList.add('shown'));
+      await wait(700);
+
+      const d = card('SALIENCE DECAY · score 0.08 → archive/', `claim: "${DREAM_DECAY}"\nquery_count: 0 over 90d · citation_count: 0 · last_accessed: 2026-01-12\nmoved → brain/archive/  (NEVER deleted; recoverable on re-citation)`, 'expert_opinion');
+      list.appendChild(d); requestAnimationFrame(() => d.classList.add('shown'));
+      $('ct-deriv').textContent = '3 .md · firewalled';
+      $('ct-archive').textContent = '1 .md';
+      document.querySelector('[data-path="derivative/"]').classList.add('new');
+      document.querySelector('[data-path="archive/"]').classList.add('new');
+      await wait(900);
+
+      setAgent('ag-dream', false, 'idle · next Sunday');
+      setStatus('READY', true);
+    },
+  },
+  {
+    title: '16. The brain holds · perpetual learning, never forgets',
+    run: async () => {
+      applyCamera({ scale: 0.94, tx: 40, ty: 0, ms: 1200 });
+      // All four agents glow once
+      ['ag-student','ag-brain','ag-graphify','ag-dream'].forEach((id, i) => {
+        setTimeout(() => {
+          $(id).classList.add('busy');
+          setTimeout(() => $(id).classList.remove('busy'), 700);
+        }, i * 200);
+      });
+      await wait(2200);
+      sceneTitle.textContent = 'DEMO COMPLETE — click ↻ Replay';
+    },
+  },
+];
+
+async function play() {
+  $('step-total').textContent = SCENES.length;
+  for (let i = 0; i < SCENES.length; i++) {
+    const sc = SCENES[i];
+    sceneTitle.textContent = sc.title;
+    stepNumEl.textContent = (i + 1);
+    progressBar.style.width = (((i + 1) / SCENES.length) * 100) + '%';
+    try { await sc.run(); }
+    catch (e) { console.error('scene-error', sc.title, e); }
+  }
+}
+
+window.addEventListener('load', () => {
+  moveCursorTo(60, 100, 0);
+  setStatus('BOOTING', false);
+  setTimeout(play, 600);
+});
+</script>
+</body>
+</html>
