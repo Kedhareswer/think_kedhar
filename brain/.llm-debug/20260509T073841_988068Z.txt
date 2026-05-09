@@ -1,0 +1,205 @@
+===== SYSTEM =====
+# Topic note synthesizer
+
+You are writing a single Markdown note that summarizes everything the medical knowledge base currently knows about ONE topic — a slice of clinical knowledge, e.g. `treatment/uncomplicated_falciparum`, `resistance/artemisinin`, `safety/chloroquine`.
+
+You are given:
+- The topic path.
+- A list of qualified claims that contribute to this topic, each with subject, predicate, object, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused topic note. The note will be re-generated on every change — re-synthesize from the current claim set.
+
+## Output structure (Markdown)
+
+```
+# <Topic title in human form>
+
+> One-paragraph framing: what this topic covers, who it matters for. ≤ 60 words.
+
+## Current understanding
+
+Synthesize the current state. Group related claims. Cite inline as `[c:<short_id>]`.
+Include effect sizes, populations, and settings where they materially differ.
+
+## Population-specific notes
+
+If recommendations or findings differ by pregnancy, pediatric, geographic region, immune status:
+break out the differences. Otherwise skip.
+
+## Strength of evidence
+
+Where is the evidence strong (RCT/MA/guideline)? Where is it weak (case report / expert opinion)?
+Note explicitly.
+
+## Recent changes / supersession
+
+If any included claims supersede older ones, list the chain. Skip if none.
+
+## Gaps and contradictions
+
+Bullet list. Mirror what Brain may pick up as questions.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>.*
+```
+
+## Rules
+
+1. **No hallucination.** Every statement traces to a claim in the input.
+2. **Cite inline** with `[c:<short_id>]` (first 8 chars).
+3. **Concise.** ≤ 800 words for typical topics.
+4. **Surface contradictions.** If two claims with similar scope conflict, name both.
+5. **Status awareness.** Tag `(pending review)` for unconfirmed claims. Treat superseded claims as historical context only.
+6. **Output ONLY the Markdown.**
+
+
+===== USER =====
+# Topic
+resistance/artefenomel-oz439
+
+# Claims (count=2)
+```json
+[
+  {
+    "claim_id": "25b5fd4b-9908-4272-b493-e5a41ecc07f4",
+    "short_id": "25b5fd4b",
+    "subject": "Plasmodium falciparum K13 C580Y+A212T double mutation",
+    "predicate": "resists",
+    "object": "artefenomel (OZ439)",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Cambodia",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "artefenomel (OZ439)",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "K13 C580Y single mutant parasites",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:41959371",
+      "title": "Double Mutations in Plasmodium falciparum Kelch13 drive resistance to next-generation artemisinin derivatives in malaria parasites.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/41959371/"
+    }
+  },
+  {
+    "claim_id": "e321af16-916c-439d-9a30-2e0a0702faa8",
+    "short_id": "e321af16",
+    "subject": "Plasmodium falciparum K13 R539T+A212T double mutation",
+    "predicate": "resists",
+    "object": "artefenomel (OZ439)",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Cambodia",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "artefenomel (OZ439)",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "K13 R539T single mutant parasites",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:41959371",
+      "title": "Double Mutations in Plasmodium falciparum Kelch13 drive resistance to next-generation artemisinin derivatives in malaria parasites.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/41959371/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-09T07:38:13.858572+00:00
+
+
+===== STDOUT =====
+## Topic Note: Resistance — Artefenomel (OZ439)
+
+**Source:** PMID:41959371 · *Double Mutations in P. falciparum Kelch13 drive resistance to next-generation artemisinin derivatives*
+
+---
+
+### Core Finding
+
+K13 **double mutations** (canonical resistance allele + A212T) confer enhanced resistance to artefenomel (OZ439) compared to single-mutant backgrounds. Two double-mutant combinations implicated:
+
+| Double Mutant | Comparator (baseline) | Certainty |
+|---|---|---|
+| **C580Y + A212T** | C580Y single mutant | Moderate |
+| **R539T + A212T** | R539T single mutant | High |
+
+A212T appears to act as an **additive/synergistic second hit** on top of established Southeast Asian resistance alleles.
+
+---
+
+### Context
+
+- **Region:** Cambodia (malaria-endemic)
+- **Drug class:** Ozonide / synthetic peroxide — next-gen ART derivative developed partly to overcome K13-mediated artemisinin resistance
+- **Evidence grade:** Expert opinion (both claims) — likely in vitro / molecular modeling; no clinical trial data yet
+
+---
+
+### Implications
+
+- OZ439 was positioned as a successor to combat K13-resistant *Pf*. These double mutations suggest **resistance evolution can track onto ozonides**, not just ACTs.
+- A212T pairing with multiple primary K13 alleles (C580Y, R539T) raises concern for a **generalizable resistance scaffold** rather than an isolated event.
+- Effect size metrics absent — magnitude of RSA shift or IC₅₀ increase vs. single mutants not yet captured in these claims; needs extraction or follow-up.
+
+---
+
+### Gaps / Next Steps
+
+- [ ] Extract quantitative RSA / IC₅₀ fold-change from paper to populate `effect_size` fields
+- [ ] Confirm evidence grade — if in vitro, upgrade from `expert_opinion` to `in_vitro` or `experimental`
+- [ ] Check whether A212T alone confers resistance or requires epistatic background
+- [ ] Monitor for clinical correlation as OZ439 trials expand
+
+---
+
+**Status:** Both claims pending review · Last updated 2026-05-09

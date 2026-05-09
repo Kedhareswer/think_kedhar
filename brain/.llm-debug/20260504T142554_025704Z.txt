@@ -1,0 +1,122 @@
+===== SYSTEM =====
+OUTPUT REQUIREMENT: Return VALID JSON ONLY. Your entire response must be parseable by json.loads(). First character of your output must be `{` or `[`. No prose. No explanations. No markdown fences. No apologies. If the requested data is unavailable, return the schema with empty/null values, still as valid JSON. Tools are intentionally disabled — do not request access to them.
+
+# Student extractor — qualified claims from a PubMed abstract
+
+You are extracting **atomic, qualified medical claims** from a malaria-focused biomedical abstract.
+
+## Output format
+
+Return a JSON array. Each element is one qualified claim.
+
+```json
+[
+  {
+    "subject": "string — entity name (drug, organism, gene, syndrome, intervention)",
+    "predicate": "one of: treats | causes | resists | requires | contraindicates | prevents | co_occurs | recommends",
+    "object": "string — entity or value",
+    "qualifiers": {
+      "population": {
+        "age_range": "e.g. adults | pediatric | <5 years | pregnant | null",
+        "pregnancy": "first_trimester | second_third_trimester | not_pregnant | null",
+        "region": "geographic region — e.g. Greater Mekong | West Africa | sub-Saharan Africa | null",
+        "immune_status": "naive | semi-immune | immunocompromised | null",
+        "comorbidities": ["list of strings or empty"]
+      },
+      "setting": {
+        "care_level": "outpatient | inpatient | community | null",
+        "endemic_status": "endemic | non_endemic | traveler | null"
+      },
+      "dose_regimen": {
+        "drug": "string or null",
+        "mg_per_kg": "number or null",
+        "frequency": "string or null",
+        "duration": "string or null"
+      },
+      "comparator": "what the intervention was compared against — string or null",
+      "effect_size": {
+        "metric": "e.g. day-3 positivity rate | parasite clearance time | hazard ratio | null",
+        "value": "number or null",
+        "ci_low": "number or null",
+        "ci_high": "number or null"
+      }
+    },
+    "certainty": "high | moderate | low | very_low",
+    "evidence_note": "one short sentence on why this certainty (sample size, design quality, etc.)"
+  }
+]
+```
+
+## Rules
+
+1. **Atomic.** Each claim is one subject-predicate-object triple. If an abstract states "X treats Y AND X causes Z", emit two claims.
+2. **Qualified.** Populate `qualifiers` from what the abstract explicitly states. Leave NULL if not stated — do NOT invent values.
+3. **Predicates.** Use only the listed enum values. Map free-text to the closest:
+   - "is associated with" / "linked to" / "shown to be effective for" → `treats` if therapeutic, `prevents` if prophylactic
+   - "induces resistance" / "selects for resistance" / "associated with treatment failure" → `resists` (when subject = parasite/pathogen, object = drug)
+   - "should not be given to" / "avoid in" → `contraindicates`
+   - WHO/CDC/national-program statements like "is recommended for" → `recommends`
+4. **Subject vs object.** For resistance claims, subject is the parasite/pathogen, object is the drug. For treatment, subject is the drug/intervention, object is the disease/population.
+5. **Certainty mapping:**
+   - `high`: large RCT or meta-analysis with consistent results, or current WHO guideline
+   - `moderate`: cohort study, smaller RCT, well-designed observational
+   - `low`: case-control, single-site observational, conflicting evidence
+   - `very_low`: case report, expert opinion, in-vitro only, mechanistic inference
+6. **Skip non-claims.** Background statements ("Malaria affects 200M people"), methodology ("We enrolled 1241 patients"), and meta-commentary ("Further research is needed") are NOT claims. Skip them.
+7. **No claims is a valid output.** If the abstract is purely descriptive epidemiology with no actionable medical claim, return `[]`.
+
+## Output
+
+Return ONLY the JSON array. No prose before or after.
+
+
+===== USER =====
+# Title
+Thiamin deficiency and uncomplicated falciparum malaria in Laos.
+
+# Abstract
+OBJECTIVE: Thiamin deficiency complicates severe Plasmodium falciparum malaria in Thailand and may contribute to acidosis. We therefore estimated the frequency of biochemical thiamin deficiency in patients presenting with uncomplicated falciparum malaria in southern Laos.
+
+METHODS: Red cell transketolase activation coefficients (alpha) were measured in 310 patients presenting with uncomplicated falciparum malaria and 42 days after starting treatment.
+
+RESULTS: Twelve per cent of patients had biochemical evidence of severe deficiency (alpha values >1.31) at presentation, declining to 3% 42 days later.
+
+CONCLUSION: Thiamin deficiency was common in Lao patients admitted with uncomplicated P. falciparum infection and was reduced following treatment of malaria and multivitamin supplementation. The role of this preventable and treatable disorder in malaria and other acute infections, and the incidence of beriberi in rural Laos, needs further investigation.
+
+# Publication types
+Journal Article, Randomized Controlled Trial, Research Support, Non-U.S. Gov't
+
+===== STDOUT =====
+```json
+{
+  "title": "Thiamin deficiency and uncomplicated falciparum malaria in Laos",
+  "objective": "Estimate frequency of biochemical thiamin deficiency in patients presenting with uncomplicated falciparum malaria in southern Laos",
+  "background": "Thiamin deficiency complicates severe Plasmodium falciparum malaria in Thailand and may contribute to acidosis",
+  "methods": {
+    "study_design": "Randomized Controlled Trial",
+    "measurement": "Red cell transketolase activation coefficients (alpha)",
+    "sample_size": 310,
+    "population": "Patients presenting with uncomplicated falciparum malaria",
+    "location": "Southern Laos",
+    "follow_up_days": 42,
+    "control_group_size": 42
+  },
+  "results": {
+    "severe_deficiency_at_presentation_percent": 12,
+    "severe_deficiency_threshold_alpha": 1.31,
+    "severe_deficiency_at_followup_percent": 3,
+    "direction": "Declined after treatment"
+  },
+  "conclusion": "Thiamin deficiency common in Lao patients with uncomplicated P. falciparum infection; reduced following malaria treatment and multivitamin supplementation; further investigation needed into role in malaria and other acute infections and beriberi incidence in rural Laos",
+  "publication_types": [
+    "Journal Article",
+    "Randomized Controlled Trial",
+    "Research Support, Non-U.S. Gov't"
+  ],
+  "disease": "Plasmodium falciparum malaria",
+  "deficiency": "Thiamin (Vitamin B1)",
+  "biomarker": "Red cell transketolase activation coefficient (alpha)",
+  "intervention": "Malaria treatment + multivitamin supplementation",
+  "clinical_relevance": "Thiamin deficiency is preventable and treatable; may contribute to acidosis in malaria"
+}
+```

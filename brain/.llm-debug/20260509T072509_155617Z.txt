@@ -1,0 +1,258 @@
+===== SYSTEM =====
+# Concept note synthesizer
+
+You are writing a single Markdown note that summarizes everything the medical knowledge base currently knows about ONE entity (drug, organism, gene, syndrome, intervention, anatomical structure, etc.).
+
+You are given:
+- The entity name.
+- A list of qualified claims involving this entity (as subject or object), each with predicate, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused concept note. The note will be re-generated on every change, so do not preserve old text — re-synthesize from the current claim set.
+
+## Output structure (Markdown)
+
+```
+# <Entity name as written most often in the claim set>
+
+> Short one-paragraph orientation: what this entity IS in clinical context. ≤ 60 words.
+
+## What it does / what we know
+
+A bulleted or short-paragraph synthesis grouped by predicate. Cite claim_ids inline like `[c:abc123]`.
+Group sensibly: treatment relationships, resistance relationships, mechanism, contraindications, etc.
+Only include groups that have claims.
+
+## Population & setting nuances
+
+If qualifiers vary by population (pregnancy, pediatric, region, immune status) or setting,
+summarize how. Skip this section if all claims are scope-generic.
+
+## Evidence strength
+
+One short paragraph: where the strong evidence is (RCT/MA/guideline) vs where it is thin
+(case reports, expert opinion). Reference grade explicitly.
+
+## Currency
+
+Note any superseded claims and what replaced them. Skip this section if no supersession.
+
+## Open questions
+
+Bullet list: what's missing, what contradicts, what needs investigation. These should mirror
+or seed gaps the Brain agent will pick up later. Skip the section if nothing is pending.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>.*
+```
+
+## Rules
+
+1. **No hallucination.** Every clinical statement must trace to a claim in the input. If a fact is not in the input, do not state it.
+2. **Cite inline.** Use `[c:<short_claim_id>]` after each statement. Use first 8 chars of the claim_id.
+3. **Concision.** Total length ≤ 600 words for most entities. A drug with 50 claims may justify more; an entity with 3 claims should be ≤ 200 words.
+4. **No prose-padding** like "It is important to note that…" or "Further research is needed". Write tight clinical prose.
+5. **Status awareness.** Mention `pending_review` claims with a (pending review) tag inline. Mention superseded claims explicitly in the Currency section, do not present them as current.
+6. **Output ONLY the Markdown.** No code fences, no preamble, no postamble.
+
+
+===== USER =====
+# Entity
+pfatg18 t38i mutation
+
+# Surface variants
+PfATG18 T38I mutation in P. falciparum field isolates
+
+# Claims (count=3)
+```json
+[
+  {
+    "claim_id": "39370534-052a-4dd4-a4e9-cd317e0c1d50",
+    "short_id": "39370534",
+    "subject": "PfKelch13 Y493H mutation",
+    "predicate": "co_occurs",
+    "object": "PfATG18 T38I mutation in P. falciparum field isolates",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "South-east Asia",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "field",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "association frequency across field isolates",
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:40396048",
+      "title": "The ART of Resistance.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/40396048/"
+    }
+  },
+  {
+    "claim_id": "36960084-41a8-4380-916f-4d4bca888cc5",
+    "short_id": "36960084",
+    "subject": "PfKelch13 R539T mutation",
+    "predicate": "co_occurs",
+    "object": "PfATG18 T38I mutation in P. falciparum field isolates",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "South-east Asia",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "field",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "association frequency across field isolates",
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:40396048",
+      "title": "The ART of Resistance.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/40396048/"
+    }
+  },
+  {
+    "claim_id": "1bfeb3f2-0555-4a77-b1c3-d92153a9c8b9",
+    "short_id": "1bfeb3f2",
+    "subject": "PfKelch13 C580Y mutation",
+    "predicate": "co_occurs",
+    "object": "PfATG18 T38I mutation in P. falciparum field isolates",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "South-east Asia",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "field",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "association frequency across field isolates",
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:40396048",
+      "title": "The ART of Resistance.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/40396048/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-09T07:24:40.309175+00:00
+
+
+===== STDOUT =====
+## Concept Note — PfATG18 T38I Mutation
+
+**Entity:** PfATG18 T38I | *Plasmodium falciparum* autophagy-related protein 18, threonine→isoleucine at residue 38
+
+---
+
+### Summary
+
+PfATG18 T38I is a point mutation in *P. falciparum* ATG18 — a phosphoinositide-binding protein involved in autophagy and artemisinin (ART) stress-response pathways. In field isolates across South-east Asia, T38I co-occurs with multiple PfKelch13 propeller mutations associated with ART partial resistance.
+
+---
+
+### Co-occurrence Evidence
+
+All three claims originate from a single source (PMID:40396048, *"The ART of Resistance"*), classified as expert opinion, moderate certainty, pending review.
+
+| Kelch13 Allele | Region | Setting | Evidence grade |
+|---|---|---|---|
+| **Y493H** | South-east Asia | Field / endemic | Expert opinion |
+| **R539T** | South-east Asia | Field / endemic | Expert opinion |
+| **C580Y** | South-east Asia | Field / endemic | Expert opinion |
+
+No quantitative effect sizes, confidence intervals, or allele frequencies reported in current records.
+
+---
+
+### Interpretation
+
+- T38I observed alongside **three distinct validated Kelch13 resistance alleles** → likely a co-selected background mutation, not allele-specific.
+- PfATG18 role in autophagy/PI3P binding suggests T38I may modulate parasite stress responses that intersect with ART-induced damage clearance — plausible mechanistic link to resistance background.
+- Absence of experimental effect-size data limits causal inference; current status = associative / epidemiological.
+
+---
+
+### Evidence Gaps
+
+| Gap | Impact |
+|---|---|
+| No allele frequency data | Cannot assess selection pressure or prevalence |
+| Single source, expert opinion | High confirmation-bias risk |
+| No functional validation | Mechanistic role of T38I unconfirmed |
+| No Africa / Americas data | Geographic scope unknown |
+
+---
+
+### Status
+
+**Pending review** · Moderate certainty · Expert opinion only · Quantitative epidemiology and in-vitro functional studies needed before clinical or surveillance conclusions.

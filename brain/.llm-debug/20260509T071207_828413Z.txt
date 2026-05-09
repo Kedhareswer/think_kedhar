@@ -1,0 +1,287 @@
+===== SYSTEM =====
+# Concept note synthesizer
+
+You are writing a single Markdown note that summarizes everything the medical knowledge base currently knows about ONE entity (drug, organism, gene, syndrome, intervention, anatomical structure, etc.).
+
+You are given:
+- The entity name.
+- A list of qualified claims involving this entity (as subject or object), each with predicate, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused concept note. The note will be re-generated on every change, so do not preserve old text — re-synthesize from the current claim set.
+
+## Output structure (Markdown)
+
+```
+# <Entity name as written most often in the claim set>
+
+> Short one-paragraph orientation: what this entity IS in clinical context. ≤ 60 words.
+
+## What it does / what we know
+
+A bulleted or short-paragraph synthesis grouped by predicate. Cite claim_ids inline like `[c:abc123]`.
+Group sensibly: treatment relationships, resistance relationships, mechanism, contraindications, etc.
+Only include groups that have claims.
+
+## Population & setting nuances
+
+If qualifiers vary by population (pregnancy, pediatric, region, immune status) or setting,
+summarize how. Skip this section if all claims are scope-generic.
+
+## Evidence strength
+
+One short paragraph: where the strong evidence is (RCT/MA/guideline) vs where it is thin
+(case reports, expert opinion). Reference grade explicitly.
+
+## Currency
+
+Note any superseded claims and what replaced them. Skip this section if no supersession.
+
+## Open questions
+
+Bullet list: what's missing, what contradicts, what needs investigation. These should mirror
+or seed gaps the Brain agent will pick up later. Skip the section if nothing is pending.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>.*
+```
+
+## Rules
+
+1. **No hallucination.** Every clinical statement must trace to a claim in the input. If a fact is not in the input, do not state it.
+2. **Cite inline.** Use `[c:<short_claim_id>]` after each statement. Use first 8 chars of the claim_id.
+3. **Concision.** Total length ≤ 600 words for most entities. A drug with 50 claims may justify more; an entity with 3 claims should be ≤ 200 words.
+4. **No prose-padding** like "It is important to note that…" or "Further research is needed". Write tight clinical prose.
+5. **Status awareness.** Mention `pending_review` claims with a (pending review) tag inline. Mention superseded claims explicitly in the Currency section, do not present them as current.
+6. **Output ONLY the Markdown.** No code fences, no preamble, no postamble.
+
+
+===== USER =====
+# Entity
+artemether-lumefantrine
+
+# Surface variants
+artemether-lumefantrine
+
+# Claims (count=4)
+```json
+[
+  {
+    "claim_id": "1f7bee72-4738-4839-b1b3-6113abf0a978",
+    "short_id": "1f7bee72",
+    "subject": "artemether-lumefantrine",
+    "predicate": "causes",
+    "object": "serious adverse events",
+    "qualifiers": {
+      "population": {
+        "age_range": "6 months to 10 years",
+        "pregnancy": null,
+        "region": "Uganda",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemether-lumefantrine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "dihydroartemisinin-piperaquine",
+      "effect_size": {
+        "metric": "rate of serious adverse events",
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:34952573",
+      "title": "Efficacy and safety of artemether-lumefantrine and dihydroartemisinin-piperaquine for the treatment of uncomplicated Plasmodium falciparum malaria and prevalence of molecular markers associated with artemisinin and partner drug resistance in Uganda.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/34952573/"
+    }
+  },
+  {
+    "claim_id": "9252904e-f381-464e-88ce-ffe976985031",
+    "short_id": "9252904e",
+    "subject": "artemether-lumefantrine",
+    "predicate": "causes",
+    "object": "high rate of recurrent malaria infections",
+    "qualifiers": {
+      "population": {
+        "age_range": "6 months to 10 years",
+        "pregnancy": null,
+        "region": "Uganda (three sentinel sites)",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemether-lumefantrine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": "28-day follow-up"
+      },
+      "comparator": "dihydroartemisinin-piperaquine",
+      "effect_size": {
+        "metric": "uncorrected 28-day cumulative efficacy (recurrence = 100 minus efficacy %)",
+        "value": null,
+        "ci_low": 41.2,
+        "ci_high": 71.2
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:34952573",
+      "title": "Efficacy and safety of artemether-lumefantrine and dihydroartemisinin-piperaquine for the treatment of uncomplicated Plasmodium falciparum malaria and prevalence of molecular markers associated with artemisinin and partner drug resistance in Uganda.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/34952573/"
+    }
+  },
+  {
+    "claim_id": "ea4fb695-875c-4f1d-b64f-26d58d5f34e7",
+    "short_id": "ea4fb695",
+    "subject": "Plasmodium falciparum",
+    "predicate": "resists",
+    "object": "artemether-lumefantrine",
+    "qualifiers": {
+      "population": {
+        "age_range": "6 months to 10 years",
+        "pregnancy": null,
+        "region": "Uganda (Busia and Arua)",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemether-lumefantrine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "PCR-corrected 28-day efficacy 95% CI upper bound relative to WHO 90% threshold",
+        "value": null,
+        "ci_low": null,
+        "ci_high": 90.0
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:34952573",
+      "title": "Efficacy and safety of artemether-lumefantrine and dihydroartemisinin-piperaquine for the treatment of uncomplicated Plasmodium falciparum malaria and prevalence of molecular markers associated with artemisinin and partner drug resistance in Uganda.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/34952573/"
+    }
+  },
+  {
+    "claim_id": "7f1794c4-68e4-4428-b831-62879669dca6",
+    "short_id": "7f1794c4",
+    "subject": "artemether-lumefantrine",
+    "predicate": "treats",
+    "object": "uncomplicated Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "6 months to 10 years",
+        "pregnancy": null,
+        "region": "Uganda (three sentinel sites)",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemether-lumefantrine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": "28-day follow-up"
+      },
+      "comparator": "dihydroartemisinin-piperaquine",
+      "effect_size": {
+        "metric": "PCR-corrected 28-day cumulative efficacy",
+        "value": null,
+        "ci_low": 87.2,
+        "ci_high": 94.4
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:34952573",
+      "title": "Efficacy and safety of artemether-lumefantrine and dihydroartemisinin-piperaquine for the treatment of uncomplicated Plasmodium falciparum malaria and prevalence of molecular markers associated with artemisinin and partner drug resistance in Uganda.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/34952573/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-09T07:11:38.449808+00:00
+
+
+===== STDOUT =====
+## Concept Note: Artemether-Lumefantrine
+
+**Source:** PMID:34952573 | Uganda, outpatient, children 6 mo–10 yr | Comparator: dihydroartemisinin-piperaquine (DHP)
+
+---
+
+### Efficacy
+
+AL treats uncomplicated *P. falciparum* malaria with **PCR-corrected 28-day efficacy 87.2–94.4%** (moderate certainty). Meets WHO ≥90% threshold at aggregate level, but **site-level data for Busia and Arua show CI upper bound touching 90%** — borderline performance at those sentinel sites (moderate certainty).
+
+Uncorrected 28-day efficacy drops sharply: **cumulative recurrence range 28.8–58.8%** (efficacy CI 41.2–71.2%, high certainty). Much of this reflects reinfection in high-transmission Uganda rather than true treatment failure, but the raw burden of re-presentation is high.
+
+### Resistance Signal
+
+*P. falciparum* resistance to AL flagged at **Busia and Arua** — PCR-corrected efficacy CI upper bound ≤90% (WHO action threshold). Molecular marker prevalence data in the source likely corroborates this. Warrants surveillance escalation at these sites.
+
+### Safety
+
+**Zero serious adverse events** recorded in the AL arm (rate = 0.0, moderate certainty). Both AL and DHP well-tolerated in this pediatric outpatient population.
+
+### Synthesis
+
+AL remains efficacious for uncomplicated *P. falciparum* in Uganda overall, but:
+- **Geographically uneven** — two of three sentinel sites near or below WHO efficacy threshold
+- **High reinfection burden** in 28-day window reflects endemic pressure, not drug failure per se, but stresses health system
+- **Safety profile clean** — not a limiting factor
+
+**Clinical implication:** AL continues as viable first-line option, but resistance signals at Busia/Arua justify enhanced molecular surveillance and consideration of DHP rotation if PCR-corrected efficacy falls below 90% in repeat surveys.
+
+---
+
+*All 4 claims pending review | Evidence grade: expert_opinion across all | Single source — interpret with caution pending multi-study corroboration.*

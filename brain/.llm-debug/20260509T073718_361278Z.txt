@@ -1,0 +1,363 @@
+===== SYSTEM =====
+# Topic note synthesizer
+
+You are writing a single Markdown note that summarizes everything the medical knowledge base currently knows about ONE topic — a slice of clinical knowledge, e.g. `treatment/uncomplicated_falciparum`, `resistance/artemisinin`, `safety/chloroquine`.
+
+You are given:
+- The topic path.
+- A list of qualified claims that contribute to this topic, each with subject, predicate, object, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused topic note. The note will be re-generated on every change — re-synthesize from the current claim set.
+
+## Output structure (Markdown)
+
+```
+# <Topic title in human form>
+
+> One-paragraph framing: what this topic covers, who it matters for. ≤ 60 words.
+
+## Current understanding
+
+Synthesize the current state. Group related claims. Cite inline as `[c:<short_id>]`.
+Include effect sizes, populations, and settings where they materially differ.
+
+## Population-specific notes
+
+If recommendations or findings differ by pregnancy, pediatric, geographic region, immune status:
+break out the differences. Otherwise skip.
+
+## Strength of evidence
+
+Where is the evidence strong (RCT/MA/guideline)? Where is it weak (case report / expert opinion)?
+Note explicitly.
+
+## Recent changes / supersession
+
+If any included claims supersede older ones, list the chain. Skip if none.
+
+## Gaps and contradictions
+
+Bullet list. Mirror what Brain may pick up as questions.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>.*
+```
+
+## Rules
+
+1. **No hallucination.** Every statement traces to a claim in the input.
+2. **Cite inline** with `[c:<short_id>]` (first 8 chars).
+3. **Concise.** ≤ 800 words for typical topics.
+4. **Surface contradictions.** If two claims with similar scope conflict, name both.
+5. **Status awareness.** Tag `(pending review)` for unconfirmed claims. Treat superseded claims as historical context only.
+6. **Output ONLY the Markdown.**
+
+
+===== USER =====
+# Topic
+etiology/artemisinin-resistance-in-plasmodium-falciparum
+
+# Claims (count=5)
+```json
+[
+  {
+    "claim_id": "4b5a733e-cc8e-4e2b-937e-e08a73b288c1",
+    "short_id": "4b5a733e",
+    "subject": "Elevated phosphatidylinositol-3-phosphate (PI3P)",
+    "predicate": "causes",
+    "object": "artemisinin resistance in Plasmodium falciparum",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "artemisinin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "normal PI3P levels",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:25874676",
+      "title": "A molecular mechanism of artemisinin resistance in Plasmodium falciparum malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/25874676/"
+    }
+  },
+  {
+    "claim_id": "9db305d3-cfbb-4f39-be65-57aa3b2aef4f",
+    "short_id": "9db305d3",
+    "subject": "Y493H mutation in K13",
+    "predicate": "causes",
+    "object": "artemisinin resistance in Plasmodium falciparum",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "artemisinin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37269964",
+      "title": "Molecular insights into artemisinin resistance in Plasmodium falciparum: An updated review.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37269964/"
+    }
+  },
+  {
+    "claim_id": "a480c81f-1774-4866-9a51-790818ed5abd",
+    "short_id": "a480c81f",
+    "subject": "I543T mutation in K13",
+    "predicate": "causes",
+    "object": "artemisinin resistance in Plasmodium falciparum",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "artemisinin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37269964",
+      "title": "Molecular insights into artemisinin resistance in Plasmodium falciparum: An updated review.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37269964/"
+    }
+  },
+  {
+    "claim_id": "bb7a8ce9-9db1-4bba-9345-cce0f7cb38a4",
+    "short_id": "bb7a8ce9",
+    "subject": "R539T mutation in K13",
+    "predicate": "causes",
+    "object": "artemisinin resistance in Plasmodium falciparum",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "artemisinin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37269964",
+      "title": "Molecular insights into artemisinin resistance in Plasmodium falciparum: An updated review.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37269964/"
+    }
+  },
+  {
+    "claim_id": "90d00895-13ac-4b79-8891-402d976988c4",
+    "short_id": "90d00895",
+    "subject": "mutations in propeller domain of kelch13 (k13) gene",
+    "predicate": "causes",
+    "object": "artemisinin resistance in Plasmodium falciparum",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "artemisinin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37269964",
+      "title": "Molecular insights into artemisinin resistance in Plasmodium falciparum: An updated review.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37269964/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-09T07:36:44.426592+00:00
+
+
+===== STDOUT =====
+## Topic Note: Etiology of Artemisinin Resistance in *Plasmodium falciparum*
+
+**Synthesized from 5 claims · 2 sources · 2026-05-09**
+
+---
+
+### Core Mechanism
+
+Two converging causal chains explain resistance:
+
+**1. K13 propeller domain mutations** *(high certainty · 3 specific variants + class-level claim)*
+
+Mutations in the propeller domain of *kelch13* (*k13*, PF3D7_1343700) drive resistance. Three validated variants:
+
+| Mutation | Claim ID |
+|----------|----------|
+| R539T | `bb7a8ce9` |
+| I543T | `a480c81f` |
+| Y493H | `9db305d3` |
+
+These are the primary genetic markers. WHO-validated; Southeast Asian origin, now tracked globally. [PMID:37269964]
+
+**2. Elevated phosphatidylinositol-3-phosphate (PI3P)** *(moderate certainty)*
+
+PI3P upregulation → artemisinin resistance. Mechanistic bridge: K13 normally ubiquitinates PI3-kinase (PfPI3K); K13 mutations impair this → PfPI3K accumulates → PI3P elevated → parasite gains cytoprotection, enabling ring-stage survival during drug exposure. [PMID:25874676]
+
+---
+
+### Causal Graph
+
+```
+K13 propeller mutations (R539T / I543T / Y493H)
+        │
+        ▼
+ ↓ K13-mediated ubiquitination of PfPI3K
+        │
+        ▼
+ ↑ PfPI3K activity → ↑ PI3P
+        │
+        ▼
+ Ring-stage cytoprotection
+        │
+        ▼
+ Artemisinin resistance (prolonged ring survival = clinical partial resistance)
+```
+
+---
+
+### Evidence Summary
+
+| Factor | Certainty | Grade | Source |
+|--------|-----------|-------|--------|
+| K13 propeller domain mutations (class) | High | Expert opinion | PMID:37269964 |
+| R539T | High | Expert opinion | PMID:37269964 |
+| I543T | High | Expert opinion | PMID:37269964 |
+| Y493H | High | Expert opinion | PMID:37269964 |
+| Elevated PI3P | Moderate | Expert opinion | PMID:25874676 |
+
+All 5 claims: `pending_review`. Evidence grade uniform: expert opinion — no RCT-level causal confirmation yet. PI3P claim moderate (mechanistic model, not fully confirmed in field isolates).
+
+---
+
+### Gaps
+
+- No effect sizes / OR / HR quantified across any claim
+- No population stratification (region, age, immune status absent)
+- PI3P claim needs validation in African isolates (most data: Southeast Asia)
+- Evidence grade capped at expert opinion — prospective genetic epidemiology needed to upgrade

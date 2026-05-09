@@ -1,0 +1,160 @@
+===== SYSTEM =====
+OUTPUT REQUIREMENT: Return VALID JSON ONLY. Your entire response must be parseable by json.loads(). First character of your output must be `{` or `[`. No prose. No explanations. No markdown fences. No apologies. If the requested data is unavailable, return the schema with empty/null values, still as valid JSON. Tools are intentionally disabled — do not request access to them.
+
+# Research planner — natural-language topic to PubMed search plan
+
+You are planning a research session for a medical knowledge base. Input is a natural-language topic. Output is a structured plan: how to decompose, what to search PubMed for, how deep to go.
+
+## Output format
+
+Return a JSON object:
+
+```json
+{
+  "topic": "the input topic, lightly cleaned",
+  "scope": "very_broad | broad | focused | specific",
+  "decomposition": [
+    "subtopic 1 — short imperative phrase",
+    "subtopic 2",
+    "..."
+  ],
+  "queries": [
+    {
+      "subtopic": "which decomposition entry this query covers (or 'overall' if focused)",
+      "pubmed_query": "exact PubMed search string with MeSH terms, AND/OR/NOT, field tags",
+      "max_papers": "integer — how many top hits to ingest from this query",
+      "rationale": "one short sentence on why this query"
+    }
+  ],
+  "stop_criteria": {
+    "max_total_papers": "integer cap across the whole research session",
+    "saturation_window": "integer — stop a query early if last N papers produce mostly duplicates",
+    "duplicate_ratio_threshold": "float 0.0-1.0 — duplicate ratio that triggers early stop"
+  },
+  "notes": "optional one-paragraph rationale for the overall plan"
+}
+```
+
+## Scope rules
+
+- **very_broad** (e.g. "virology", "dental best practices", "what is medicine"): MUST decompose into 5-12 subtopics. Each subtopic gets 1-2 queries, max 5 papers each. Total cap 40-60.
+- **broad** (e.g. "what is malaria", "diabetes treatment"): decompose into 3-6 subtopics (epidemiology, pathophysiology, diagnosis, treatment, prevention, prognosis as applicable). 1-2 queries per subtopic, 5-8 papers each. Total cap 30-50.
+- **focused** (e.g. "artemisinin resistance in pregnancy", "metformin for heart failure"): decomposition optional (1-3 subtopics if useful). 1-3 queries, 5-15 papers each. Total cap 20-40.
+- **specific** (e.g. "tafenoquine pediatric dose under 30kg", a precise question): no decomposition. 1-2 queries, 10-20 papers. Total cap 10-25.
+
+## PubMed query syntax
+
+- Use MeSH tags where applicable: `Malaria/drug therapy[MeSH]`
+- Field tags: `[tiab]` (title/abstract), `[au]` (author), `[dp]` (publication date)
+- Boolean: AND, OR, NOT (uppercase)
+- Quote phrases: `"artemisinin resistance"`
+- Date filter: `2018:2025[dp]` for recent if relevant
+- Prefer specific over generic; rely on PubMed relevance sort to surface best hits
+
+Example queries:
+- broad → `"malaria"[MeSH] AND review[pt]`
+- focused → `"artemisinin resistance"[tiab] AND pregnancy[tiab] AND 2015:2025[dp]`
+- specific → `tafenoquine[tiab] AND (pediatric[tiab] OR children[tiab]) AND dose[tiab]`
+
+## Saturation defaults
+
+- `saturation_window`: 3
+- `duplicate_ratio_threshold`: 0.7
+
+## Output rules
+
+1. Return ONLY the JSON. No prose before or after.
+2. Every query MUST have a non-empty `pubmed_query` and `max_papers >= 1`.
+3. If the topic is so broad it shouldn't be ingested in one session (e.g. "all of medicine"), set `scope: "very_broad"` and decompose aggressively — do NOT refuse. The orchestrator will run in batches.
+
+
+===== USER =====
+# Topic
+hydroxychloroquine for covid-19 efficacy contradictory evidence
+
+===== STDOUT =====
+```json
+{
+  "topic": "Hydroxychloroquine for COVID-19: Efficacy Evidence Summary",
+  "drug": {
+    "name": "Hydroxychloroquine (HCQ)",
+    "also_known_as": "Plaquenil",
+    "mechanism_proposed": "Inhibits endosomal acidification, blocks viral entry; immunomodulatory via TLR signaling suppression"
+  },
+  "evidence_supporting_efficacy": [
+    {
+      "source": "Gautret et al. 2020 (Marseille, France)",
+      "type": "Small observational RCT",
+      "n": 36,
+      "finding": "HCQ + azithromycin reduced nasopharyngeal viral load vs control at day 6",
+      "major_flaws": ["No randomization integrity", "6 patients excluded post-enrollment", "No clinical outcomes reported", "Conflict of interest with investigator"]
+    },
+    {
+      "source": "Early in-vitro studies (Liu et al., Wang et al. 2020)",
+      "type": "Cell culture",
+      "finding": "HCQ inhibited SARS-CoV-2 replication at achievable concentrations",
+      "major_flaws": ["In-vitro concentration ≠ lung tissue concentration in vivo", "Does not predict clinical efficacy"]
+    },
+    {
+      "source": "Retrospective observational studies (early 2020)",
+      "type": "Observational, retrospective",
+      "finding": "Some showed reduced mortality or shorter hospitalization",
+      "major_flaws": ["Confounding by indication", "Selection bias", "No controls for disease severity or timing"]
+    }
+  ],
+  "evidence_against_efficacy": [
+    {
+      "source": "RECOVERY Trial (UK, 2020)",
+      "type": "Large RCT",
+      "n": 4716,
+      "outcome": "No reduction in 28-day mortality (HR 1.09, 95% CI 0.97–1.23)",
+      "quality": "High — largest RCT on topic"
+    },
+    {
+      "source": "WHO SOLIDARITY Trial (2021)",
+      "type": "Multi-country adaptive RCT",
+      "n": "~11000 across arms",
+      "outcome": "No mortality benefit; rate ratio 1.19 (95% CI 0.89–1.59)",
+      "quality": "High"
+    },
+    {
+      "source": "ORCHID Trial (JAMA, 2020)",
+      "type": "RCT, hospitalized patients",
+      "n": 479,
+      "outcome": "No difference in 14-day clinical status (OR 1.02)",
+      "quality": "High"
+    },
+    {
+      "source": "COVID-19 Treatment Guidelines (NIH, WHO, EMA)",
+      "finding": "Recommend AGAINST use outside clinical trials"
+    },
+    {
+      "source": "Multiple meta-analyses (2020–2021)",
+      "finding": "Pooled data shows no benefit; possible harm (QTc prolongation, cardiac events)"
+    }
+  ],
+  "why_evidence_appeared_contradictory": {
+    "reasons": [
+      "Early small/flawed studies published rapidly under pandemic pressure — later contradicted by large RCTs",
+      "Timing hypothesis: HCQ may need early viral-phase use — most RCTs enrolled hospitalized (later-stage) patients",
+      "Publication bias: positive small studies published first, null large studies followed",
+      "Political amplification distorted public/scientific perception of evidence quality",
+      "Observational confounding — sicker patients often NOT given HCQ early, skewing apparent benefit",
+      "Retraction of major Surgisphere observational study (Lancet) added noise and confusion"
+    ]
+  },
+  "safety_concerns": [
+    "QTc prolongation — risk of torsades de pointes, especially with azithromycin co-administration",
+    "Drug interactions with other QT-prolonging agents",
+    "Retinal toxicity with chronic use (less relevant for short COVID courses)",
+    "Hypoglycemia"
+  ],
+  "current_consensus": {
+    "efficacy_for_covid19": "No demonstrated benefit in moderate-to-severe or hospitalized COVID-19",
+    "prophylaxis_evidence": "Also negative — NEJM PEP trial, David Boulware et al. showed no benefit post-exposure prophylaxis",
+    "guideline_status": "Not recommended by WHO, NIH, EMA for COVID-19 treatment or prevention",
+    "established_uses_unaffected": ["Malaria prophylaxis/treatment", "SLE", "Rheumatoid arthritis"]
+  },
+  "bottom_line": "Contradiction largely artifact of early low-quality studies vs later high-quality RCTs. Large RCTs (RECOVERY, SOLIDARITY, ORCHID) consistently show no benefit. Timing hypothesis remains theoretically open but untested at scale with rigorous design. Evidence weight clearly against efficacy."
+}
+```

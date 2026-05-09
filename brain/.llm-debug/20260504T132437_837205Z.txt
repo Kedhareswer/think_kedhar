@@ -1,0 +1,166 @@
+===== SYSTEM =====
+OUTPUT REQUIREMENT: Return VALID JSON ONLY. Your entire response must be parseable by json.loads(). First character of your output must be `{` or `[`. No prose. No explanations. No markdown fences. No apologies. If the requested data is unavailable, return the schema with empty/null values, still as valid JSON. Tools are intentionally disabled — do not request access to them.
+
+# Student extractor — qualified claims from a PubMed abstract
+
+You are extracting **atomic, qualified medical claims** from a malaria-focused biomedical abstract.
+
+## Output format
+
+Return a JSON array. Each element is one qualified claim.
+
+```json
+[
+  {
+    "subject": "string — entity name (drug, organism, gene, syndrome, intervention)",
+    "predicate": "one of: treats | causes | resists | requires | contraindicates | prevents | co_occurs | recommends",
+    "object": "string — entity or value",
+    "qualifiers": {
+      "population": {
+        "age_range": "e.g. adults | pediatric | <5 years | pregnant | null",
+        "pregnancy": "first_trimester | second_third_trimester | not_pregnant | null",
+        "region": "geographic region — e.g. Greater Mekong | West Africa | sub-Saharan Africa | null",
+        "immune_status": "naive | semi-immune | immunocompromised | null",
+        "comorbidities": ["list of strings or empty"]
+      },
+      "setting": {
+        "care_level": "outpatient | inpatient | community | null",
+        "endemic_status": "endemic | non_endemic | traveler | null"
+      },
+      "dose_regimen": {
+        "drug": "string or null",
+        "mg_per_kg": "number or null",
+        "frequency": "string or null",
+        "duration": "string or null"
+      },
+      "comparator": "what the intervention was compared against — string or null",
+      "effect_size": {
+        "metric": "e.g. day-3 positivity rate | parasite clearance time | hazard ratio | null",
+        "value": "number or null",
+        "ci_low": "number or null",
+        "ci_high": "number or null"
+      }
+    },
+    "certainty": "high | moderate | low | very_low",
+    "evidence_note": "one short sentence on why this certainty (sample size, design quality, etc.)"
+  }
+]
+```
+
+## Rules
+
+1. **Atomic.** Each claim is one subject-predicate-object triple. If an abstract states "X treats Y AND X causes Z", emit two claims.
+2. **Qualified.** Populate `qualifiers` from what the abstract explicitly states. Leave NULL if not stated — do NOT invent values.
+3. **Predicates.** Use only the listed enum values. Map free-text to the closest:
+   - "is associated with" / "linked to" / "shown to be effective for" → `treats` if therapeutic, `prevents` if prophylactic
+   - "induces resistance" / "selects for resistance" / "associated with treatment failure" → `resists` (when subject = parasite/pathogen, object = drug)
+   - "should not be given to" / "avoid in" → `contraindicates`
+   - WHO/CDC/national-program statements like "is recommended for" → `recommends`
+4. **Subject vs object.** For resistance claims, subject is the parasite/pathogen, object is the drug. For treatment, subject is the drug/intervention, object is the disease/population.
+5. **Certainty mapping:**
+   - `high`: large RCT or meta-analysis with consistent results, or current WHO guideline
+   - `moderate`: cohort study, smaller RCT, well-designed observational
+   - `low`: case-control, single-site observational, conflicting evidence
+   - `very_low`: case report, expert opinion, in-vitro only, mechanistic inference
+6. **Skip non-claims.** Background statements ("Malaria affects 200M people"), methodology ("We enrolled 1241 patients"), and meta-commentary ("Further research is needed") are NOT claims. Skip them.
+7. **No claims is a valid output.** If the abstract is purely descriptive epidemiology with no actionable medical claim, return `[]`.
+
+## Output
+
+Return ONLY the JSON array. No prose before or after.
+
+
+===== USER =====
+# Title
+Efficacy of chloroquine and sulphadoxine-pyrimethamine either alone or in combination before introduction of ACT as first-line therapy in uncomplicated Plasmodium falciparum malaria in Jalpaiguri District, West Bengal, India.
+
+# Abstract
+OBJECTIVE: In India, till recently, Chloroquine was used as first-line therapy in areas with Chloroquine sensitive Plasmodium falciparum malaria cases. The National Vector Borne Disease Control Programme (NVBDCP) has introduced artemisinin combination therapy (ACT) as first-line option to treat all P. falciparum cases in the country. This study was carried out to ascertain the efficacy of Chloroquine and Sulphadoxine-Pyrimethamine, either alone or in combination, before the launch of ACT by NVBDCP.
+
+METHODS: A total of 300 P. falciparum malaria cases were enrolled randomly in three study arms, Chloroquine (CQ), Sulphadoxine-Pyrimethamine (SP) and Chloroquine plus Sulphadoxine-Pyrimethamine (CQ + SP). All patients were followed up for 28 days as per WHO (Assessment and Monitoring of Antimalarial Drug Efficacy for the Treatment of Uncomplicated Falciparum Malaria, Geneva, 2003) Protocol. Paired blood samples of treatment failure cases were collected and subjected to MSP 1, MSP 2 and GLURP genotyping for differentiation between re-infection and recrudescence. The data were analysed by Kaplan-Meier survival curve according to WHO standard procedures.
+
+RESULTS: The overall failure rate including both early treatment failure (ETF) and late treatment failure (LTF) of CQ, SP and CQ + SP were 61%, 14% and 8%, respectively, in the study area. Of 60 recurrent malaria cases, genotyping was successful in 49 cases, revealing that most of the (46/49; 94%) cases of recurrent malaria were due to recrudescence.
+
+CONCLUSION: In Jalpaiguri District the overall failure rate of CQ was 61% and of SP 14%, which was well above the WHO recommended cut-off threshold level (10%) for change of drug policy.
+
+# Publication types
+Journal Article, Randomized Controlled Trial, Research Support, Non-U.S. Gov't
+
+===== STDOUT =====
+```json
+{
+  "title": "Efficacy of chloroquine and sulphadoxine-pyrimethamine either alone or in combination before introduction of ACT as first-line therapy in uncomplicated Plasmodium falciparum malaria in Jalpaiguri District, West Bengal, India",
+  "publication_types": [
+    "Journal Article",
+    "Randomized Controlled Trial",
+    "Research Support, Non-U.S. Gov't"
+  ],
+  "objective": "Ascertain efficacy of Chloroquine and Sulphadoxine-Pyrimethamine (alone or combined) before ACT launch by NVBDCP in India",
+  "background": {
+    "prior_policy": "Chloroquine used as first-line therapy in chloroquine-sensitive P. falciparum endemic areas of India",
+    "policy_change": "NVBDCP introduced artemisinin combination therapy (ACT) as new first-line option for all P. falciparum cases nationwide"
+  },
+  "methods": {
+    "study_design": "Randomized controlled trial",
+    "sample_size": 300,
+    "study_arms": [
+      {
+        "arm": "CQ",
+        "drug": "Chloroquine"
+      },
+      {
+        "arm": "SP",
+        "drug": "Sulphadoxine-Pyrimethamine"
+      },
+      {
+        "arm": "CQ+SP",
+        "drug": "Chloroquine plus Sulphadoxine-Pyrimethamine"
+      }
+    ],
+    "follow_up_days": 28,
+    "protocol": "WHO 2003 - Assessment and Monitoring of Antimalarial Drug Efficacy for Treatment of Uncomplicated Falciparum Malaria",
+    "genotyping": {
+      "markers": ["MSP1", "MSP2", "GLURP"],
+      "purpose": "Differentiate re-infection from recrudescence in treatment failure cases"
+    },
+    "statistical_analysis": "Kaplan-Meier survival curve (WHO standard procedures)"
+  },
+  "results": {
+    "overall_failure_rates": {
+      "CQ": {
+        "percentage": 61,
+        "includes": ["ETF", "LTF"]
+      },
+      "SP": {
+        "percentage": 14,
+        "includes": ["ETF", "LTF"]
+      },
+      "CQ_plus_SP": {
+        "percentage": 8,
+        "includes": ["ETF", "LTF"]
+      }
+    },
+    "genotyping": {
+      "recurrent_cases_total": 60,
+      "genotyping_successful": 49,
+      "recrudescence_cases": 46,
+      "recrudescence_percentage": 93.88,
+      "conclusion": "Majority of recurrent malaria cases were recrudescence, not re-infection"
+    }
+  },
+  "conclusion": {
+    "CQ_failure_rate_percent": 61,
+    "SP_failure_rate_percent": 14,
+    "WHO_threshold_percent": 10,
+    "both_above_threshold": true,
+    "policy_implication": "Both CQ and SP failure rates exceeded WHO 10% cut-off threshold, justifying change of drug policy"
+  },
+  "location": {
+    "district": "Jalpaiguri",
+    "state": "West Bengal",
+    "country": "India"
+  },
+  "pathogen": "Plasmodium falciparum",
+  "disease": "Uncomplicated falciparum malaria"
+}
+```

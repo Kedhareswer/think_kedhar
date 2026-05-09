@@ -1,0 +1,415 @@
+===== SYSTEM =====
+OUTPUT REQUIREMENT: Return VALID JSON ONLY. Your entire response must be parseable by json.loads(). First character of your output must be `{` or `[`. No prose. No explanations. No markdown fences. No apologies. If the requested data is unavailable, return the schema with empty/null values, still as valid JSON. Tools are intentionally disabled — do not request access to them.
+
+/# Student extractor — qualified claims from a PubMed abstract
+
+You are extracting **atomic, qualified medical claims** from a malaria-focused biomedical abstract.
+
+## Output format
+
+Return a JSON array. Each element is one qualified claim.
+
+```json
+[
+  {
+    "subject": "string — entity name (drug, organism, gene, syndrome, intervention)",
+    "predicate": "one of: treats | causes | resists | requires | contraindicates | prevents | co_occurs | recommends",
+    "object": "string — entity or value",
+    "qualifiers": {
+      "population": {
+        "age_range": "e.g. adults | pediatric | <5 years | pregnant | null",
+        "pregnancy": "first_trimester | second_third_trimester | not_pregnant | null",
+        "region": "geographic region — e.g. Greater Mekong | West Africa | sub-Saharan Africa | null",
+        "immune_status": "naive | semi-immune | immunocompromised | null",
+        "comorbidities": ["list of strings or empty"]
+      },
+      "setting": {
+        "care_level": "outpatient | inpatient | community | null",
+        "endemic_status": "endemic | non_endemic | traveler | null"
+      },
+      "dose_regimen": {
+        "drug": "string or null",
+        "mg_per_kg": "number or null",
+        "frequency": "string or null",
+        "duration": "string or null"
+      },
+      "comparator": "what the intervention was compared against — string or null",
+      "effect_size": {
+        "metric": "e.g. day-3 positivity rate | parasite clearance time | hazard ratio | null",
+        "value": "number or null",
+        "ci_low": "number or null",
+        "ci_high": "number or null"
+      }
+    },
+    "certainty": "high | moderate | low | very_low",
+    "evidence_note": "one short sentence on why this certainty (sample size, design quality, etc.)"
+  }
+]
+```
+
+## Rules
+
+1. **Atomic.** Each claim is one subject-predicate-object triple. If an abstract states "X treats Y AND X causes Z", emit two claims.
+2. **Qualified.** Populate `qualifiers` from what the abstract explicitly states. Leave NULL if not stated — do NOT invent values.
+3. **Predicates.** Use only the listed enum values. Map free-text to the closest:
+   - "is associated with" / "linked to" / "shown to be effective for" → `treats` if therapeutic, `prevents` if prophylactic
+   - "induces resistance" / "selects for resistance" / "associated with treatment failure" → `resists` (when subject = parasite/pathogen, object = drug)
+   - "should not be given to" / "avoid in" → `contraindicates`
+   - WHO/CDC/national-program statements like "is recommended for" → `recommends`
+4. **Subject vs object.** For resistance claims, subject is the parasite/pathogen, object is the drug. For treatment, subject is the drug/intervention, object is the disease/population.
+5. **Certainty mapping:**
+   - `high`: large RCT or meta-analysis with consistent results, or current WHO guideline
+   - `moderate`: cohort study, smaller RCT, well-designed observational
+   - `low`: case-control, single-site observational, conflicting evidence
+   - `very_low`: case report, expert opinion, in-vitro only, mechanistic inference
+6. **Skip non-claims.** Background statements ("Malaria affects 200M people"), methodology ("We enrolled 1241 patients"), and meta-commentary ("Further research is needed") are NOT claims. Skip them.
+7. **No claims is a valid output.** If the abstract is purely descriptive epidemiology with no actionable medical claim, return `[]`.
+
+## DO NOT
+
+- DO NOT summarize the abstract.
+- DO NOT return a `{"title": ..., "methods": [...], "key_findings": [...]}` paper-summary object. That is wrong.
+- DO NOT wrap claims in any object key. The top-level value must be a JSON array `[ ... ]`.
+- DO NOT return an array of strings like `["Drug X treats Y", "Drug Z prevents W"]`. Each element MUST be a full JSON object with the keys: `subject`, `predicate`, `object`, `qualifiers`, `certainty`, `evidence_note`.
+- DO NOT invent facts not in the abstract.
+
+## More wrong examples
+
+```json
+["Artemisinin treats malaria", "Chloroquine resistance rising"]
+```
+
+```json
+{"claims": ["..."]}
+```
+
+Both wrong. Each claim must be a full object as shown in the schema above.
+
+## Negative example (WRONG)
+
+```json
+{"title": "...", "key_findings": [{"finding": "..."}], "conclusion": "..."}
+```
+
+## Positive example (CORRECT)
+
+```json
+[
+  {
+    "subject": "artemether-lumefantrine",
+    "predicate": "treats",
+    "object": "uncomplicated P. falciparum malaria",
+    "qualifiers": {
+      "population": {"age_range": "adults", "pregnancy": null, "region": "sub-Saharan Africa", "immune_status": null, "comorbidities": []},
+      "setting": {"care_level": "outpatient", "endemic_status": "endemic"},
+      "dose_regimen": {"drug": "artemether-lumefantrine", "mg_per_kg": null, "frequency": "twice daily", "duration": "3 days"},
+      "comparator": "dihydroartemisinin-piperaquine",
+      "effect_size": {"metric": "day-28 PCR-corrected cure rate", "value": 96.2, "ci_low": 94.1, "ci_high": 97.8}
+    },
+    "certainty": "high",
+    "evidence_note": "Multi-site RCT, n=1241, day-28 PCR-corrected efficacy."
+  }
+]
+```
+
+## Output
+
+Return ONLY the JSON array. First character of your response must be `[`. No prose before or after. If no qualified claims exist, return `[]`.
+
+
+===== USER =====
+# Title
+Longitudinal effects of ivacaftor and medicine possession ratio in people with the Gly551Asp mutation: a 5-year study.
+
+# Abstract
+INTRODUCTION: Ivacaftor was the first therapy licensed to address the underlying defect in cystic fibrosis (CF). The improvements in lung function, nutritional status and pulmonary exacerbations in patients carrying a Gly551Asp mutation were greater than previously seen in clinical trials for other therapies. Limited data are available regarding long-term outcomes and adherence to ivacaftor outside clinical trials.
+
+METHODS: We conducted a 5-year single-centre retrospective study of people with CF carrying the Gly551Asp mutation who received ivacaftor. Clinical outcome data were extracted from medical notes and databases. Drug delivery data were used to assess medicine possession ratio (MPR).
+
+RESULTS: 35 people were included. After commencing ivacaftor, FEV1 improved by 9.6% (SE±1.59%) predicted by 6 months. Thereafter, FEV1 declined, and at 5 years had returned to pre-ivacaftor baseline. Ivacaftor did not alter annual rate of FEV1 decline (1.57% pre vs 1.82% post, p=0.74). Body mass index (BMI) increased for 4 years. There was a significant reduction in inpatient and total intravenous antibiotic days sustained over 5 years. MPR remained high but declined over time (-2.5±0.9% per year, p=0.007). FEV1 was better maintained in patients with higher MPRs.
+
+CONCLUSION: The addition of ivacaftor provides acute benefits for people with the Gly551Asp mutation and established lung disease. We report a sustained reduction in intravenous antibiotic use but following acute improvement in lung function, decline continues, and patients will continue to require medical observation and optimisation. Strategies to maintain high adherence should be a priority to prolong the benefits of ivacaftor.
+
+# Publication types
+Journal Article
+# Task
+Extract atomic qualified medical claims from the abstract above. Return a JSON ARRAY (not a paper-summary object). Each element MUST be an object with exactly these keys: subject, predicate, object, qualifiers, certainty, evidence_note.
+
+STRICT FIELD CONSTRAINTS:
+- `predicate` MUST be EXACTLY one of: treats, causes, resists, requires, contraindicates, prevents, co_occurs, recommends, supersedes. Map free-text relations to the closest enum. NO other values allowed. If you cannot map cleanly, drop the claim.
+- `certainty` MUST be EXACTLY one of: high, moderate, low, very_low. NO other values (no 'established', no 'low-to-moderate').
+- `qualifiers` MUST be an object with the nested shape: {population:{age_range, pregnancy, region, immune_status, comorbidities}, setting:{care_level, endemic_status}, dose_regimen:{drug, mg_per_kg, frequency, duration}, comparator, effect_size:{metric, value, ci_low, ci_high}}. Use null for unknown leaf values. DO NOT use a flat free-form qualifiers object.
+- `subject` and `object` MUST be non-empty strings.
+
+DO NOT summarize the paper. DO NOT return {"title":...,"key_findings":...}. DO NOT return an array of strings. If no qualified claims exist, return [].
+Your output MUST start with `[` and end with `]`. Output ONLY the JSON array, nothing else.
+
+===== STDOUT =====
+```json
+[
+  {
+    "subject": "ivacaftor",
+    "predicate": "treats",
+    "object": "cystic fibrosis lung function impairment (FEV1)",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "single centre",
+        "immune_status": null,
+        "comorbidities": "Gly551Asp CFTR mutation"
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "ivacaftor",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": "6 months"
+      },
+      "comparator": "pre-ivacaftor baseline",
+      "effect_size": {
+        "metric": "FEV1 % predicted change",
+        "value": 9.6,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_note": "Single-centre retrospective study, n=35, SE ±1.59%; effect at 6 months only"
+  },
+  {
+    "subject": "ivacaftor",
+    "predicate": "causes",
+    "object": "return of FEV1 to pre-treatment baseline",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "single centre",
+        "immune_status": null,
+        "comorbidities": "Gly551Asp CFTR mutation, established lung disease"
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "ivacaftor",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": "5 years"
+      },
+      "comparator": "pre-ivacaftor baseline FEV1",
+      "effect_size": {
+        "metric": "FEV1 % predicted",
+        "value": 0,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_note": "Retrospective single-centre; FEV1 at 5 years equalled pre-treatment value after initial 6-month gain"
+  },
+  {
+    "subject": "ivacaftor",
+    "predicate": "co_occurs",
+    "object": "unchanged annual rate of FEV1 decline",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "single centre",
+        "immune_status": null,
+        "comorbidities": "Gly551Asp CFTR mutation"
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "ivacaftor",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": "5 years"
+      },
+      "comparator": "pre-ivacaftor annual FEV1 decline rate 1.57% per year",
+      "effect_size": {
+        "metric": "annual FEV1 % predicted decline rate post-ivacaftor",
+        "value": 1.82,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "low",
+    "evidence_note": "p=0.74, non-significant; retrospective single-centre n=35; underpowered to detect small differences"
+  },
+  {
+    "subject": "ivacaftor",
+    "predicate": "treats",
+    "object": "nutritional status impairment in cystic fibrosis",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "single centre",
+        "immune_status": null,
+        "comorbidities": "Gly551Asp CFTR mutation"
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "ivacaftor",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": "4 years"
+      },
+      "comparator": "pre-ivacaftor BMI",
+      "effect_size": {
+        "metric": "BMI change direction",
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_note": "BMI increased across 4 years; magnitude not reported numerically in abstract; retrospective single-centre n=35"
+  },
+  {
+    "subject": "ivacaftor",
+    "predicate": "prevents",
+    "object": "inpatient intravenous antibiotic use in cystic fibrosis",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "single centre",
+        "immune_status": null,
+        "comorbidities": "Gly551Asp CFTR mutation, established lung disease"
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "ivacaftor",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": "5 years"
+      },
+      "comparator": "pre-ivacaftor intravenous antibiotic days",
+      "effect_size": {
+        "metric": "inpatient IV antibiotic days reduction",
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_note": "Significant reduction sustained over full 5-year observation; retrospective single-centre n=35; magnitude not given in abstract"
+  },
+  {
+    "subject": "medicine possession ratio (MPR)",
+    "predicate": "co_occurs",
+    "object": "better FEV1 maintenance in ivacaftor-treated cystic fibrosis",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "single centre",
+        "immune_status": null,
+        "comorbidities": "Gly551Asp CFTR mutation"
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "ivacaftor",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": "5 years"
+      },
+      "comparator": "lower MPR patients",
+      "effect_size": {
+        "metric": "FEV1 % predicted maintenance",
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "low",
+    "evidence_note": "Observational association; retrospective single-centre; no effect size quantified in abstract; confounding possible"
+  },
+  {
+    "subject": "ivacaftor treatment duration",
+    "predicate": "causes",
+    "object": "decline in medicine possession ratio (MPR) over time",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "single centre",
+        "immune_status": null,
+        "comorbidities": "Gly551Asp CFTR mutation"
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "ivacaftor",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": "5 years"
+      },
+      "comparator": "initial MPR at treatment start",
+      "effect_size": {
+        "metric": "MPR change per year (%)",
+        "value": -2.5,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_note": "p=0.007; SE ±0.9% per year; retrospective single-centre n=35; drug delivery data source"
+  },
+  {
+    "subject": "adherence optimisation strategies",
+    "predicate": "recommends",
+    "object": "prolonging clinical benefits of ivacaftor in cystic fibrosis",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": "Gly551Asp CFTR mutation"
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "ivacaftor",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "low",
+    "evidence_note": "Authors' conclusion from observed MPR decline and FEV1-adherence association; not directly tested as intervention"
+  }
+]
+```

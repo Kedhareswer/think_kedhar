@@ -1,0 +1,186 @@
+===== SYSTEM =====
+# Topic note synthesizer
+
+You are writing a single Markdown note that summarizes everything the medical knowledge base currently knows about ONE topic — a slice of clinical knowledge, e.g. `treatment/uncomplicated_falciparum`, `resistance/artemisinin`, `safety/chloroquine`.
+
+You are given:
+- The topic path.
+- A list of qualified claims that contribute to this topic, each with subject, predicate, object, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused topic note. The note will be re-generated on every change — re-synthesize from the current claim set.
+
+## Output structure (Markdown)
+
+```
+# <Topic title in human form>
+
+> One-paragraph framing: what this topic covers, who it matters for. ≤ 60 words.
+
+## Current understanding
+
+Synthesize the current state. Group related claims. Cite inline as `[c:<short_id>]`.
+Include effect sizes, populations, and settings where they materially differ.
+
+## Population-specific notes
+
+If recommendations or findings differ by pregnancy, pediatric, geographic region, immune status:
+break out the differences. Otherwise skip.
+
+## Strength of evidence
+
+Where is the evidence strong (RCT/MA/guideline)? Where is it weak (case report / expert opinion)?
+Note explicitly.
+
+## Recent changes / supersession
+
+If any included claims supersede older ones, list the chain. Skip if none.
+
+## Gaps and contradictions
+
+Bullet list. Mirror what Brain may pick up as questions.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>.*
+```
+
+## Rules
+
+1. **No hallucination.** Every statement traces to a claim in the input.
+2. **Cite inline** with `[c:<short_id>]` (first 8 chars).
+3. **Concise.** ≤ 800 words for typical topics.
+4. **Surface contradictions.** If two claims with similar scope conflict, name both.
+5. **Status awareness.** Tag `(pending review)` for unconfirmed claims. Treat superseded claims as historical context only.
+6. **Output ONLY the Markdown.**
+
+
+===== USER =====
+# Topic
+etiology/artemisinin-partial-resistance
+
+# Claims (count=2)
+```json
+[
+  {
+    "claim_id": "471b4ef8-d202-44af-a13e-92f45f4efff8",
+    "short_id": "471b4ef8",
+    "subject": "Plasmodium falciparum Kelch 13 (K13) protein mutations",
+    "predicate": "causes",
+    "object": "artemisinin partial resistance",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Southeast Asia, Rwanda, Uganda, Horn of Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "wild-type K13",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:38321292",
+      "title": "Emergence, transmission dynamics and mechanisms of artemisinin partial resistance in malaria parasites in Africa.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38321292/"
+    }
+  },
+  {
+    "claim_id": "28f1f4f9-5632-4f8a-9987-c17d102aa655",
+    "short_id": "28f1f4f9",
+    "subject": "Plasmodium falciparum kelch13 single point mutations",
+    "predicate": "causes",
+    "object": "artemisinin partial resistance",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "sub-Saharan Africa and southeast Asia",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "wild-type kelch13 parasites",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:38552654",
+      "title": "The emergence of artemisinin partial resistance in Africa: how do we respond?",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38552654/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-09T07:36:20.657590+00:00
+
+
+===== STDOUT =====
+## Etiology of Artemisinin Partial Resistance
+
+**Core mechanism:** *Plasmodium falciparum* Kelch 13 (K13) single point mutations → artemisinin partial resistance. Both claims high certainty, expert opinion grade.
+
+| Attribute | Detail |
+|---|---|
+| Gene | *kelch13* (*pfk13*) |
+| Mutation type | Single point mutations |
+| Comparator | Wild-type K13 parasites |
+| Geography | SE Asia (origin); expanding to sub-Saharan Africa — Rwanda, Uganda, Horn of Africa |
+| Setting | Malaria-endemic regions |
+
+**Sources:**
+- PMID:38321292 — emergence, transmission dynamics, mechanisms in Africa
+- PMID:38552654 — emergence in Africa + response framing
+
+---
+
+**Synthesis:**
+K13 mutations are established genetic cause of artemisinin partial resistance. Mechanism likely involves K13's role in ubiquitin proteasome pathway — mutant K13 impairs PI3K-mediated phosphatidylinositol-3-phosphate signaling, reducing artemisinin activation or boosting parasite stress response. "Partial" resistance = delayed parasite clearance, not full treatment failure (ACT partners still active).
+
+Geographic spread from SE Asia → Africa is key epidemiological concern. African context complicated by high transmission intensity and pre-existing host immunity masking clinical resistance.
+
+**Evidence gap:** Both claims lack quantified effect size (no ORs, HRs, clearance half-lives recorded). Evidence grade is expert opinion — RCT-level mechanistic data not captured here.
+
+**Status:** Both `pending_review`.

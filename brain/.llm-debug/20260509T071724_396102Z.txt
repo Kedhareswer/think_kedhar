@@ -1,0 +1,300 @@
+===== SYSTEM =====
+# Concept note synthesizer
+
+You are writing a single Markdown note that summarizes everything the medical knowledge base currently knows about ONE entity (drug, organism, gene, syndrome, intervention, anatomical structure, etc.).
+
+You are given:
+- The entity name.
+- A list of qualified claims involving this entity (as subject or object), each with predicate, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused concept note. The note will be re-generated on every change, so do not preserve old text — re-synthesize from the current claim set.
+
+## Output structure (Markdown)
+
+```
+# <Entity name as written most often in the claim set>
+
+> Short one-paragraph orientation: what this entity IS in clinical context. ≤ 60 words.
+
+## What it does / what we know
+
+A bulleted or short-paragraph synthesis grouped by predicate. Cite claim_ids inline like `[c:abc123]`.
+Group sensibly: treatment relationships, resistance relationships, mechanism, contraindications, etc.
+Only include groups that have claims.
+
+## Population & setting nuances
+
+If qualifiers vary by population (pregnancy, pediatric, region, immune status) or setting,
+summarize how. Skip this section if all claims are scope-generic.
+
+## Evidence strength
+
+One short paragraph: where the strong evidence is (RCT/MA/guideline) vs where it is thin
+(case reports, expert opinion). Reference grade explicitly.
+
+## Currency
+
+Note any superseded claims and what replaced them. Skip this section if no supersession.
+
+## Open questions
+
+Bullet list: what's missing, what contradicts, what needs investigation. These should mirror
+or seed gaps the Brain agent will pick up later. Skip the section if nothing is pending.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>.*
+```
+
+## Rules
+
+1. **No hallucination.** Every clinical statement must trace to a claim in the input. If a fact is not in the input, do not state it.
+2. **Cite inline.** Use `[c:<short_claim_id>]` after each statement. Use first 8 chars of the claim_id.
+3. **Concision.** Total length ≤ 600 words for most entities. A drug with 50 claims may justify more; an entity with 3 claims should be ≤ 200 words.
+4. **No prose-padding** like "It is important to note that…" or "Further research is needed". Write tight clinical prose.
+5. **Status awareness.** Mention `pending_review` claims with a (pending review) tag inline. Mention superseded claims explicitly in the Currency section, do not present them as current.
+6. **Output ONLY the Markdown.** No code fences, no preamble, no postamble.
+
+
+===== USER =====
+# Entity
+artemisinin-resistant plasmodium falciparum
+
+# Surface variants
+Artemisinin-resistant Plasmodium falciparum, artemisinin-resistant Plasmodium falciparum
+
+# Claims (count=4)
+```json
+[
+  {
+    "claim_id": "49ebe8d8-e6d4-4e81-976b-133091938d44",
+    "short_id": "49ebe8d8",
+    "subject": "Artemisinin-resistant Plasmodium falciparum",
+    "predicate": "resists",
+    "object": "Dihydroartemisinin monotherapy",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "in vitro",
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "Dihydroartemisinin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:42059554",
+      "title": "Paclitaxel-induced tubulin dysfunction stalls parasite development: synergistic potential with artemisinin against resistant strains.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/42059554/"
+    }
+  },
+  {
+    "claim_id": "b8491db4-2a3f-4349-bc0c-c129751d3623",
+    "short_id": "b8491db4",
+    "subject": "artemisinin-resistant Plasmodium falciparum",
+    "predicate": "causes",
+    "object": "reduced effectiveness of artemisinin-based combination therapies",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "global",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinin-based combination therapies",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "cohort",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:40614930",
+      "title": "Global assessment of partial artemisinin resistance: multicenter trial across Kenya, Peru, and Thailand in patients with uncomplicated Plasmodium falciparum malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/40614930/"
+    }
+  },
+  {
+    "claim_id": "70388c43-c037-4f20-86f8-34d944a89715",
+    "short_id": "70388c43",
+    "subject": "artemisinin-resistant Plasmodium falciparum",
+    "predicate": "resists",
+    "object": "artemisinin-based combination therapies",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinin-based combination therapies",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "cohort",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:40614930",
+      "title": "Global assessment of partial artemisinin resistance: multicenter trial across Kenya, Peru, and Thailand in patients with uncomplicated Plasmodium falciparum malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/40614930/"
+    }
+  },
+  {
+    "claim_id": "9eb68397-4b5f-4f01-a68d-f2cb519c692b",
+    "short_id": "9eb68397",
+    "subject": "Artemisinin-resistant Plasmodium falciparum",
+    "predicate": "resists",
+    "object": "Artemisinin-based combination therapies (ACTs)",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Greater Mekong Subregion",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "ACT (unspecified)",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:34267045",
+      "title": "Artemisinin and multidrug-resistant Plasmodium falciparum - a threat for malaria control and elimination.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/34267045/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-09T07:16:56.069035+00:00
+
+
+===== STDOUT =====
+## Concept Note: Artemisinin-Resistant *Plasmodium falciparum*
+
+**Entity:** Artemisinin-resistant *Plasmodium falciparum*
+**Synthesized:** 2026-05-09 | **Claims:** 4 | **Sources:** 3 PMIDs
+
+---
+
+### Core Resistance Profile
+
+Artemisinin-resistant *P. falciparum* resists both artemisinin monotherapy components (e.g., dihydroartemisinin) and full artemisinin-based combination therapies (ACTs). Resistance operates at multiple levels:
+
+- **Monotherapy failure** — In vitro evidence confirms DHA monotherapy is compromised against resistant strains (PMID:42059554; expert opinion, high certainty).
+- **ACT failure** — Cohort-level evidence from a multicenter trial (Kenya, Peru, Thailand) documents both direct ACT resistance and reduced clinical effectiveness globally (PMID:40614930; cohort, high certainty).
+- **Regional entrenchment** — ACT resistance is well-established in the Greater Mekong Subregion, with multidrug co-resistance compounding the threat (PMID:34267045; expert opinion, high certainty).
+
+---
+
+### Convergent Signal
+
+All 4 claims carry **high certainty**. Two independent evidence streams converge:
+
+| Stream | Evidence type | Scope |
+|---|---|---|
+| In vitro mechanistic | Expert opinion | DHA monotherapy |
+| Clinical outcomes | Cohort (multicenter) | Global / GMS |
+
+Claims `70388c43` and `b8491db4` share source PMID:40614930 — resistance and downstream effectiveness loss are two faces of the same clinical finding.
+
+---
+
+### Key Gaps
+
+- No quantified effect sizes (IC₅₀, treatment failure rates, ORs) across any claim.
+- Population qualifiers largely absent — no age, pregnancy, or immune-status stratification.
+- Mechanism of resistance (kelch13 mutations, dormancy) not captured in current claim set.
+
+---
+
+### Implications
+
+Partial artemisinin resistance is no longer a regional anomaly — multicenter cohort data place it globally. ACT backbone drugs (lumefantrine, piperaquine) now carry disproportionate burden. Pipeline alternatives (paclitaxel-artemisinin synergy, per PMID:42059554) show early promise but remain pre-clinical.
+
+---
+
+*All claims status: pending_review.*

@@ -1,0 +1,201 @@
+===== SYSTEM =====
+OUTPUT REQUIREMENT: Return VALID JSON ONLY. Your entire response must be parseable by json.loads(). First character of your output must be `{` or `[`. No prose. No explanations. No markdown fences. No apologies. If the requested data is unavailable, return the schema with empty/null values, still as valid JSON. Tools are intentionally disabled — do not request access to them.
+
+# Student extractor — qualified claims from a PubMed abstract
+
+You are extracting **atomic, qualified medical claims** from a malaria-focused biomedical abstract.
+
+## Output format
+
+Return a JSON array. Each element is one qualified claim.
+
+```json
+[
+  {
+    "subject": "string — entity name (drug, organism, gene, syndrome, intervention)",
+    "predicate": "one of: treats | causes | resists | requires | contraindicates | prevents | co_occurs | recommends",
+    "object": "string — entity or value",
+    "qualifiers": {
+      "population": {
+        "age_range": "e.g. adults | pediatric | <5 years | pregnant | null",
+        "pregnancy": "first_trimester | second_third_trimester | not_pregnant | null",
+        "region": "geographic region — e.g. Greater Mekong | West Africa | sub-Saharan Africa | null",
+        "immune_status": "naive | semi-immune | immunocompromised | null",
+        "comorbidities": ["list of strings or empty"]
+      },
+      "setting": {
+        "care_level": "outpatient | inpatient | community | null",
+        "endemic_status": "endemic | non_endemic | traveler | null"
+      },
+      "dose_regimen": {
+        "drug": "string or null",
+        "mg_per_kg": "number or null",
+        "frequency": "string or null",
+        "duration": "string or null"
+      },
+      "comparator": "what the intervention was compared against — string or null",
+      "effect_size": {
+        "metric": "e.g. day-3 positivity rate | parasite clearance time | hazard ratio | null",
+        "value": "number or null",
+        "ci_low": "number or null",
+        "ci_high": "number or null"
+      }
+    },
+    "certainty": "high | moderate | low | very_low",
+    "evidence_note": "one short sentence on why this certainty (sample size, design quality, etc.)"
+  }
+]
+```
+
+## Rules
+
+1. **Atomic.** Each claim is one subject-predicate-object triple. If an abstract states "X treats Y AND X causes Z", emit two claims.
+2. **Qualified.** Populate `qualifiers` from what the abstract explicitly states. Leave NULL if not stated — do NOT invent values.
+3. **Predicates.** Use only the listed enum values. Map free-text to the closest:
+   - "is associated with" / "linked to" / "shown to be effective for" → `treats` if therapeutic, `prevents` if prophylactic
+   - "induces resistance" / "selects for resistance" / "associated with treatment failure" → `resists` (when subject = parasite/pathogen, object = drug)
+   - "should not be given to" / "avoid in" → `contraindicates`
+   - WHO/CDC/national-program statements like "is recommended for" → `recommends`
+4. **Subject vs object.** For resistance claims, subject is the parasite/pathogen, object is the drug. For treatment, subject is the drug/intervention, object is the disease/population.
+5. **Certainty mapping:**
+   - `high`: large RCT or meta-analysis with consistent results, or current WHO guideline
+   - `moderate`: cohort study, smaller RCT, well-designed observational
+   - `low`: case-control, single-site observational, conflicting evidence
+   - `very_low`: case report, expert opinion, in-vitro only, mechanistic inference
+6. **Skip non-claims.** Background statements ("Malaria affects 200M people"), methodology ("We enrolled 1241 patients"), and meta-commentary ("Further research is needed") are NOT claims. Skip them.
+7. **No claims is a valid output.** If the abstract is purely descriptive epidemiology with no actionable medical claim, return `[]`.
+
+## Output
+
+Return ONLY the JSON array. No prose before or after.
+
+
+===== USER =====
+# Title
+Artemether-Lumefantrine Versus Chloroquine for the Treatment of Uncomplicated Plasmodium knowlesi Malaria: An Open-Label Randomized Controlled Trial CAN KNOW.
+
+# Abstract
+BACKGROUND: Plasmodium knowlesi is reported increasingly across Southeast Asia and is the most common cause of malaria in Malaysia. No randomized trials have assessed the comparative efficacy of artemether-lumefantrine (AL) for knowlesi malaria.
+
+METHODS: A randomized controlled trial was conducted in 3 district hospitals in Sabah, Malaysia to compare the efficacy of AL against chloroquine (CQ) for uncomplicated knowlesi malaria. Participants were included if they weighed >10 kg, had a parasitemia count <20000/μL, and had a negative rapid diagnostic test result for Plasmodium falciparum histidine-rich protein 2. Diagnosis was confirmed by means of polymerase chain reaction. Patients were block randomized to AL (total target dose, 12 mg/kg for artemether and 60 mg/kg for lumefantrine) or CQ (25 mg/kg). The primary outcome was parasite clearance at 24 hours in a modified intention-to-treat analysis.
+
+RESULTS: From November 2014 to January 2016, a total of 123 patients (including 18 children) were enrolled. At 24 hours after treatment 76% of patients administered AL (95% confidence interval [CI], 63%-86%; 44 of 58) were aparasitemic, compared with 60% administered CQ (47%-72%; 39 of 65; risk ratio, 1.3 [95% CI, 1.0-1.6]; P = .06). Overall parasite clearance was shorter after AL than after CQ (median, 18 vs 24 hours, respectively; P = .02), with all patients aparasitemic by 48 hours. By day 42 there were no treatment failures. The risk of anemia during follow-up was similar between arms. Patients treated with AL would require lower bed occupancy than those treated with CQ (2414 vs 2800 days per 1000 patients; incidence rate ratio, 0.86 [95% CI, .82-.91]; P < .001). There were no serious adverse events.
+
+CONCLUSIONS: AL is highly efficacious for treating uncomplicated knowlesi malaria; its excellent tolerability and rapid therapeutic response allow earlier hospital discharge, and support its use as a first-line artemisinin-combination treatment policy for all Plasmodium species in Malaysia.
+
+CLINICAL TRIALS REGISTRATION: NCT02001012.
+
+# Publication types
+Comparative Study, Journal Article, Randomized Controlled Trial, Research Support, Non-U.S. Gov't
+
+===== STDOUT =====
+```json
+{
+  "title": "Artemether-Lumefantrine Versus Chloroquine for the Treatment of Uncomplicated Plasmodium knowlesi Malaria: An Open-Label Randomized Controlled Trial CAN KNOW",
+  "clinical_trial_registration": "NCT02001012",
+  "publication_types": [
+    "Comparative Study",
+    "Journal Article",
+    "Randomized Controlled Trial",
+    "Research Support, Non-U.S. Gov't"
+  ],
+  "study": {
+    "design": "Open-label randomized controlled trial",
+    "setting": {
+      "country": "Malaysia",
+      "region": "Sabah",
+      "sites": 3,
+      "site_type": "District hospitals"
+    },
+    "period": {
+      "start": "November 2014",
+      "end": "January 2016"
+    },
+    "condition": "Uncomplicated Plasmodium knowlesi malaria",
+    "background": "Plasmodium knowlesi is increasingly reported across Southeast Asia and is the most common cause of malaria in Malaysia. No prior randomized trials assessed comparative efficacy of artemether-lumefantrine for knowlesi malaria."
+  },
+  "participants": {
+    "total_enrolled": 123,
+    "children_included": 18,
+    "inclusion_criteria": [
+      "Weight > 10 kg",
+      "Parasitemia count < 20000/μL",
+      "Negative rapid diagnostic test for Plasmodium falciparum histidine-rich protein 2"
+    ],
+    "diagnosis_confirmation": "Polymerase chain reaction (PCR)"
+  },
+  "interventions": {
+    "randomization": "Block randomization",
+    "arms": [
+      {
+        "name": "Artemether-Lumefantrine (AL)",
+        "artemether_dose": "12 mg/kg (total target)",
+        "lumefantrine_dose": "60 mg/kg (total target)",
+        "n": 58
+      },
+      {
+        "name": "Chloroquine (CQ)",
+        "dose": "25 mg/kg",
+        "n": 65
+      }
+    ]
+  },
+  "outcomes": {
+    "primary": {
+      "measure": "Parasite clearance at 24 hours",
+      "analysis": "Modified intention-to-treat",
+      "results": {
+        "AL": {
+          "aparasitemic_at_24h_pct": 76,
+          "ci_95": "63%-86%",
+          "n_aparasitemic": 44,
+          "n_total": 58
+        },
+        "CQ": {
+          "aparasitemic_at_24h_pct": 60,
+          "ci_95": "47%-72%",
+          "n_aparasitemic": 39,
+          "n_total": 65
+        },
+        "risk_ratio": 1.3,
+        "rr_ci_95": "1.0-1.6",
+        "p_value": 0.06
+      }
+    },
+    "secondary": [
+      {
+        "measure": "Overall parasite clearance time (median)",
+        "AL_hours": 18,
+        "CQ_hours": 24,
+        "p_value": 0.02,
+        "note": "All patients aparasitemic by 48 hours"
+      },
+      {
+        "measure": "Treatment failure by day 42",
+        "result": "No treatment failures in either arm"
+      },
+      {
+        "measure": "Risk of anemia during follow-up",
+        "result": "Similar between arms"
+      },
+      {
+        "measure": "Bed occupancy per 1000 patients (days)",
+        "AL": 2414,
+        "CQ": 2800,
+        "incidence_rate_ratio": 0.86,
+        "irr_ci_95": "0.82-0.91",
+        "p_value": 0.001,
+        "significance": "< 0.001"
+      },
+      {
+        "measure": "Serious adverse events",
+        "result": "None"
+      }
+    ]
+  },
+  "conclusions": {
+    "summary": "AL is highly efficacious for treating uncomplicated knowlesi malaria. Excellent tolerability and rapid therapeutic response allow earlier hospital discharge.",
+    "recommendation": "Supports AL use as first-line artemisinin-combination treatment policy for all Plasmodium species in Malaysia."
+  }
+}
+```

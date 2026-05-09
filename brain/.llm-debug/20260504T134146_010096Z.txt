@@ -1,0 +1,161 @@
+===== SYSTEM =====
+OUTPUT REQUIREMENT: Return VALID JSON ONLY. Your entire response must be parseable by json.loads(). First character of your output must be `{` or `[`. No prose. No explanations. No markdown fences. No apologies. If the requested data is unavailable, return the schema with empty/null values, still as valid JSON. Tools are intentionally disabled — do not request access to them.
+
+# Student extractor — qualified claims from a PubMed abstract
+
+You are extracting **atomic, qualified medical claims** from a malaria-focused biomedical abstract.
+
+## Output format
+
+Return a JSON array. Each element is one qualified claim.
+
+```json
+[
+  {
+    "subject": "string — entity name (drug, organism, gene, syndrome, intervention)",
+    "predicate": "one of: treats | causes | resists | requires | contraindicates | prevents | co_occurs | recommends",
+    "object": "string — entity or value",
+    "qualifiers": {
+      "population": {
+        "age_range": "e.g. adults | pediatric | <5 years | pregnant | null",
+        "pregnancy": "first_trimester | second_third_trimester | not_pregnant | null",
+        "region": "geographic region — e.g. Greater Mekong | West Africa | sub-Saharan Africa | null",
+        "immune_status": "naive | semi-immune | immunocompromised | null",
+        "comorbidities": ["list of strings or empty"]
+      },
+      "setting": {
+        "care_level": "outpatient | inpatient | community | null",
+        "endemic_status": "endemic | non_endemic | traveler | null"
+      },
+      "dose_regimen": {
+        "drug": "string or null",
+        "mg_per_kg": "number or null",
+        "frequency": "string or null",
+        "duration": "string or null"
+      },
+      "comparator": "what the intervention was compared against — string or null",
+      "effect_size": {
+        "metric": "e.g. day-3 positivity rate | parasite clearance time | hazard ratio | null",
+        "value": "number or null",
+        "ci_low": "number or null",
+        "ci_high": "number or null"
+      }
+    },
+    "certainty": "high | moderate | low | very_low",
+    "evidence_note": "one short sentence on why this certainty (sample size, design quality, etc.)"
+  }
+]
+```
+
+## Rules
+
+1. **Atomic.** Each claim is one subject-predicate-object triple. If an abstract states "X treats Y AND X causes Z", emit two claims.
+2. **Qualified.** Populate `qualifiers` from what the abstract explicitly states. Leave NULL if not stated — do NOT invent values.
+3. **Predicates.** Use only the listed enum values. Map free-text to the closest:
+   - "is associated with" / "linked to" / "shown to be effective for" → `treats` if therapeutic, `prevents` if prophylactic
+   - "induces resistance" / "selects for resistance" / "associated with treatment failure" → `resists` (when subject = parasite/pathogen, object = drug)
+   - "should not be given to" / "avoid in" → `contraindicates`
+   - WHO/CDC/national-program statements like "is recommended for" → `recommends`
+4. **Subject vs object.** For resistance claims, subject is the parasite/pathogen, object is the drug. For treatment, subject is the drug/intervention, object is the disease/population.
+5. **Certainty mapping:**
+   - `high`: large RCT or meta-analysis with consistent results, or current WHO guideline
+   - `moderate`: cohort study, smaller RCT, well-designed observational
+   - `low`: case-control, single-site observational, conflicting evidence
+   - `very_low`: case report, expert opinion, in-vitro only, mechanistic inference
+6. **Skip non-claims.** Background statements ("Malaria affects 200M people"), methodology ("We enrolled 1241 patients"), and meta-commentary ("Further research is needed") are NOT claims. Skip them.
+7. **No claims is a valid output.** If the abstract is purely descriptive epidemiology with no actionable medical claim, return `[]`.
+
+## Output
+
+Return ONLY the JSON array. No prose before or after.
+
+
+===== USER =====
+# Title
+In vivo efficacy of anti-malarial drugs against clinical Plasmodium vivax malaria in Ethiopia: a systematic review and meta-analysis.
+
+# Abstract
+BACKGROUND: Ethiopia is one of the few countries in Africa where Plasmodium vivax commonly co-exists with Plasmodium falciparum, and which accounts for ~ 40% of the total number of malaria infections in the country. Regardless of the growing evidence over many decades of decreasing sensitivity of this parasite to different anti-malarial drugs, there has been no comprehensive attempt made to systematically review and meta-analyse the efficacy of different anti-malarial drugs against P. vivax in the country. However, outlining the efficacy of available anti-malarial drugs against this parasite is essential to guide recommendations for the optimal therapeutic strategy to use in clinical practice. The aim of this study was to synthesize evidence on the efficacy of anti-malarial drugs against clinical P. vivax malaria in Ethiopia.
+
+METHODS: All potentially relevant, peer-reviewed articles accessible in PubMed, Scopus, Web of Science, and Clinical Trial.gov electronic databases were retrieved using a search strategy combining keywords and related database-specific subject terms. Randomized controlled trials (RCTs) and non-randomized trials aiming to investigate the efficacy of anti-malarial drugs against P. vivax were included in the review. Data were analysed using Review Manager Software. Cochrane Q (χ2) and the I2 tests were used to assess heterogeneity. The funnel plot and Egger's test were used to examine risk of publication bias.
+
+RESULTS: Out of 1294 identified citations, 14 articles that presented data on 29 treatment options were included in the analysis. These studies enrolled 2144 clinical vivax malaria patients. The pooled estimate of in vivo efficacy of anti-malarial drugs against vivax malaria in Ethiopia was 97.91% (95% CI: 97.29-98.52%), with significant heterogeneity (I2 = 86%, p < 0.0001) and publication bias (Egger's test = -12.86, p < 0.001). Different anti-malarial drugs showed varied efficacies against vivax malaria. The duration of follow-up significantly affected the calculated efficacy of any given anti-malarial drug, with longer duration of the follow-up (42 days) associated with significantly lower efficacy than efficacy reported on day 28. Also, pooled PCR-corrected efficacy and efficacy estimated from altitudinally lower transmission settings were significantly higher than PCR-uncorrected efficacy that estimated for moderate transmission settings, respectively.
+
+CONCLUSION: The overall efficacy of anti-malarial drugs evaluated for the treatment of vivax malaria in Ethiopia was generally high, although there was wide-ranging degree of efficacy, which was affected by the treatment options, duration of follow-up, transmission intensity, and the confirmation procedures for recurrent parasitaemia. Regardless of evidence of sporadic efficacy reduction reported in the country, chloroquine (CQ), the first-line regimen in Ethiopia, remained highly efficacious, supporting its continuous utilization for confirmed P. vivax mono-infections. The addition of primaquine (PQ) to CQ is recommended, as this is the only approved way to provide radical cure, and thus ensure sustained efficacy and longer protection against P. vivax. Continuous surveillance of the efficacy of anti-malarial drugs and clinical trials to allow robust conclusions remains necessary to proactively act against possible emergence and spread of drug-resistant P. vivax in Ethiopia.
+
+# Publication types
+Journal Article, Meta-Analysis, Systematic Review
+
+===== STDOUT =====
+```json
+{
+  "title": "In vivo efficacy of anti-malarial drugs against clinical Plasmodium vivax malaria in Ethiopia: a systematic review and meta-analysis",
+  "publication_types": ["Journal Article", "Meta-Analysis", "Systematic Review"],
+  "background": {
+    "disease": "Plasmodium vivax malaria",
+    "country": "Ethiopia",
+    "context": "P. vivax co-exists with P. falciparum; accounts for ~40% of total malaria infections in Ethiopia",
+    "gap": "No prior comprehensive systematic review/meta-analysis of anti-malarial drug efficacy against P. vivax in Ethiopia"
+  },
+  "methods": {
+    "databases_searched": ["PubMed", "Scopus", "Web of Science", "ClinicalTrials.gov"],
+    "study_types_included": ["Randomized controlled trials", "Non-randomized trials"],
+    "analysis_software": "Review Manager Software",
+    "heterogeneity_tests": ["Cochrane Q (chi-squared)", "I2"],
+    "publication_bias_tests": ["Funnel plot", "Egger's test"]
+  },
+  "results": {
+    "citations_identified": 1294,
+    "articles_included": 14,
+    "treatment_options_reported": 29,
+    "patients_enrolled": 2144,
+    "pooled_efficacy": {
+      "estimate_percent": 97.91,
+      "confidence_interval_95": "97.29–98.52%"
+    },
+    "heterogeneity": {
+      "I2_percent": 86,
+      "p_value": "<0.0001",
+      "significance": "significant"
+    },
+    "publication_bias": {
+      "egger_test_statistic": -12.86,
+      "p_value": "<0.001",
+      "significance": "significant"
+    },
+    "key_findings": [
+      "Longer follow-up (42 days) associated with significantly lower efficacy than day-28 estimates",
+      "PCR-corrected efficacy higher than PCR-uncorrected efficacy",
+      "Lower transmission settings associated with higher estimated efficacy than moderate transmission settings"
+    ]
+  },
+  "conclusions": {
+    "overall_efficacy": "Generally high",
+    "chloroquine_status": "Remained highly efficacious as first-line regimen for confirmed P. vivax mono-infections",
+    "recommendations": [
+      "Continue chloroquine (CQ) as first-line for P. vivax mono-infections",
+      "Add primaquine (PQ) to CQ for radical cure and sustained protection",
+      "Maintain continuous drug efficacy surveillance",
+      "Conduct further clinical trials for robust conclusions on drug-resistant P. vivax"
+    ],
+    "factors_affecting_efficacy": [
+      "Treatment option used",
+      "Duration of follow-up",
+      "Transmission intensity",
+      "Recurrent parasitaemia confirmation method (PCR-corrected vs uncorrected)"
+    ]
+  },
+  "drugs_highlighted": [
+    {
+      "name": "Chloroquine",
+      "abbreviation": "CQ",
+      "role": "First-line regimen in Ethiopia"
+    },
+    {
+      "name": "Primaquine",
+      "abbreviation": "PQ",
+      "role": "Adjunct for radical cure; only approved means to prevent relapse"
+    }
+  ]
+}
+```

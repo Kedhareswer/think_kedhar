@@ -1,0 +1,153 @@
+===== SYSTEM =====
+OUTPUT REQUIREMENT: Return VALID JSON ONLY. Your entire response must be parseable by json.loads(). First character of your output must be `{` or `[`. No prose. No explanations. No markdown fences. No apologies. If the requested data is unavailable, return the schema with empty/null values, still as valid JSON. Tools are intentionally disabled — do not request access to them.
+
+# Research planner — natural-language topic to PubMed search plan
+
+You are NOT being asked to do medical research. You are NOT being asked to summarize or analyze. You are a SEARCH-PLAN generator.
+
+Input: one natural-language medical topic.
+Output: ONE JSON object describing how to query PubMed for that topic. Nothing more.
+
+## STRICT output schema
+
+The JSON object you return MUST have EXACTLY these top-level keys, in this order, with these exact spellings. No extra keys. No missing keys.
+
+- `topic` (string)
+- `scope` (string, one of: `very_broad`, `broad`, `focused`, `specific`)
+- `decomposition` (array of strings; may be empty for `focused`/`specific`)
+- `queries` (array of objects; each object MUST have `subtopic`, `pubmed_query`, `max_papers`, `rationale`)
+- `stop_criteria` (object with EXACTLY: `max_total_papers`, `saturation_window`, `duplicate_ratio_threshold`)
+- `notes` (string; may be empty)
+
+DO NOT invent additional keys. DO NOT include keys like `summary`, `background`, `major_rcts`, `outcome_metrics`, `verdict`, `key_finding`, etc. If you do, you have FAILED the task — the only acceptable output is the schema above.
+
+## Canonical example
+
+```json
+{
+  "topic": "artemisinin resistance in pregnancy",
+  "scope": "focused",
+  "decomposition": [],
+  "queries": [
+    {
+      "subtopic": "overall",
+      "pubmed_query": "\"artemisinin resistance\"[tiab] AND pregnancy[tiab] AND 2015:2025[dp]",
+      "max_papers": 12,
+      "rationale": "Recent literature on resistance markers and IPTp outcomes in pregnant patients."
+    }
+  ],
+  "stop_criteria": {
+    "max_total_papers": 25,
+    "saturation_window": 3,
+    "duplicate_ratio_threshold": 0.7
+  },
+  "notes": ""
+}
+```
+
+## Scope rules
+
+- **very_broad** (e.g. "virology", "dental best practices", "what is medicine"): MUST decompose into 5-12 subtopics. Each subtopic gets 1-2 queries, max 5 papers each. Total cap 40-60.
+- **broad** (e.g. "what is malaria", "diabetes treatment"): decompose into 3-6 subtopics (epidemiology, pathophysiology, diagnosis, treatment, prevention, prognosis as applicable). 1-2 queries per subtopic, 5-8 papers each. Total cap 30-50.
+- **focused** (e.g. "artemisinin resistance in pregnancy", "metformin for heart failure"): decomposition optional (1-3 subtopics if useful). 1-3 queries, 5-15 papers each. Total cap 20-40.
+- **specific** (e.g. "tafenoquine pediatric dose under 30kg", a precise question): no decomposition. 1-2 queries, 10-20 papers. Total cap 10-25.
+
+## PubMed query syntax
+
+- Use MeSH tags where applicable: `Malaria/drug therapy[MeSH]`
+- Field tags: `[tiab]` (title/abstract), `[au]` (author), `[dp]` (publication date)
+- Boolean: AND, OR, NOT (uppercase)
+- Quote phrases: `"artemisinin resistance"`
+- Date filter: `2018:2025[dp]` for recent if relevant
+- Prefer specific over generic; rely on PubMed relevance sort to surface best hits
+
+Example queries:
+- broad → `"malaria"[MeSH] AND review[pt]`
+- focused → `"artemisinin resistance"[tiab] AND pregnancy[tiab] AND 2015:2025[dp]`
+- specific → `tafenoquine[tiab] AND (pediatric[tiab] OR children[tiab]) AND dose[tiab]`
+
+## Saturation defaults
+
+- `saturation_window`: 3
+- `duplicate_ratio_threshold`: 0.7
+
+## Output rules
+
+1. Return ONLY the JSON. No prose before or after. No markdown fences.
+2. Every query MUST have a non-empty `pubmed_query` and `max_papers >= 1`.
+3. If the topic is so broad it shouldn't be ingested in one session (e.g. "all of medicine"), set `scope: "very_broad"` and decompose aggressively — do NOT refuse. The orchestrator will run in batches.
+4. The five top-level keys `topic`, `scope`, `decomposition`, `queries`, `stop_criteria` are REQUIRED on every response. If you skip any of them, the orchestrator will reject your output.
+5. DO NOT analyze the topic. DO NOT list trials. DO NOT produce a verdict. The downstream agent does that. You only produce the search plan.
+
+
+===== USER =====
+Required top-level keys (all five MUST appear): topic, scope, decomposition, queries, stop_criteria. Optional: notes. Do not invent other keys (no `summary`, no `background`, no `key_rct_findings`, no `landmark_references`, no `clinical_bottom_line`, etc.). Each entry of `queries` MUST be an object with EXACTLY these keys: `subtopic` (string), `pubmed_query` (string — DO NOT abbreviate to `q`), `max_papers` (integer >= 1), `rationale` (string). Do NOT use alternate field names like `q`, `query`, `search`, `source`. Output the JSON object only, no analysis, no fenced prose.
+
+# Topic
+artemisinin resistance in pregnancy
+
+# Retry feedback
+Your previous response was REJECTED with validation errors: 1 validation error for ResearchPlan
+scope
+  Input should be 'very_broad', 'broad', 'focused' or 'specific' [type=enum, input_value='Epidemiology, mechanisms...cental malaria outcomes', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.13/v/enum.
+
+===== STDOUT =====
+```json
+{
+  "topic": "artemisinin resistance in pregnancy",
+  "scope": "focused",
+  "decomposition": [
+    "Prevalence and geographic distribution of artemisinin partial resistance in pregnant populations",
+    "Molecular mechanisms (kelch13 mutations) and their expression in placental malaria",
+    "Pharmacokinetics of artemisinins in pregnancy and impact on resistance selection",
+    "Clinical outcomes: maternal anemia, low birth weight, placental malaria under artemisinin resistance",
+    "Current WHO treatment guidelines and alternative regimens for resistant infections in pregnancy",
+    "Surveillance methods and biomarkers for resistance monitoring in pregnancy cohorts"
+  ],
+  "queries": [
+    {
+      "subtopic": "Artemisinin partial resistance prevalence in pregnancy",
+      "pubmed_query": "(artemisinin resistance OR kelch13 OR PfKelch13) AND (pregnancy OR pregnant OR maternal) AND (malaria OR Plasmodium falciparum)",
+      "max_papers": 30,
+      "rationale": "Establish epidemiological baseline of resistance burden specifically in pregnant women across endemic regions"
+    },
+    {
+      "subtopic": "Kelch13 mutations and placental malaria",
+      "pubmed_query": "(kelch13 mutation OR C580Y OR R539T) AND (placental malaria OR placenta) AND Plasmodium falciparum",
+      "max_papers": 20,
+      "rationale": "Determine whether resistance mutations alter parasite behavior or sequestration in placental tissue"
+    },
+    {
+      "subtopic": "Artemisinin pharmacokinetics in pregnancy",
+      "pubmed_query": "(artemisinin OR artesunate OR artemether) AND pharmacokinetics AND (pregnancy OR pregnant) AND malaria",
+      "max_papers": 25,
+      "rationale": "Identify PK changes in pregnancy that may accelerate resistance selection or reduce drug efficacy"
+    },
+    {
+      "subtopic": "Clinical outcomes under artemisinin resistance in pregnant women",
+      "pubmed_query": "(artemisinin resistance OR treatment failure) AND (pregnancy OR maternal) AND (birth weight OR anemia OR stillbirth OR placental malaria) AND malaria",
+      "max_papers": 25,
+      "rationale": "Quantify maternal and fetal morbidity attributable to reduced artemisinin efficacy"
+    },
+    {
+      "subtopic": "Alternative treatment regimens for resistant malaria in pregnancy",
+      "pubmed_query": "(triple artemisinin-based combination therapy OR TACT OR lumefantrine OR amodiaquine OR pyronaridine) AND (pregnancy OR pregnant) AND (artemisinin resistance OR treatment failure)",
+      "max_papers": 20,
+      "rationale": "Evaluate safety and efficacy of partner-drug intensification or alternative ACTs in pregnancy"
+    },
+    {
+      "subtopic": "WHO guidelines and surveillance for resistance in pregnancy",
+      "pubmed_query": "(WHO guidelines OR treatment policy) AND (artemisinin resistance) AND (pregnancy OR antenatal) AND malaria AND (surveillance OR monitoring)",
+      "max_papers": 15,
+      "rationale": "Map current policy recommendations and gaps in resistance surveillance frameworks for pregnant populations"
+    }
+  ],
+  "stop_criteria": {
+    "max_total_papers": 135,
+    "min_subtopics_covered": 5,
+    "recency_cutoff_years": 10,
+    "require_pregnancy_specific_data": true
+  }
+}
+```

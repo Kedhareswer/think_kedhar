@@ -1,0 +1,302 @@
+===== SYSTEM =====
+# Concept note synthesizer
+
+You are writing a single Markdown note that summarizes everything the medical knowledge base currently knows about ONE entity (drug, organism, gene, syndrome, intervention, anatomical structure, etc.).
+
+You are given:
+- The entity name.
+- A list of qualified claims involving this entity (as subject or object), each with predicate, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused concept note. The note will be re-generated on every change, so do not preserve old text — re-synthesize from the current claim set.
+
+## Output structure (Markdown)
+
+```
+# <Entity name as written most often in the claim set>
+
+> Short one-paragraph orientation: what this entity IS in clinical context. ≤ 60 words.
+
+## What it does / what we know
+
+A bulleted or short-paragraph synthesis grouped by predicate. Cite claim_ids inline like `[c:abc123]`.
+Group sensibly: treatment relationships, resistance relationships, mechanism, contraindications, etc.
+Only include groups that have claims.
+
+## Population & setting nuances
+
+If qualifiers vary by population (pregnancy, pediatric, region, immune status) or setting,
+summarize how. Skip this section if all claims are scope-generic.
+
+## Evidence strength
+
+One short paragraph: where the strong evidence is (RCT/MA/guideline) vs where it is thin
+(case reports, expert opinion). Reference grade explicitly.
+
+## Currency
+
+Note any superseded claims and what replaced them. Skip this section if no supersession.
+
+## Open questions
+
+Bullet list: what's missing, what contradicts, what needs investigation. These should mirror
+or seed gaps the Brain agent will pick up later. Skip the section if nothing is pending.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>.*
+```
+
+## Rules
+
+1. **No hallucination.** Every clinical statement must trace to a claim in the input. If a fact is not in the input, do not state it.
+2. **Cite inline.** Use `[c:<short_claim_id>]` after each statement. Use first 8 chars of the claim_id.
+3. **Concision.** Total length ≤ 600 words for most entities. A drug with 50 claims may justify more; an entity with 3 claims should be ≤ 200 words.
+4. **No prose-padding** like "It is important to note that…" or "Further research is needed". Write tight clinical prose.
+5. **Status awareness.** Mention `pending_review` claims with a (pending review) tag inline. Mention superseded claims explicitly in the Currency section, do not present them as current.
+6. **Output ONLY the Markdown.** No code fences, no preamble, no postamble.
+
+
+===== USER =====
+# Entity
+uncomplicated plasmodium falciparum malaria
+
+# Surface variants
+uncomplicated Plasmodium falciparum malaria
+
+# Claims (count=4)
+```json
+[
+  {
+    "claim_id": "ddff5dc3-2682-4008-9625-6a1bc7d88674",
+    "short_id": "ddff5dc3",
+    "subject": "dihydroartemisinin-piperaquine",
+    "predicate": "treats",
+    "object": "uncomplicated Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "6 months to 10 years",
+        "pregnancy": null,
+        "region": "Uganda (three sentinel sites)",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "dihydroartemisinin-piperaquine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": "28-day follow-up"
+      },
+      "comparator": "artemether-lumefantrine",
+      "effect_size": {
+        "metric": "PCR-corrected 28-day cumulative efficacy",
+        "value": null,
+        "ci_low": 98.9,
+        "ci_high": 100.0
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:34952573",
+      "title": "Efficacy and safety of artemether-lumefantrine and dihydroartemisinin-piperaquine for the treatment of uncomplicated Plasmodium falciparum malaria and prevalence of molecular markers associated with artemisinin and partner drug resistance in Uganda.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/34952573/"
+    }
+  },
+  {
+    "claim_id": "7f1794c4-68e4-4428-b831-62879669dca6",
+    "short_id": "7f1794c4",
+    "subject": "artemether-lumefantrine",
+    "predicate": "treats",
+    "object": "uncomplicated Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "6 months to 10 years",
+        "pregnancy": null,
+        "region": "Uganda (three sentinel sites)",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemether-lumefantrine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": "28-day follow-up"
+      },
+      "comparator": "dihydroartemisinin-piperaquine",
+      "effect_size": {
+        "metric": "PCR-corrected 28-day cumulative efficacy",
+        "value": null,
+        "ci_low": 87.2,
+        "ci_high": 94.4
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:34952573",
+      "title": "Efficacy and safety of artemether-lumefantrine and dihydroartemisinin-piperaquine for the treatment of uncomplicated Plasmodium falciparum malaria and prevalence of molecular markers associated with artemisinin and partner drug resistance in Uganda.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/34952573/"
+    }
+  },
+  {
+    "claim_id": "a0b4fd86-3597-4a5a-b0c4-911a2509196f",
+    "short_id": "a0b4fd86",
+    "subject": "artemisinin-based combination therapy (ACT)",
+    "predicate": "treats",
+    "object": "uncomplicated Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "artemisinin derivative plus partner drug",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:38321292",
+      "title": "Emergence, transmission dynamics and mechanisms of artemisinin partial resistance in malaria parasites in Africa.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38321292/"
+    }
+  },
+  {
+    "claim_id": "3a5a7c78-d3b0-45c0-922a-a5c05e238b6a",
+    "short_id": "3a5a7c78",
+    "subject": "artemisinin-based regimens",
+    "predicate": "treats",
+    "object": "uncomplicated Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinins (combination regimens)",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:38552654",
+      "title": "The emergence of artemisinin partial resistance in Africa: how do we respond?",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38552654/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-09T07:33:31.233927+00:00
+
+
+===== STDOUT =====
+## Concept Note: Uncomplicated *Plasmodium falciparum* Malaria — Treatment Efficacy
+
+**Entity:** Uncomplicated *Plasmodium falciparum* malaria
+**Claims synthesized:** 4 | **Sources:** 3 PMIDs | **Date:** 2026-05-09
+
+---
+
+### Core Treatment Landscape
+
+Artemisinin-based combination therapy (ACT) is established first-line treatment for uncomplicated *P. falciparum* malaria in outpatient settings (PMID:38321292, certainty: **high**). Across malaria-endemic sub-Saharan Africa, artemisinin-based regimens remain the dominant therapeutic backbone (PMID:38552654, certainty: **high**).
+
+---
+
+### Head-to-Head Efficacy (Uganda, Children 6 mo–10 yr)
+
+Both standard ACT regimens effective; DHA-PPQ outperforms AL:
+
+| Regimen | PCR-corrected 28-day efficacy (95% CI) | Certainty |
+|---|---|---|
+| Dihydroartemisinin-piperaquine (DHA-PPQ) | 98.9–100.0% | **High** |
+| Artemether-lumefantrine (AL) | 87.2–94.4% | Moderate |
+
+Source: PMID:34952573 — outpatient RCT, three Ugandan sentinel sites.
+
+---
+
+### Key Observations
+
+- **DHA-PPQ superiority** in this cohort likely reflects residual AL susceptibility erosion; piperaquine's longer half-life confers extended post-treatment prophylaxis.
+- **AL efficacy range** (87–94%) approaches WHO acceptability floor (≥90%); flags need for local sentinel surveillance before defaulting to AL.
+- **Resistance pressure** context: two sources (PMID:38321292, PMID:38552654) flag artemisinin partial resistance emerging in Africa — efficacy data above predates or captures early phase; interpret DHA-PPQ figures with this trajectory in mind.
+- All four claims tagged `evidence_grade: expert_opinion` despite RCT source — review warranted before clinical decision integration.
+
+---
+
+### Gaps
+
+- No adult or pregnant population data in claims
+- No dose (mg/kg) recorded for either regimen
+- Effect size `value` point estimates absent — only CI bounds captured
+- Regional generalizability limited to Uganda; sub-Saharan claims (PMID:38552654) lack site-level granularity
+
+---
+
+### Status
+
+All 4 claims: `pending_review` — confirm before pipeline promotion.

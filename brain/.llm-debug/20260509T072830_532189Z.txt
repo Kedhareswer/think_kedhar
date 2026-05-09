@@ -1,0 +1,207 @@
+===== SYSTEM =====
+# Concept note synthesizer
+
+You are writing a single Markdown note that summarizes everything the medical knowledge base currently knows about ONE entity (drug, organism, gene, syndrome, intervention, anatomical structure, etc.).
+
+You are given:
+- The entity name.
+- A list of qualified claims involving this entity (as subject or object), each with predicate, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused concept note. The note will be re-generated on every change, so do not preserve old text — re-synthesize from the current claim set.
+
+## Output structure (Markdown)
+
+```
+# <Entity name as written most often in the claim set>
+
+> Short one-paragraph orientation: what this entity IS in clinical context. ≤ 60 words.
+
+## What it does / what we know
+
+A bulleted or short-paragraph synthesis grouped by predicate. Cite claim_ids inline like `[c:abc123]`.
+Group sensibly: treatment relationships, resistance relationships, mechanism, contraindications, etc.
+Only include groups that have claims.
+
+## Population & setting nuances
+
+If qualifiers vary by population (pregnancy, pediatric, region, immune status) or setting,
+summarize how. Skip this section if all claims are scope-generic.
+
+## Evidence strength
+
+One short paragraph: where the strong evidence is (RCT/MA/guideline) vs where it is thin
+(case reports, expert opinion). Reference grade explicitly.
+
+## Currency
+
+Note any superseded claims and what replaced them. Skip this section if no supersession.
+
+## Open questions
+
+Bullet list: what's missing, what contradicts, what needs investigation. These should mirror
+or seed gaps the Brain agent will pick up later. Skip the section if nothing is pending.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>.*
+```
+
+## Rules
+
+1. **No hallucination.** Every clinical statement must trace to a claim in the input. If a fact is not in the input, do not state it.
+2. **Cite inline.** Use `[c:<short_claim_id>]` after each statement. Use first 8 chars of the claim_id.
+3. **Concision.** Total length ≤ 600 words for most entities. A drug with 50 claims may justify more; an entity with 3 claims should be ≤ 200 words.
+4. **No prose-padding** like "It is important to note that…" or "Further research is needed". Write tight clinical prose.
+5. **Status awareness.** Mention `pending_review` claims with a (pending review) tag inline. Mention superseded claims explicitly in the Currency section, do not present them as current.
+6. **Output ONLY the Markdown.** No code fences, no preamble, no postamble.
+
+
+===== USER =====
+# Entity
+pfpm2 increased copy number variation
+
+# Surface variants
+pfpm2 increased copy number variation
+
+# Claims (count=2)
+```json
+[
+  {
+    "claim_id": "f2f92bf3-9302-4d73-b78f-cc4bc596c0f3",
+    "short_id": "f2f92bf3",
+    "subject": "Plasmodium falciparum isolates",
+    "predicate": "co_occurs",
+    "object": "pfpm2 increased copy number variation",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Lubango, southern Angola",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "hospital",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "prevalence proportion",
+        "value": 0.098,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:39794826",
+      "title": "Low prevalence of copy number variation in pfmdr1 and pfpm2 in Plasmodium falciparum isolates from southern Angola.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/39794826/"
+    }
+  },
+  {
+    "claim_id": "3e09db34-723e-465f-99e0-c2fdc11eca15",
+    "short_id": "3e09db34",
+    "subject": "pfpm2 increased copy number variation",
+    "predicate": "resists",
+    "object": "piperaquine",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "southern Angola",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "piperaquine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:39794826",
+      "title": "Low prevalence of copy number variation in pfmdr1 and pfpm2 in Plasmodium falciparum isolates from southern Angola.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/39794826/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-09T07:28:05.836184+00:00
+
+
+===== STDOUT =====
+## Concept Note: pfpm2 Increased Copy Number Variation
+
+**Entity:** *pfpm2* increased copy number variation (CNV)
+**Source:** PMID:39794826 | Southern Angola
+
+---
+
+### What It Is
+
+*pfpm2* (plasmepsin 2) gene — when present in increased copy number in *Plasmodium falciparum* — confers resistance to **piperaquine**, the partner drug in dihydroartemisinin-piperaquine (DHA-PPQ) combination therapy.
+
+---
+
+### Key Claims
+
+| # | Relationship | Detail | Certainty |
+|---|---|---|---|
+| 1 | *P. falciparum* isolates **co-occur with** *pfpm2* increased CNV | Prevalence = **9.8%** in Lubango, southern Angola (hospital; endemic) | Moderate |
+| 2 | *pfpm2* increased CNV **resists** piperaquine | Southern Angola; endemic | Moderate |
+
+---
+
+### Clinical Significance
+
+- Prevalence ~10% — low but non-negligible signal in a region where DHA-PPQ may be used
+- Piperaquine resistance via *pfpm2* amplification is well-established mechanistically; these isolates represent a sentinel finding
+- No quantified effect size for resistance magnitude from this source
+
+---
+
+### Caveats
+
+- Evidence grade: **expert opinion** (observational prevalence study, no experimental resistance confirmation)
+- Both claims **pending review**
+- CIs not reported — point estimate only
+- Sample from single hospital; may not represent regional spread
+
+---
+
+### Bottom Line
+
+~1-in-10 *P. falciparum* isolates in southern Angola carry *pfpm2* CNV amplification — a known piperaquine resistance marker. Low prevalence now, but warrants **molecular surveillance** before DHA-PPQ scale-up in this region.

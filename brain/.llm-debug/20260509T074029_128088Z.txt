@@ -1,0 +1,240 @@
+===== SYSTEM =====
+# Topic note synthesizer
+
+You are writing a single Markdown note that summarizes everything the medical knowledge base currently knows about ONE topic — a slice of clinical knowledge, e.g. `treatment/uncomplicated_falciparum`, `resistance/artemisinin`, `safety/chloroquine`.
+
+You are given:
+- The topic path.
+- A list of qualified claims that contribute to this topic, each with subject, predicate, object, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused topic note. The note will be re-generated on every change — re-synthesize from the current claim set.
+
+## Output structure (Markdown)
+
+```
+# <Topic title in human form>
+
+> One-paragraph framing: what this topic covers, who it matters for. ≤ 60 words.
+
+## Current understanding
+
+Synthesize the current state. Group related claims. Cite inline as `[c:<short_id>]`.
+Include effect sizes, populations, and settings where they materially differ.
+
+## Population-specific notes
+
+If recommendations or findings differ by pregnancy, pediatric, geographic region, immune status:
+break out the differences. Otherwise skip.
+
+## Strength of evidence
+
+Where is the evidence strong (RCT/MA/guideline)? Where is it weak (case report / expert opinion)?
+Note explicitly.
+
+## Recent changes / supersession
+
+If any included claims supersede older ones, list the chain. Skip if none.
+
+## Gaps and contradictions
+
+Bullet list. Mirror what Brain may pick up as questions.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>.*
+```
+
+## Rules
+
+1. **No hallucination.** Every statement traces to a claim in the input.
+2. **Cite inline** with `[c:<short_id>]` (first 8 chars).
+3. **Concise.** ≤ 800 words for typical topics.
+4. **Surface contradictions.** If two claims with similar scope conflict, name both.
+5. **Status awareness.** Tag `(pending review)` for unconfirmed claims. Treat superseded claims as historical context only.
+6. **Output ONLY the Markdown.**
+
+
+===== USER =====
+# Topic
+resistance/artemisinin-based-drugs
+
+# Claims (count=3)
+```json
+[
+  {
+    "claim_id": "114aea30-33af-4425-818a-44a1dc1afc01",
+    "short_id": "114aea30",
+    "subject": "Plasmodium falciparum with fd-D193Y and arps10-V127M in k13-C580Y background",
+    "predicate": "resists",
+    "object": "artemisinin-based drugs",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "artemisinin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "k13-C580Y parasite without fd-D193Y and arps10-V127M",
+      "effect_size": {
+        "metric": "RSA0-3h survival rate increase",
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:36303209",
+      "title": "Apicoplast ribosomal protein S10-V127M enhances artemisinin resistance of a Kelch13 transgenic Plasmodium falciparum.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/36303209/"
+    }
+  },
+  {
+    "claim_id": "c6bddc70-36ae-4525-b5d4-6cf9c68859a1",
+    "short_id": "c6bddc70",
+    "subject": "arps10-V127M mutation in Plasmodium falciparum with k13-C580Y background",
+    "predicate": "resists",
+    "object": "artemisinin-based drugs",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "artemisinin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "k13-C580Y parasite without arps10-V127M",
+      "effect_size": {
+        "metric": "RSA0-3h increased survival",
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:36303209",
+      "title": "Apicoplast ribosomal protein S10-V127M enhances artemisinin resistance of a Kelch13 transgenic Plasmodium falciparum.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/36303209/"
+    }
+  },
+  {
+    "claim_id": "29a3e72f-d459-476e-9acb-8276e2606d57",
+    "short_id": "29a3e72f",
+    "subject": "Plasmodium falciparum k13-C580Y variant",
+    "predicate": "resists",
+    "object": "artemisinin-based drugs",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "artemisinin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "wild-type k13 3D7 parasite",
+      "effect_size": {
+        "metric": "ring survival assay RSA0-3h survival rate",
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:36303209",
+      "title": "Apicoplast ribosomal protein S10-V127M enhances artemisinin resistance of a Kelch13 transgenic Plasmodium falciparum.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/36303209/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-09T07:39:49.864294+00:00
+
+
+===== STDOUT =====
+**Topic: Resistance → Artemisinin-Based Drugs**
+*Source: PMID:36303209 | Certainty: moderate | Grade: expert_opinion*
+
+---
+
+## Synthesis
+
+Three layered claims, all same paper, building one mechanistic picture:
+
+### Layer 1 — k13-C580Y as baseline resistance allele
+*P. falciparum* k13-C580Y variant resists artemisinin vs wild-type 3D7, measured by RSA₀₋₃ₕ survival. Establishes C580Y as the genetic scaffold on which further mutations act.
+
+### Layer 2 — arps10-V127M as resistance enhancer
+Adding arps10-V127M (apicoplast ribosomal protein S10) to k13-C580Y background further increases RSA₀₋₃ₕ survival vs k13-C580Y alone. arps10-V127M is not standalone — potentiates existing kelch13-driven resistance.
+
+### Layer 3 — Double-companion mutation (fd-D193Y + arps10-V127M)
+Combining fd-D193Y (ferredoxin) with arps10-V127M on k13-C580Y background amplifies resistance further vs k13-C580Y alone. Additive or synergistic companion-mutation effect.
+
+---
+
+## Key Patterns
+
+| Genotype | Comparator | Effect |
+|---|---|---|
+| k13-C580Y | WT 3D7 | Resistance established |
+| k13-C580Y + arps10-V127M | k13-C580Y alone | Enhanced RSA₀₋₃ₕ survival |
+| k13-C580Y + fd-D193Y + arps10-V127M | k13-C580Y alone | Further enhanced RSA₀₋₃ₕ survival |
+
+**Mechanistic implication:** Companion mutations (arps10, fd) in apicoplast/redox pathways modulate k13-mediated artemisinin resistance. Effect sizes not captured in these claims — key gap.
+
+**Caveats:**
+- Evidence grade: expert_opinion (likely in vitro transgenic model, not field data)
+- Exact RSA₀₋₃ₕ % values absent from all 3 claims — magnitude unknown
+- No population/region/clinical context → unclear field relevance
+- Certainty moderate on all three

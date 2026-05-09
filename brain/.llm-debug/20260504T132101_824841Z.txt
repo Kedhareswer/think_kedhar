@@ -1,0 +1,176 @@
+===== SYSTEM =====
+OUTPUT REQUIREMENT: Return VALID JSON ONLY. Your entire response must be parseable by json.loads(). First character of your output must be `{` or `[`. No prose. No explanations. No markdown fences. No apologies. If the requested data is unavailable, return the schema with empty/null values, still as valid JSON. Tools are intentionally disabled — do not request access to them.
+
+# Research planner — natural-language topic to PubMed search plan
+
+You are NOT being asked to do medical research. You are NOT being asked to summarize or analyze. You are a SEARCH-PLAN generator.
+
+Input: one natural-language medical topic.
+Output: ONE JSON object describing how to query PubMed for that topic. Nothing more.
+
+## STRICT output schema
+
+The JSON object you return MUST have EXACTLY these top-level keys, in this order, with these exact spellings. No extra keys. No missing keys.
+
+- `topic` (string)
+- `scope` (string, one of: `very_broad`, `broad`, `focused`, `specific`)
+- `decomposition` (array of strings; may be empty for `focused`/`specific`)
+- `queries` (array of objects; each object MUST have `subtopic`, `pubmed_query`, `max_papers`, `rationale`)
+- `stop_criteria` (object with EXACTLY: `max_total_papers`, `saturation_window`, `duplicate_ratio_threshold`)
+- `notes` (string; may be empty)
+
+DO NOT invent additional keys. DO NOT include keys like `summary`, `background`, `major_rcts`, `outcome_metrics`, `verdict`, `key_finding`, etc. If you do, you have FAILED the task — the only acceptable output is the schema above.
+
+## Canonical example
+
+```json
+{
+  "topic": "artemisinin resistance in pregnancy",
+  "scope": "focused",
+  "decomposition": [],
+  "queries": [
+    {
+      "subtopic": "overall",
+      "pubmed_query": "\"artemisinin resistance\"[tiab] AND pregnancy[tiab] AND 2015:2025[dp]",
+      "max_papers": 12,
+      "rationale": "Recent literature on resistance markers and IPTp outcomes in pregnant patients."
+    }
+  ],
+  "stop_criteria": {
+    "max_total_papers": 25,
+    "saturation_window": 3,
+    "duplicate_ratio_threshold": 0.7
+  },
+  "notes": ""
+}
+```
+
+## Scope rules
+
+- **very_broad** (e.g. "virology", "dental best practices", "what is medicine"): MUST decompose into 5-12 subtopics. Each subtopic gets 1-2 queries, max 5 papers each. Total cap 40-60.
+- **broad** (e.g. "what is malaria", "diabetes treatment"): decompose into 3-6 subtopics (epidemiology, pathophysiology, diagnosis, treatment, prevention, prognosis as applicable). 1-2 queries per subtopic, 5-8 papers each. Total cap 30-50.
+- **focused** (e.g. "artemisinin resistance in pregnancy", "metformin for heart failure"): decomposition optional (1-3 subtopics if useful). 1-3 queries, 5-15 papers each. Total cap 20-40.
+- **specific** (e.g. "tafenoquine pediatric dose under 30kg", a precise question): no decomposition. 1-2 queries, 10-20 papers. Total cap 10-25.
+
+## PubMed query syntax
+
+- Use MeSH tags where applicable: `Malaria/drug therapy[MeSH]`
+- Field tags: `[tiab]` (title/abstract), `[au]` (author), `[dp]` (publication date)
+- Boolean: AND, OR, NOT (uppercase)
+- Quote phrases: `"artemisinin resistance"`
+- Date filter: `2018:2025[dp]` for recent if relevant
+- Prefer specific over generic; rely on PubMed relevance sort to surface best hits
+
+Example queries:
+- broad → `"malaria"[MeSH] AND review[pt]`
+- focused → `"artemisinin resistance"[tiab] AND pregnancy[tiab] AND 2015:2025[dp]`
+- specific → `tafenoquine[tiab] AND (pediatric[tiab] OR children[tiab]) AND dose[tiab]`
+
+## Saturation defaults
+
+- `saturation_window`: 3
+- `duplicate_ratio_threshold`: 0.7
+
+## Output rules
+
+1. Return ONLY the JSON. No prose before or after. No markdown fences.
+2. Every query MUST have a non-empty `pubmed_query` and `max_papers >= 1`.
+3. If the topic is so broad it shouldn't be ingested in one session (e.g. "all of medicine"), set `scope: "very_broad"` and decompose aggressively — do NOT refuse. The orchestrator will run in batches.
+4. The five top-level keys `topic`, `scope`, `decomposition`, `queries`, `stop_criteria` are REQUIRED on every response. If you skip any of them, the orchestrator will reject your output.
+5. DO NOT analyze the topic. DO NOT list trials. DO NOT produce a verdict. The downstream agent does that. You only produce the search plan.
+
+
+===== USER =====
+Required top-level keys (all five MUST appear): topic, scope, decomposition, queries, stop_criteria. Optional: notes. Do not invent other keys (no `summary`, no `background`, no `key_rct_findings`, no `landmark_references`, no `clinical_bottom_line`, etc.). Each entry of `queries` MUST be an object with EXACTLY these keys: `subtopic` (string), `pubmed_query` (string — DO NOT abbreviate to `q`), `max_papers` (integer >= 1), `rationale` (string). Do NOT use alternate field names like `q`, `query`, `search`, `source`. Output the JSON object only, no analysis, no fenced prose.
+
+# Topic
+artemisinin-based combination therapy versus chloroquine for uncomplicated malaria randomized trial
+
+===== STDOUT =====
+```json
+{
+  "topic": "Artemisinin-based combination therapy versus chloroquine for uncomplicated malaria: randomized trial evidence",
+  "scope": "Head-to-head RCTs comparing ACT (artemether-lumefantrine, artesunate-amodiaquine, dihydroartemisinin-piperaquine, artesunate-mefloquine, artesunate-sulfadoxine-pyrimethamine) against chloroquine monotherapy for uncomplicated Plasmodium falciparum or P. vivax malaria in any age group or geographic setting",
+  "decomposition": [
+    "Efficacy outcomes: day-28 and day-42 adequate clinical and parasitological response (ACPR), parasite clearance time, fever clearance time",
+    "ACT partner drug variation: lumefantrine, amodiaquine, piperaquine, mefloquine, sulfadoxine-pyrimethamine",
+    "Species stratification: P. falciparum vs P. vivax trials",
+    "Population subgroups: pediatric, pregnant women, adults",
+    "Resistance context: chloroquine-resistant vs chloroquine-sensitive settings",
+    "Safety and tolerability: adverse event profiles, serious adverse events",
+    "Gametocyte carriage and transmission-blocking effects",
+    "Recrudescence vs re-infection differentiation by PCR",
+    "Systematic reviews and meta-analyses synthesizing RCT data"
+  ],
+  "queries": [
+    {
+      "subtopic": "ACT vs chloroquine RCTs — P. falciparum efficacy",
+      "pubmed_query": "((artemisinin-based combination therapy OR artemether-lumefantrine OR artesunate-amodiaquine OR dihydroartemisinin-piperaquine) AND chloroquine AND (uncomplicated malaria OR Plasmodium falciparum) AND (randomized controlled trial OR RCT) AND (efficacy OR treatment failure OR ACPR))",
+      "max_papers": 15,
+      "rationale": "Core efficacy comparison for falciparum malaria, the primary indication driving WHO ACT adoption"
+    },
+    {
+      "subtopic": "ACT vs chloroquine RCTs — P. vivax",
+      "pubmed_query": "((artemisinin-based combination therapy OR dihydroartemisinin-piperaquine OR artemether-lumefantrine OR artesunate) AND chloroquine AND Plasmodium vivax AND (randomized controlled trial OR clinical trial) AND (efficacy OR recurrence OR relapse))",
+      "max_papers": 10,
+      "rationale": "Vivax malaria requires separate analysis; chloroquine resistance in vivax changes the risk-benefit calculus for ACT substitution"
+    },
+    {
+      "subtopic": "Artemether-lumefantrine vs chloroquine RCTs",
+      "pubmed_query": "(artemether-lumefantrine OR coartem OR AL) AND chloroquine AND (malaria) AND (randomized[pt] OR randomised) AND (treatment efficacy OR cure rate OR parasitological response)",
+      "max_papers": 10,
+      "rationale": "Artemether-lumefantrine is the most widely deployed ACT; isolating its trial data versus chloroquine provides high-resolution efficacy signals"
+    },
+    {
+      "subtopic": "Artesunate-amodiaquine vs chloroquine RCTs",
+      "pubmed_query": "(artesunate-amodiaquine OR artesunate amodiaquine) AND chloroquine AND (uncomplicated malaria OR Plasmodium falciparum) AND (randomized controlled trial OR randomised controlled trial)",
+      "max_papers": 8,
+      "rationale": "ASAQ is primary WHO-recommended ACT for Africa; standalone query avoids dilution by other ACT partners"
+    },
+    {
+      "subtopic": "Pediatric ACT vs chloroquine RCTs",
+      "pubmed_query": "((artemisinin-based combination therapy OR ACT) AND chloroquine AND (children OR pediatric OR paediatric OR infant) AND (uncomplicated malaria) AND (randomized controlled trial OR randomised) AND (efficacy OR safety))",
+      "max_papers": 10,
+      "rationale": "Children under 5 bear the highest falciparum mortality burden; pediatric pharmacokinetics and dosing differ materially from adult trials"
+    },
+    {
+      "subtopic": "Chloroquine resistance and ACT superiority — RCT evidence",
+      "pubmed_query": "((chloroquine resistance OR chloroquine-resistant) AND (artemisinin combination OR ACT OR artemether-lumefantrine OR artesunate) AND (malaria) AND (randomized OR clinical trial) AND (treatment failure OR day 28 failure))",
+      "max_papers": 8,
+      "rationale": "Resistance prevalence determines the magnitude of ACT benefit over chloroquine; essential for contextualizing trial results by region"
+    },
+    {
+      "subtopic": "Gametocyte carriage — ACT vs chloroquine RCTs",
+      "pubmed_query": "((artemisinin OR artemisinin-based combination) AND chloroquine AND (gametocyte OR gametocytemia OR transmission) AND (malaria) AND (randomized OR trial))",
+      "max_papers": 6,
+      "rationale": "ACTs reduce post-treatment gametocyte carriage, a key public-health advantage beyond individual cure; chloroquine lacks this effect"
+    },
+    {
+      "subtopic": "Safety and adverse events — ACT vs chloroquine RCTs",
+      "pubmed_query": "((artemisinin-based combination therapy OR artemether-lumefantrine OR artesunate-amodiaquine) AND chloroquine AND (adverse events OR tolerability OR safety OR side effects) AND (malaria) AND (randomized controlled trial OR randomised))",
+      "max_papers": 8,
+      "rationale": "Comparative tolerability data from RCTs inform treatment acceptability and adherence, particularly in pediatric and outpatient settings"
+    },
+    {
+      "subtopic": "Systematic reviews and meta-analyses — ACT vs chloroquine",
+      "pubmed_query": "((artemisinin-based combination therapy OR ACT) AND chloroquine AND (malaria) AND (systematic review[pt] OR meta-analysis[pt]) AND (efficacy OR treatment outcome OR cure rate))",
+      "max_papers": 8,
+      "rationale": "Cochrane and other meta-analyses pool heterogeneous RCTs; essential for quantitative synthesis of treatment effect size across settings"
+    },
+    {
+      "subtopic": "Dihydroartemisinin-piperaquine vs chloroquine RCTs",
+      "pubmed_query": "(dihydroartemisinin-piperaquine OR dihydroartemisinin piperaquine OR DHA-PPQ) AND chloroquine AND (malaria OR Plasmodium) AND (randomized OR randomised OR clinical trial) AND (efficacy OR ACPR OR treatment)",
+      "max_papers": 6,
+      "rationale": "DHA-PPQ has long post-treatment prophylactic effect; comparison with chloroquine relevant for high-transmission and vivax-endemic settings"
+    }
+  ],
+  "stop_criteria": {
+    "minimum_papers_per_subtopic": 3,
+    "duplicate_deduplication": "Remove papers appearing in multiple query results by PMID before synthesis",
+    "recency_preference": "Prioritize trials published 2000–2026; pre-2000 chloroquine-sensitive-era trials flag separately",
+    "geographic_coverage": "Ensure queries return results spanning sub-Saharan Africa, Southeast Asia, and South America",
+    "evidence_threshold": "Include only peer-reviewed RCTs, systematic reviews, or Cochrane reviews; exclude observational studies and case series",
+    "resistance_stratification": "Tag each trial result by chloroquine-resistant vs sensitive setting where reported"
+  }
+}
+```

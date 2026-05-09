@@ -1,0 +1,164 @@
+===== SYSTEM =====
+OUTPUT REQUIREMENT: Return VALID JSON ONLY. Your entire response must be parseable by json.loads(). First character of your output must be `{` or `[`. No prose. No explanations. No markdown fences. No apologies. If the requested data is unavailable, return the schema with empty/null values, still as valid JSON. Tools are intentionally disabled — do not request access to them.
+
+# Student extractor — qualified claims from a PubMed abstract
+
+You are extracting **atomic, qualified medical claims** from a malaria-focused biomedical abstract.
+
+## Output format
+
+Return a JSON array. Each element is one qualified claim.
+
+```json
+[
+  {
+    "subject": "string — entity name (drug, organism, gene, syndrome, intervention)",
+    "predicate": "one of: treats | causes | resists | requires | contraindicates | prevents | co_occurs | recommends",
+    "object": "string — entity or value",
+    "qualifiers": {
+      "population": {
+        "age_range": "e.g. adults | pediatric | <5 years | pregnant | null",
+        "pregnancy": "first_trimester | second_third_trimester | not_pregnant | null",
+        "region": "geographic region — e.g. Greater Mekong | West Africa | sub-Saharan Africa | null",
+        "immune_status": "naive | semi-immune | immunocompromised | null",
+        "comorbidities": ["list of strings or empty"]
+      },
+      "setting": {
+        "care_level": "outpatient | inpatient | community | null",
+        "endemic_status": "endemic | non_endemic | traveler | null"
+      },
+      "dose_regimen": {
+        "drug": "string or null",
+        "mg_per_kg": "number or null",
+        "frequency": "string or null",
+        "duration": "string or null"
+      },
+      "comparator": "what the intervention was compared against — string or null",
+      "effect_size": {
+        "metric": "e.g. day-3 positivity rate | parasite clearance time | hazard ratio | null",
+        "value": "number or null",
+        "ci_low": "number or null",
+        "ci_high": "number or null"
+      }
+    },
+    "certainty": "high | moderate | low | very_low",
+    "evidence_note": "one short sentence on why this certainty (sample size, design quality, etc.)"
+  }
+]
+```
+
+## Rules
+
+1. **Atomic.** Each claim is one subject-predicate-object triple. If an abstract states "X treats Y AND X causes Z", emit two claims.
+2. **Qualified.** Populate `qualifiers` from what the abstract explicitly states. Leave NULL if not stated — do NOT invent values.
+3. **Predicates.** Use only the listed enum values. Map free-text to the closest:
+   - "is associated with" / "linked to" / "shown to be effective for" → `treats` if therapeutic, `prevents` if prophylactic
+   - "induces resistance" / "selects for resistance" / "associated with treatment failure" → `resists` (when subject = parasite/pathogen, object = drug)
+   - "should not be given to" / "avoid in" → `contraindicates`
+   - WHO/CDC/national-program statements like "is recommended for" → `recommends`
+4. **Subject vs object.** For resistance claims, subject is the parasite/pathogen, object is the drug. For treatment, subject is the drug/intervention, object is the disease/population.
+5. **Certainty mapping:**
+   - `high`: large RCT or meta-analysis with consistent results, or current WHO guideline
+   - `moderate`: cohort study, smaller RCT, well-designed observational
+   - `low`: case-control, single-site observational, conflicting evidence
+   - `very_low`: case report, expert opinion, in-vitro only, mechanistic inference
+6. **Skip non-claims.** Background statements ("Malaria affects 200M people"), methodology ("We enrolled 1241 patients"), and meta-commentary ("Further research is needed") are NOT claims. Skip them.
+7. **No claims is a valid output.** If the abstract is purely descriptive epidemiology with no actionable medical claim, return `[]`.
+
+## Output
+
+Return ONLY the JSON array. No prose before or after.
+
+
+===== USER =====
+# Title
+Efficacy of antimalarial treatment in Guinea: in vivo study of two artemisinin combination therapies in Dabola and molecular markers of resistance to sulphadoxine-pyrimethamine in N'Zérékoré.
+
+# Abstract
+BACKGROUND: In the last five years, countries have been faced with changing their malaria treatment policy to an artemisinin-based combination therapy (ACT), many with no national data on which to base their decision. This is particularly true for a number of West African countries, including Guinea, where these studies were performed. Two studies were conducted in 2004/2005 in programmes supported by Medecins Sans Frontieres, when chloroquine was still national policy, but artesunate (AS)/sulphadoxine-pyrimethamine (SP) had been used in refugee camps for two years.
+
+METHODS: In Dabola (central Guinea), 220 children aged 6-59 months with falciparum malaria were randomized to receive either AS/amodiaquine (AQ) or AS/SP. In vivo efficacy was assessed following the 2003 World Health Organization guidelines. In a refugee camp in Laine (south of Guinea), where an in vivo study was not feasible due to the unstable context, a molecular genotyping study in 160 patients assessed the prevalence of mutations in the dihydrofolate reductase (dhfr) (codons 108, 51, 59) and dihydropteroate synthase (dhps) (codons 436, 437, 540) genes of Plasmodium falciparum, which have been associated with resistance to pyrimethamine and sulphadoxine, respectively.
+
+RESULTS: In Dabola, after 28 days of follow-up, Polymerase Chain Reaction (PCR)-adjusted failure rates were 1.0% (95%CI 0-5.3) for AS/AQ and 1.0% (95%CI 0-5.5) for AS/SP. In the refugee camp in Laine, the molecular genotyping study found three dhfr mutations in 85.6% (95%CI 79.2-90.7) patients and quintuple dhfr/dhps mutations in 9.6% (95%CI 5.2-15.9).
+
+CONCLUSION: Both AS/AQ and AS/SP are highly efficacious in Dabola, whereas there is molecular evidence of established SP resistance in Laine. This supports the choice of the national programme of Guinea to adopt AS/AQ as first line antimalarial treatment. The results highlight the difficulties faced by control programmes, which have gone through the upheaval of implementing ACTs, but cannot predict how long their therapeutic life will be, especially in countries which have chosen drugs also available as monotherapies.
+
+# Publication types
+Journal Article, Randomized Controlled Trial, Research Support, Non-U.S. Gov't
+
+===== STDOUT =====
+```json
+{
+  "title": "Efficacy of antimalarial treatment in Guinea: in vivo study of two artemisinin combination therapies in Dabola and molecular markers of resistance to sulphadoxine-pyrimethamine in N'Zérékoré",
+  "publication_types": [
+    "Journal Article",
+    "Randomized Controlled Trial",
+    "Research Support, Non-U.S. Gov't"
+  ],
+  "background": {
+    "context": "Countries transitioning malaria treatment policy to artemisinin-based combination therapy (ACT) with limited national data",
+    "setting_country": "Guinea, West Africa",
+    "study_year": "2004/2005",
+    "supported_by": "Medecins Sans Frontieres",
+    "prior_policy": "Chloroquine as national policy",
+    "prior_act_use": "Artesunate/sulphadoxine-pyrimethamine used in refugee camps for 2 years prior"
+  },
+  "studies": [
+    {
+      "study_id": 1,
+      "type": "in_vivo_randomized_controlled_trial",
+      "location": "Dabola, central Guinea",
+      "population": {
+        "n": 220,
+        "age_range_months": "6-59",
+        "condition": "falciparum malaria"
+      },
+      "arms": [
+        "AS/AQ (artesunate + amodiaquine)",
+        "AS/SP (artesunate + sulphadoxine-pyrimethamine)"
+      ],
+      "methodology": "WHO 2003 guidelines for in vivo efficacy assessment",
+      "follow_up_days": 28,
+      "results": {
+        "AS_AQ_PCR_adjusted_failure_rate_percent": 1.0,
+        "AS_AQ_95CI": "0-5.3%",
+        "AS_SP_PCR_adjusted_failure_rate_percent": 1.0,
+        "AS_SP_95CI": "0-5.5%"
+      }
+    },
+    {
+      "study_id": 2,
+      "type": "molecular_genotyping",
+      "location": "Laine refugee camp, southern Guinea",
+      "reason_no_in_vivo": "Unstable context made in vivo study infeasible",
+      "population": {
+        "n": 160
+      },
+      "genes_assessed": [
+        {
+          "gene": "dihydrofolate reductase (dhfr)",
+          "codons": [108, 51, 59],
+          "resistance_to": "pyrimethamine"
+        },
+        {
+          "gene": "dihydropteroate synthase (dhps)",
+          "codons": [436, 437, 540],
+          "resistance_to": "sulphadoxine"
+        }
+      ],
+      "results": {
+        "triple_dhfr_mutations_percent": 85.6,
+        "triple_dhfr_95CI": "79.2-90.7%",
+        "quintuple_dhfr_dhps_mutations_percent": 9.6,
+        "quintuple_dhfr_dhps_95CI": "5.2-15.9%"
+      }
+    }
+  ],
+  "conclusions": {
+    "dabola": "Both AS/AQ and AS/SP highly efficacious",
+    "laine": "Molecular evidence of established SP resistance",
+    "policy_implication": "Supports Guinea national programme adopting AS/AQ as first-line antimalarial treatment",
+    "broader_concern": "ACT therapeutic lifespan unpredictable, especially where component drugs available as monotherapies"
+  }
+}
+```

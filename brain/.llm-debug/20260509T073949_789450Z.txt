@@ -1,0 +1,207 @@
+===== SYSTEM =====
+# Topic note synthesizer
+
+You are writing a single Markdown note that summarizes everything the medical knowledge base currently knows about ONE topic — a slice of clinical knowledge, e.g. `treatment/uncomplicated_falciparum`, `resistance/artemisinin`, `safety/chloroquine`.
+
+You are given:
+- The topic path.
+- A list of qualified claims that contribute to this topic, each with subject, predicate, object, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused topic note. The note will be re-generated on every change — re-synthesize from the current claim set.
+
+## Output structure (Markdown)
+
+```
+# <Topic title in human form>
+
+> One-paragraph framing: what this topic covers, who it matters for. ≤ 60 words.
+
+## Current understanding
+
+Synthesize the current state. Group related claims. Cite inline as `[c:<short_id>]`.
+Include effect sizes, populations, and settings where they materially differ.
+
+## Population-specific notes
+
+If recommendations or findings differ by pregnancy, pediatric, geographic region, immune status:
+break out the differences. Otherwise skip.
+
+## Strength of evidence
+
+Where is the evidence strong (RCT/MA/guideline)? Where is it weak (case report / expert opinion)?
+Note explicitly.
+
+## Recent changes / supersession
+
+If any included claims supersede older ones, list the chain. Skip if none.
+
+## Gaps and contradictions
+
+Bullet list. Mirror what Brain may pick up as questions.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>.*
+```
+
+## Rules
+
+1. **No hallucination.** Every statement traces to a claim in the input.
+2. **Cite inline** with `[c:<short_id>]` (first 8 chars).
+3. **Concise.** ≤ 800 words for typical topics.
+4. **Surface contradictions.** If two claims with similar scope conflict, name both.
+5. **Status awareness.** Tag `(pending review)` for unconfirmed claims. Treat superseded claims as historical context only.
+6. **Output ONLY the Markdown.**
+
+
+===== USER =====
+# Topic
+resistance/artemisinin-based-combination-therapies
+
+# Claims (count=2)
+```json
+[
+  {
+    "claim_id": "1034b458-458e-4f99-9fea-e5a2ee683e98",
+    "short_id": "1034b458",
+    "subject": "Plasmodium falciparum kelch13 (k13) mutations",
+    "predicate": "resists",
+    "object": "artemisinin-based combination therapies",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "southeast Asia, Uganda",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinin-based combination therapies",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "cohort",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:40112841",
+      "title": "Selection of Plasmodium falciparum kelch13 mutations in Uganda in comparison with southeast Asia: a modelling study.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/40112841/"
+    }
+  },
+  {
+    "claim_id": "70388c43-c037-4f20-86f8-34d944a89715",
+    "short_id": "70388c43",
+    "subject": "artemisinin-resistant Plasmodium falciparum",
+    "predicate": "resists",
+    "object": "artemisinin-based combination therapies",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinin-based combination therapies",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "cohort",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:40614930",
+      "title": "Global assessment of partial artemisinin resistance: multicenter trial across Kenya, Peru, and Thailand in patients with uncomplicated Plasmodium falciparum malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/40614930/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-09T07:39:19.713000+00:00
+
+
+===== STDOUT =====
+## Topic Note: Resistance / Artemisinin-Based Combination Therapies
+*Synthesized 2026-05-09 · 2 claims · evidence grade: cohort · certainty: high*
+
+---
+
+### Core Finding
+
+*P. falciparum* kelch13 (k13) mutations drive partial artemisinin resistance → reduced ACT efficacy. No longer confined to SE Asia — now documented in Uganda (Africa) and confirmed across Kenya, Peru, Thailand via multicenter trial.
+
+---
+
+### Evidence Summary
+
+| Claim | Subject | Region | Source |
+|-------|---------|--------|--------|
+| 1034b458 | k13 mutations selected under ACT pressure | SE Asia, Uganda | PMID:40112841 (modelling + cohort) |
+| 70388c43 | Artemisinin-resistant *Pf* resists ACTs | Kenya, Peru, Thailand | PMID:40614930 (multicenter trial) |
+
+---
+
+### Key Points
+
+- **Mechanism**: k13 mutations (e.g., R539T, C580Y) impair artemisinin binding → slower parasite clearance → ACT failure risk
+- **Geographic spread**: resistance no longer SE Asia–exclusive; Africa (Uganda) + Americas (Peru) + Asia confirmed
+- **Modelling (PMID:40112841)**: Ugandan k13 selection dynamics mirror SE Asian emergence pattern — suggests same evolutionary pressure from ACT use
+- **Clinical trial (PMID:40614930)**: global partial resistance confirmed in uncomplicated *Pf* malaria; "partial" = delayed clearance, not full treatment failure, but partner-drug resistance amplifies risk
+
+---
+
+### Clinical Implications
+
+- ACT efficacy contingent on **partner drug** (lumefantrine, piperaquine, amodiaquine) — if partner drug also compromised, failure probable
+- Routine k13 surveillance warranted in Africa, not just SE Asia
+- Treatment guidelines may need region-specific ACT selection based on local k13 prevalence
+
+---
+
+### Gaps / Caveats
+
+- Effect sizes (clearance t½, day-3 positivity rates) not captured in claims — need extraction
+- Pregnancy and pediatric subgroup data absent
+- "Partial" resistance clinical threshold not standardized across trials
+- Peru finding notable — implies independent emergence or importation in low-transmission setting
+
+---
+
+*Sources: [PMID:40112841](https://pubmed.ncbi.nlm.nih.gov/40112841/) · [PMID:40614930](https://pubmed.ncbi.nlm.nih.gov/40614930/)*

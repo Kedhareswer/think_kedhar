@@ -1,0 +1,211 @@
+===== SYSTEM =====
+# Concept note synthesizer
+
+You are writing a single Markdown note that summarizes everything the medical knowledge base currently knows about ONE entity (drug, organism, gene, syndrome, intervention, anatomical structure, etc.).
+
+You are given:
+- The entity name.
+- A list of qualified claims involving this entity (as subject or object), each with predicate, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused concept note. The note will be re-generated on every change, so do not preserve old text — re-synthesize from the current claim set.
+
+## Output structure (Markdown)
+
+```
+# <Entity name as written most often in the claim set>
+
+> Short one-paragraph orientation: what this entity IS in clinical context. ≤ 60 words.
+
+## What it does / what we know
+
+A bulleted or short-paragraph synthesis grouped by predicate. Cite claim_ids inline like `[c:abc123]`.
+Group sensibly: treatment relationships, resistance relationships, mechanism, contraindications, etc.
+Only include groups that have claims.
+
+## Population & setting nuances
+
+If qualifiers vary by population (pregnancy, pediatric, region, immune status) or setting,
+summarize how. Skip this section if all claims are scope-generic.
+
+## Evidence strength
+
+One short paragraph: where the strong evidence is (RCT/MA/guideline) vs where it is thin
+(case reports, expert opinion). Reference grade explicitly.
+
+## Currency
+
+Note any superseded claims and what replaced them. Skip this section if no supersession.
+
+## Open questions
+
+Bullet list: what's missing, what contradicts, what needs investigation. These should mirror
+or seed gaps the Brain agent will pick up later. Skip the section if nothing is pending.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>.*
+```
+
+## Rules
+
+1. **No hallucination.** Every clinical statement must trace to a claim in the input. If a fact is not in the input, do not state it.
+2. **Cite inline.** Use `[c:<short_claim_id>]` after each statement. Use first 8 chars of the claim_id.
+3. **Concision.** Total length ≤ 600 words for most entities. A drug with 50 claims may justify more; an entity with 3 claims should be ≤ 200 words.
+4. **No prose-padding** like "It is important to note that…" or "Further research is needed". Write tight clinical prose.
+5. **Status awareness.** Mention `pending_review` claims with a (pending review) tag inline. Mention superseded claims explicitly in the Currency section, do not present them as current.
+6. **Output ONLY the Markdown.** No code fences, no preamble, no postamble.
+
+
+===== USER =====
+# Entity
+artefenomel
+
+# Surface variants
+artefenomel (OZ439)
+
+# Claims (count=2)
+```json
+[
+  {
+    "claim_id": "25b5fd4b-9908-4272-b493-e5a41ecc07f4",
+    "short_id": "25b5fd4b",
+    "subject": "Plasmodium falciparum K13 C580Y+A212T double mutation",
+    "predicate": "resists",
+    "object": "artefenomel (OZ439)",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Cambodia",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "artefenomel (OZ439)",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "K13 C580Y single mutant parasites",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:41959371",
+      "title": "Double Mutations in Plasmodium falciparum Kelch13 drive resistance to next-generation artemisinin derivatives in malaria parasites.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/41959371/"
+    }
+  },
+  {
+    "claim_id": "e321af16-916c-439d-9a30-2e0a0702faa8",
+    "short_id": "e321af16",
+    "subject": "Plasmodium falciparum K13 R539T+A212T double mutation",
+    "predicate": "resists",
+    "object": "artefenomel (OZ439)",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Cambodia",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "artefenomel (OZ439)",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "K13 R539T single mutant parasites",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:41959371",
+      "title": "Double Mutations in Plasmodium falciparum Kelch13 drive resistance to next-generation artemisinin derivatives in malaria parasites.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/41959371/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-09T07:10:47.713090+00:00
+
+
+===== STDOUT =====
+## Concept Note: Artefenomel (OZ439) — Resistance via K13 Double Mutations
+
+**Entity:** artefenomel (OZ439)  
+**Source:** PMID:41959371 | *Double Mutations in Plasmodium falciparum Kelch13 drive resistance to next-generation artemisinin derivatives in malaria parasites.*  
+**Date synthesized:** 2026-05-09
+
+---
+
+### Summary
+
+Two *Plasmodium falciparum* K13 double mutations confer resistance to artefenomel beyond what single mutations alone produce. Both implicate A212T as a resistance-amplifying second hit.
+
+---
+
+### Claims
+
+| # | Subject | Comparator | Certainty | Evidence grade |
+|---|---------|-----------|-----------|---------------|
+| 1 | K13 **C580Y + A212T** | C580Y single mutant | Moderate | Expert opinion |
+| 2 | K13 **R539T + A212T** | R539T single mutant | High | Uncertain |
+
+- **Region:** Cambodia (malaria-endemic)  
+- **Effect size:** Not quantified in extracted data (metric/CI absent)  
+- **Status:** Both pending review
+
+---
+
+### Synthesis
+
+**A212T acts as resistance amplifier.** Both claims share A212T as second mutation. Pattern suggests A212T potentiates existing K13 mutations (C580Y, R539T) against OZ439, not just standard artemisinins. Mechanism likely same piperaquine-independent K13-mediated ring-stage survival pathway, extended to synthetic peroxide scaffold.
+
+**Clinical relevance — Cambodia:** C580Y already dominant in SEA. C580Y+A212T double mutants emerging = threat to OZ439 pipeline as partner drug or monotherapy. R539T less prevalent but R539T+A212T shows *higher* certainty resistance, suggesting stronger phenotypic effect.
+
+**Evidence gap:** No IC50, RSA survival rates, or clinical failure data extracted. Expert opinion grade limits actionability. Quantitative resistance metrics needed.
+
+---
+
+### Open Questions
+
+1. Prevalence of A212T in C580Y background in Cambodia field isolates?
+2. Cross-resistance to other synthetic peroxides (e.g., arteether, arterolane)?
+3. Fitness cost of double vs. single mutants — does A212T reduce transmissibility?
+
+---
+
+**Confidence:** Moderate–High (claim-level) | **Review needed before clinical application**

@@ -1,0 +1,148 @@
+===== SYSTEM =====
+OUTPUT REQUIREMENT: Return VALID JSON ONLY. Your entire response must be parseable by json.loads(). First character of your output must be `{` or `[`. No prose. No explanations. No markdown fences. No apologies. If the requested data is unavailable, return the schema with empty/null values, still as valid JSON. Tools are intentionally disabled — do not request access to them.
+
+/# Student extractor — qualified claims from a PubMed abstract
+
+You are extracting **atomic, qualified medical claims** from a malaria-focused biomedical abstract.
+
+## Output format
+
+Return a JSON array. Each element is one qualified claim.
+
+```json
+[
+  {
+    "subject": "string — entity name (drug, organism, gene, syndrome, intervention)",
+    "predicate": "one of: treats | causes | resists | requires | contraindicates | prevents | co_occurs | recommends",
+    "object": "string — entity or value",
+    "qualifiers": {
+      "population": {
+        "age_range": "e.g. adults | pediatric | <5 years | pregnant | null",
+        "pregnancy": "first_trimester | second_third_trimester | not_pregnant | null",
+        "region": "geographic region — e.g. Greater Mekong | West Africa | sub-Saharan Africa | null",
+        "immune_status": "naive | semi-immune | immunocompromised | null",
+        "comorbidities": ["list of strings or empty"]
+      },
+      "setting": {
+        "care_level": "outpatient | inpatient | community | null",
+        "endemic_status": "endemic | non_endemic | traveler | null"
+      },
+      "dose_regimen": {
+        "drug": "string or null",
+        "mg_per_kg": "number or null",
+        "frequency": "string or null",
+        "duration": "string or null"
+      },
+      "comparator": "what the intervention was compared against — string or null",
+      "effect_size": {
+        "metric": "e.g. day-3 positivity rate | parasite clearance time | hazard ratio | null",
+        "value": "number or null",
+        "ci_low": "number or null",
+        "ci_high": "number or null"
+      }
+    },
+    "certainty": "high | moderate | low | very_low",
+    "evidence_note": "one short sentence on why this certainty (sample size, design quality, etc.)"
+  }
+]
+```
+
+## Rules
+
+1. **Atomic.** Each claim is one subject-predicate-object triple. If an abstract states "X treats Y AND X causes Z", emit two claims.
+2. **Qualified.** Populate `qualifiers` from what the abstract explicitly states. Leave NULL if not stated — do NOT invent values.
+3. **Predicates.** Use only the listed enum values. Map free-text to the closest:
+   - "is associated with" / "linked to" / "shown to be effective for" → `treats` if therapeutic, `prevents` if prophylactic
+   - "induces resistance" / "selects for resistance" / "associated with treatment failure" → `resists` (when subject = parasite/pathogen, object = drug)
+   - "should not be given to" / "avoid in" → `contraindicates`
+   - WHO/CDC/national-program statements like "is recommended for" → `recommends`
+4. **Subject vs object.** For resistance claims, subject is the parasite/pathogen, object is the drug. For treatment, subject is the drug/intervention, object is the disease/population.
+5. **Certainty mapping:**
+   - `high`: large RCT or meta-analysis with consistent results, or current WHO guideline
+   - `moderate`: cohort study, smaller RCT, well-designed observational
+   - `low`: case-control, single-site observational, conflicting evidence
+   - `very_low`: case report, expert opinion, in-vitro only, mechanistic inference
+6. **Skip non-claims.** Background statements ("Malaria affects 200M people"), methodology ("We enrolled 1241 patients"), and meta-commentary ("Further research is needed") are NOT claims. Skip them.
+7. **No claims is a valid output.** If the abstract is purely descriptive epidemiology with no actionable medical claim, return `[]`.
+
+## Output
+
+Return ONLY the JSON array. No prose before or after.
+
+
+===== USER =====
+# Title
+Global assessment of partial artemisinin resistance: multicenter trial across Kenya, Peru, and Thailand in patients with uncomplicated Plasmodium falciparum malaria.
+
+# Abstract
+OBJECTIVES: Artemisinin-resistant Plasmodium falciparum challenges the effectiveness of all artemisinin-based combination therapies.
+
+METHODS: We conducted a clinical study in Peru, Kenya, and Thailand between June 2013 and November 2015 in subjects treated with three standard doses of artesunate followed by two doses of mefloquine. The primary endpoint was parasite clearance half-life (PC1/2) during the 72-hour period of treatment. Secondary endpoints included clinical outcome at 42 days, detection of kelch13 (K13) mutations, pharmacokinetics, and pharmacodynamics.
+
+RESULTS: The mean PC1/2 was higher in the Thai (4.1 hours) than Peruvian (2 hours) or Kenyan cohorts (2.2 hours) (P <0.0001). Higher PC1/2 was partially explained by K13 mutations in 13 (28%) of 46 Thai subjects, including World Health Organization (WHO) validated and candidate mutations. Twelve (26%) Thai cohort subjects had PC1/2 ≥5 hours with parasites from nine subjects carrying K13 mutations. There was an overall 42-day cure rate of 100% across all subjects.
+
+CONCLUSIONS: This is the first concurrent evaluation of artemisinin resistance across three continents. The presence of 11% Thai subjects who satisfied WHO criteria for drug resistance establishes this area as endemic. Longer PC1/2 found in wild-type and candidate K13 mutant infections within the Thai cohort require further investigation to identify alternative mechanisms of resistance.
+
+# Publication types
+Journal Article, Multicenter Study
+
+===== STDOUT =====
+```json
+{
+  "title": "Global assessment of partial artemisinin resistance: multicenter trial across Kenya, Peru, and Thailand in patients with uncomplicated Plasmodium falciparum malaria",
+  "publication_types": ["Journal Article", "Multicenter Study"],
+  "study_design": {
+    "type": "Multicenter clinical study",
+    "sites": ["Peru", "Kenya", "Thailand"],
+    "date_range": {
+      "start": "June 2013",
+      "end": "November 2015"
+    },
+    "treatment_regimen": {
+      "drug_1": "Artesunate",
+      "drug_1_doses": 3,
+      "drug_2": "Mefloquine",
+      "drug_2_doses": 2
+    }
+  },
+  "condition": "Uncomplicated Plasmodium falciparum malaria",
+  "endpoints": {
+    "primary": "Parasite clearance half-life (PC1/2) during 72-hour treatment period",
+    "secondary": [
+      "Clinical outcome at 42 days",
+      "Detection of kelch13 (K13) mutations",
+      "Pharmacokinetics",
+      "Pharmacodynamics"
+    ]
+  },
+  "results": {
+    "mean_PC_half_life_by_cohort": {
+      "Thailand": {"value_hours": 4.1},
+      "Peru": {"value_hours": 2.0},
+      "Kenya": {"value_hours": 2.2}
+    },
+    "statistical_significance": "P < 0.0001",
+    "K13_mutations": {
+      "Thai_subjects_with_K13_mutations": {
+        "count": 13,
+        "total": 46,
+        "percentage": 28,
+        "mutation_types": ["WHO validated", "WHO candidate"]
+      }
+    },
+    "Thai_subjects_PC_half_life_ge_5h": {
+      "count": 12,
+      "percentage": 26,
+      "of_which_K13_mutation_carriers": 9
+    },
+    "42_day_cure_rate_percent": 100
+  },
+  "conclusions": {
+    "first_concurrent_evaluation": true,
+    "continents_assessed": 3,
+    "Thai_subjects_meeting_WHO_resistance_criteria_percent": 11,
+    "Thailand_classified_as": "Endemic for artemisinin resistance",
+    "further_investigation_needed": "Alternative resistance mechanisms in wild-type and candidate K13 mutant Thai infections"
+  }
+}
+```

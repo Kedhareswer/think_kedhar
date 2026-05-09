@@ -1,0 +1,210 @@
+===== SYSTEM =====
+OUTPUT REQUIREMENT: Return VALID JSON ONLY. Your entire response must be parseable by json.loads(). First character of your output must be `{` or `[`. No prose. No explanations. No markdown fences. No apologies. If the requested data is unavailable, return the schema with empty/null values, still as valid JSON. Tools are intentionally disabled — do not request access to them.
+
+# Student extractor — qualified claims from a PubMed abstract
+
+You are extracting **atomic, qualified medical claims** from a malaria-focused biomedical abstract.
+
+## Output format
+
+Return a JSON array. Each element is one qualified claim.
+
+```json
+[
+  {
+    "subject": "string — entity name (drug, organism, gene, syndrome, intervention)",
+    "predicate": "one of: treats | causes | resists | requires | contraindicates | prevents | co_occurs | recommends",
+    "object": "string — entity or value",
+    "qualifiers": {
+      "population": {
+        "age_range": "e.g. adults | pediatric | <5 years | pregnant | null",
+        "pregnancy": "first_trimester | second_third_trimester | not_pregnant | null",
+        "region": "geographic region — e.g. Greater Mekong | West Africa | sub-Saharan Africa | null",
+        "immune_status": "naive | semi-immune | immunocompromised | null",
+        "comorbidities": ["list of strings or empty"]
+      },
+      "setting": {
+        "care_level": "outpatient | inpatient | community | null",
+        "endemic_status": "endemic | non_endemic | traveler | null"
+      },
+      "dose_regimen": {
+        "drug": "string or null",
+        "mg_per_kg": "number or null",
+        "frequency": "string or null",
+        "duration": "string or null"
+      },
+      "comparator": "what the intervention was compared against — string or null",
+      "effect_size": {
+        "metric": "e.g. day-3 positivity rate | parasite clearance time | hazard ratio | null",
+        "value": "number or null",
+        "ci_low": "number or null",
+        "ci_high": "number or null"
+      }
+    },
+    "certainty": "high | moderate | low | very_low",
+    "evidence_note": "one short sentence on why this certainty (sample size, design quality, etc.)"
+  }
+]
+```
+
+## Rules
+
+1. **Atomic.** Each claim is one subject-predicate-object triple. If an abstract states "X treats Y AND X causes Z", emit two claims.
+2. **Qualified.** Populate `qualifiers` from what the abstract explicitly states. Leave NULL if not stated — do NOT invent values.
+3. **Predicates.** Use only the listed enum values. Map free-text to the closest:
+   - "is associated with" / "linked to" / "shown to be effective for" → `treats` if therapeutic, `prevents` if prophylactic
+   - "induces resistance" / "selects for resistance" / "associated with treatment failure" → `resists` (when subject = parasite/pathogen, object = drug)
+   - "should not be given to" / "avoid in" → `contraindicates`
+   - WHO/CDC/national-program statements like "is recommended for" → `recommends`
+4. **Subject vs object.** For resistance claims, subject is the parasite/pathogen, object is the drug. For treatment, subject is the drug/intervention, object is the disease/population.
+5. **Certainty mapping:**
+   - `high`: large RCT or meta-analysis with consistent results, or current WHO guideline
+   - `moderate`: cohort study, smaller RCT, well-designed observational
+   - `low`: case-control, single-site observational, conflicting evidence
+   - `very_low`: case report, expert opinion, in-vitro only, mechanistic inference
+6. **Skip non-claims.** Background statements ("Malaria affects 200M people"), methodology ("We enrolled 1241 patients"), and meta-commentary ("Further research is needed") are NOT claims. Skip them.
+7. **No claims is a valid output.** If the abstract is purely descriptive epidemiology with no actionable medical claim, return `[]`.
+
+## Output
+
+Return ONLY the JSON array. No prose before or after.
+
+
+===== USER =====
+# Title
+Tafenoquine co-administered with dihydroartemisinin-piperaquine for the radical cure of Plasmodium vivax malaria (INSPECTOR): a randomised, placebo-controlled, efficacy and safety study.
+
+# Abstract
+BACKGROUND: Tafenoquine, co-administered with chloroquine, is approved for the radical cure (prevention of relapse) of Plasmodium vivax malaria. In areas of chloroquine resistance, artemisinin-based combination therapies are used to treat malaria. This study aimed to evaluate tafenoquine plus the artemisinin-based combination therapy dihydroartemisinin-piperaquine for the radical cure of P vivax malaria.
+
+METHODS: In this double-blind, double-dummy, parallel group study, glucose-6-phosphate dehydrogenase-normal Indonesian soldiers with microscopically confirmed P vivax malaria were randomly assigned by means of a computer-generated randomisation schedule (1:1:1) to dihydroartemisinin-piperaquine alone, dihydroartemisinin-piperaquine plus a masked single 300-mg dose of tafenoquine, or dihydroartemisinin-piperaquine plus 14 days of primaquine (15 mg). The primary endpoint was 6-month relapse-free efficacy following tafenoquine plus dihydroartemisinin-piperaquine versus dihydroartemisinin-piperaquine alone in all randomly assigned patients who received at least one dose of masked treatment and had microscopically confirmed P vivax at baseline (microbiological intention-to-treat population). Safety was a secondary outcome and the safety population comprised all patients who received at least one dose of masked medication. This study is registered with ClinicalTrials.gov, NCT02802501 and is completed.
+
+FINDINGS: Between April 8, 2018, and Feb 4, 2019, of 164 patients screened for eligibility, 150 were randomly assigned (50 per treatment group). 6-month Kaplan-Meier relapse-free efficacy (microbiological intention to treat) was 11% (95% CI 4-22) in patients treated with dihydroartemisinin-piperaquine alone versus 21% (11-34) in patients treated with tafenoquine plus dihydroartemisinin-piperaquine (hazard ratio 0·44; 95% CI [0·29-0·69]) and 52% (37-65) in the primaquine plus dihydroartemisinin-piperaquine group. Adverse events over the first 28 days were reported in 27 (54%) of 50 patients treated with dihydroartemisinin-piperaquine alone, 29 (58%) of 50 patients treated with tafenoquine plus dihydroartemisinin-piperaquine, and 22 (44%) of 50 patients treated with primaquine plus dihydroartemisinin-piperaquine. Serious adverse events were reported in one (2%) of 50, two (4%) of 50, and two (4%) of 50 of patients, respectively.
+
+INTERPRETATION: Although tafenoquine plus dihydroartemisinin-piperaquine was statistically superior to dihydroartemisinin-piperaquine alone for the radical cure of P vivax malaria, the benefit was not clinically meaningful. This contrasts with previous studies in which tafenoquine plus chloroquine was clinically superior to chloroquine alone for radical cure of P vivax malaria.
+
+FUNDING: ExxonMobil, Bill & Melinda Gates Foundation, Newcrest Mining, UK Government all through Medicines for Malaria Venture; and GSK.
+
+TRANSLATION: For the Indonesian translation of the abstract see Supplementary Materials section.
+
+# Publication types
+Randomized Controlled Trial, Journal Article, Research Support, Non-U.S. Gov't
+
+===== STDOUT =====
+```json
+{
+  "title": "Tafenoquine co-administered with dihydroartemisinin-piperaquine for the radical cure of Plasmodium vivax malaria (INSPECTOR): a randomised, placebo-controlled, efficacy and safety study",
+  "trial_registration": "NCT02802501",
+  "publication_types": [
+    "Randomized Controlled Trial",
+    "Journal Article",
+    "Research Support, Non-U.S. Gov't"
+  ],
+  "funding": [
+    "ExxonMobil",
+    "Bill & Melinda Gates Foundation",
+    "Newcrest Mining",
+    "UK Government",
+    "Medicines for Malaria Venture",
+    "GSK"
+  ],
+  "study_design": {
+    "type": "double-blind, double-dummy, parallel group",
+    "randomization": "computer-generated, 1:1:1",
+    "blinding": "double-blind, double-dummy",
+    "enrollment_period": {
+      "start": "2018-04-08",
+      "end": "2019-02-04"
+    },
+    "status": "completed"
+  },
+  "population": {
+    "condition": "Plasmodium vivax malaria",
+    "setting": "Indonesia",
+    "subjects": "G6PD-normal Indonesian soldiers",
+    "confirmation": "microscopically confirmed P vivax at baseline",
+    "screened": 164,
+    "randomized": 150
+  },
+  "arms": [
+    {
+      "name": "DHA-PQP alone",
+      "treatment": "dihydroartemisinin-piperaquine + placebo",
+      "n": 50
+    },
+    {
+      "name": "Tafenoquine + DHA-PQP",
+      "treatment": "dihydroartemisinin-piperaquine + tafenoquine 300 mg single dose",
+      "n": 50
+    },
+    {
+      "name": "Primaquine + DHA-PQP",
+      "treatment": "dihydroartemisinin-piperaquine + primaquine 15 mg x 14 days",
+      "n": 50
+    }
+  ],
+  "primary_endpoint": {
+    "description": "6-month relapse-free efficacy: tafenoquine+DHA-PQP vs DHA-PQP alone",
+    "population": "microbiological intention-to-treat (received ≥1 dose masked treatment + microscopically confirmed P vivax at baseline)",
+    "method": "Kaplan-Meier"
+  },
+  "efficacy_results": {
+    "6_month_relapse_free_km": [
+      {
+        "arm": "DHA-PQP alone",
+        "estimate_pct": 11,
+        "ci_95": [4, 22]
+      },
+      {
+        "arm": "Tafenoquine + DHA-PQP",
+        "estimate_pct": 21,
+        "ci_95": [11, 34],
+        "hazard_ratio_vs_control": 0.44,
+        "hr_ci_95": [0.29, 0.69],
+        "statistically_superior_to_control": true,
+        "clinically_meaningful": false
+      },
+      {
+        "arm": "Primaquine + DHA-PQP",
+        "estimate_pct": 52,
+        "ci_95": [37, 65]
+      }
+    ]
+  },
+  "safety_results": {
+    "population": "all patients receiving ≥1 dose masked medication",
+    "adverse_events_28d": [
+      {
+        "arm": "DHA-PQP alone",
+        "any_ae_n": 27,
+        "any_ae_pct": 54,
+        "sae_n": 1,
+        "sae_pct": 2
+      },
+      {
+        "arm": "Tafenoquine + DHA-PQP",
+        "any_ae_n": 29,
+        "any_ae_pct": 58,
+        "sae_n": 2,
+        "sae_pct": 4
+      },
+      {
+        "arm": "Primaquine + DHA-PQP",
+        "any_ae_n": 22,
+        "any_ae_pct": 44,
+        "sae_n": 2,
+        "sae_pct": 4
+      }
+    ]
+  },
+  "conclusions": {
+    "primary": "Tafenoquine+DHA-PQP statistically superior to DHA-PQP alone but not clinically meaningful for P vivax radical cure.",
+    "context": "Contrasts with prior studies showing tafenoquine+chloroquine clinically superior to chloroquine alone.",
+    "implication": "Tafenoquine benefit may be diminished when paired with DHA-PQP compared to chloroquine backbone."
+  },
+  "background_context": {
+    "approved_regimen": "Tafenoquine + chloroquine (chloroquine-sensitive areas)",
+    "rationale": "Evaluate tafenoquine with ACT (DHA-PQP) for chloroquine-resistant settings"
+  }
+}
+```

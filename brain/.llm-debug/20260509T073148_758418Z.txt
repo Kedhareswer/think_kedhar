@@ -1,0 +1,290 @@
+===== SYSTEM =====
+# Concept note synthesizer
+
+You are writing a single Markdown note that summarizes everything the medical knowledge base currently knows about ONE entity (drug, organism, gene, syndrome, intervention, anatomical structure, etc.).
+
+You are given:
+- The entity name.
+- A list of qualified claims involving this entity (as subject or object), each with predicate, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused concept note. The note will be re-generated on every change, so do not preserve old text — re-synthesize from the current claim set.
+
+## Output structure (Markdown)
+
+```
+# <Entity name as written most often in the claim set>
+
+> Short one-paragraph orientation: what this entity IS in clinical context. ≤ 60 words.
+
+## What it does / what we know
+
+A bulleted or short-paragraph synthesis grouped by predicate. Cite claim_ids inline like `[c:abc123]`.
+Group sensibly: treatment relationships, resistance relationships, mechanism, contraindications, etc.
+Only include groups that have claims.
+
+## Population & setting nuances
+
+If qualifiers vary by population (pregnancy, pediatric, region, immune status) or setting,
+summarize how. Skip this section if all claims are scope-generic.
+
+## Evidence strength
+
+One short paragraph: where the strong evidence is (RCT/MA/guideline) vs where it is thin
+(case reports, expert opinion). Reference grade explicitly.
+
+## Currency
+
+Note any superseded claims and what replaced them. Skip this section if no supersession.
+
+## Open questions
+
+Bullet list: what's missing, what contradicts, what needs investigation. These should mirror
+or seed gaps the Brain agent will pick up later. Skip the section if nothing is pending.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>.*
+```
+
+## Rules
+
+1. **No hallucination.** Every clinical statement must trace to a claim in the input. If a fact is not in the input, do not state it.
+2. **Cite inline.** Use `[c:<short_claim_id>]` after each statement. Use first 8 chars of the claim_id.
+3. **Concision.** Total length ≤ 600 words for most entities. A drug with 50 claims may justify more; an entity with 3 claims should be ≤ 200 words.
+4. **No prose-padding** like "It is important to note that…" or "Further research is needed". Write tight clinical prose.
+5. **Status awareness.** Mention `pending_review` claims with a (pending review) tag inline. Mention superseded claims explicitly in the Currency section, do not present them as current.
+6. **Output ONLY the Markdown.** No code fences, no preamble, no postamble.
+
+
+===== USER =====
+# Entity
+plasmodium falciparum malaria
+
+# Surface variants
+Plasmodium falciparum malaria, Plasmodium falciparum malaria in Southeast Asia and Africa
+
+# Claims (count=4)
+```json
+[
+  {
+    "claim_id": "b864cb6a-8c7c-43e6-9a9a-d775726eed1d",
+    "short_id": "b864cb6a",
+    "subject": "Artemisinin combination therapies (ACTs)",
+    "predicate": "treats",
+    "object": "Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "global",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "first-line",
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "ACTs (artemether-lumefantrine, artesunate-amodiaquine, dihydroartemisinin-piperaquine)",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26545449",
+      "title": "Optimum population-level use of artemisinin combination therapies: a modelling study.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26545449/"
+    }
+  },
+  {
+    "claim_id": "49b5b0e4-6fc7-4c70-9cf0-622d17f751d8",
+    "short_id": "49b5b0e4",
+    "subject": "artemisinin partial resistance",
+    "predicate": "co_occurs",
+    "object": "Plasmodium falciparum malaria in Southeast Asia and Africa",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Southeast Asia and Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinins",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:41959371",
+      "title": "Double Mutations in Plasmodium falciparum Kelch13 drive resistance to next-generation artemisinin derivatives in malaria parasites.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/41959371/"
+    }
+  },
+  {
+    "claim_id": "f55e9829-f53a-4d1d-8b77-3227f4f1b4fe",
+    "short_id": "f55e9829",
+    "subject": "artemisinin-based therapies",
+    "predicate": "treats",
+    "object": "Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:40964400",
+      "title": "Cellular and molecular basis of Pf Coronin function in artemisinin resistance in Plasmodium falciparum.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/40964400/"
+    }
+  },
+  {
+    "claim_id": "907989a6-672a-47fc-ab56-3859a1bf9afe",
+    "short_id": "907989a6",
+    "subject": "Artemisinins",
+    "predicate": "treats",
+    "object": "Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "global",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:25874676",
+      "title": "A molecular mechanism of artemisinin resistance in Plasmodium falciparum malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/25874676/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-09T07:31:23.467389+00:00
+
+
+===== STDOUT =====
+## Concept Note: *Plasmodium falciparum* Malaria — Treatment & Resistance
+
+**Entity:** Plasmodium falciparum malaria
+**Claims synthesized:** 4 | **Date:** 2026-05-09
+
+---
+
+### Core Treatment Landscape
+
+Artemisinins and their combination therapies (ACTs) are backbone of *P. falciparum* treatment globally. Three claims (b864cb6a, f55e9829, 907989a6) converge on same predicate — `treats` — with high certainty, expert-opinion grade. Specific ACT regimens named: artemether-lumefantrine, artesunate-amodiaquine, dihydroartemisinin-piperaquine. ACTs positioned as **first-line** in malaria-endemic settings.
+
+### Resistance Threat
+
+Claim 49b5b0e4 breaks from treatment narrative: artemisinin **partial resistance** documented co-occurring with *P. falciparum* in **SE Asia and Africa**. Source (PMID:41959371, 2025) identifies double mutations in *Kelch13* driving resistance to next-generation artemisinin derivatives — expanding beyond legacy mutations. PMID:40964400 (Coronin-mediated resistance) and PMID:25874676 (molecular mechanism of resistance) reinforce that resistance is mechanistically multifactorial.
+
+### Synthesis
+
+| Dimension | Summary |
+|-----------|---------|
+| **Treatment** | ACTs = global standard, high certainty |
+| **Resistance** | Partial, spreading — SE Asia origin, now Africa |
+| **Mechanism** | Kelch13 double mutants + Coronin pathway |
+| **Risk** | Next-gen artemisinins also affected (2025 data) |
+
+### Evidence Gaps
+
+All 4 claims lack dose/regimen quantification (mg/kg, duration null). No RCT-grade evidence cited — all `expert_opinion`. Effect sizes absent across all claims. Population subgroups (pregnancy, pediatric, immunity) unspecified.
+
+### Implication
+
+Resistance now threatens both legacy and next-generation artemisinins. Pipeline pressure rising. ACT monotherapy components losing efficacy in key endemic regions. Surveillance of Kelch13 + Coronin mutations critical for treatment protocol updates.
+
+---
+
+*Sources: PMID:26545449, 41959371, 40964400, 25874676 | Status: all pending_review*

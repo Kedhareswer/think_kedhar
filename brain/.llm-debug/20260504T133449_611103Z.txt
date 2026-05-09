@@ -1,0 +1,180 @@
+===== SYSTEM =====
+OUTPUT REQUIREMENT: Return VALID JSON ONLY. Your entire response must be parseable by json.loads(). First character of your output must be `{` or `[`. No prose. No explanations. No markdown fences. No apologies. If the requested data is unavailable, return the schema with empty/null values, still as valid JSON. Tools are intentionally disabled — do not request access to them.
+
+# Student extractor — qualified claims from a PubMed abstract
+
+You are extracting **atomic, qualified medical claims** from a malaria-focused biomedical abstract.
+
+## Output format
+
+Return a JSON array. Each element is one qualified claim.
+
+```json
+[
+  {
+    "subject": "string — entity name (drug, organism, gene, syndrome, intervention)",
+    "predicate": "one of: treats | causes | resists | requires | contraindicates | prevents | co_occurs | recommends",
+    "object": "string — entity or value",
+    "qualifiers": {
+      "population": {
+        "age_range": "e.g. adults | pediatric | <5 years | pregnant | null",
+        "pregnancy": "first_trimester | second_third_trimester | not_pregnant | null",
+        "region": "geographic region — e.g. Greater Mekong | West Africa | sub-Saharan Africa | null",
+        "immune_status": "naive | semi-immune | immunocompromised | null",
+        "comorbidities": ["list of strings or empty"]
+      },
+      "setting": {
+        "care_level": "outpatient | inpatient | community | null",
+        "endemic_status": "endemic | non_endemic | traveler | null"
+      },
+      "dose_regimen": {
+        "drug": "string or null",
+        "mg_per_kg": "number or null",
+        "frequency": "string or null",
+        "duration": "string or null"
+      },
+      "comparator": "what the intervention was compared against — string or null",
+      "effect_size": {
+        "metric": "e.g. day-3 positivity rate | parasite clearance time | hazard ratio | null",
+        "value": "number or null",
+        "ci_low": "number or null",
+        "ci_high": "number or null"
+      }
+    },
+    "certainty": "high | moderate | low | very_low",
+    "evidence_note": "one short sentence on why this certainty (sample size, design quality, etc.)"
+  }
+]
+```
+
+## Rules
+
+1. **Atomic.** Each claim is one subject-predicate-object triple. If an abstract states "X treats Y AND X causes Z", emit two claims.
+2. **Qualified.** Populate `qualifiers` from what the abstract explicitly states. Leave NULL if not stated — do NOT invent values.
+3. **Predicates.** Use only the listed enum values. Map free-text to the closest:
+   - "is associated with" / "linked to" / "shown to be effective for" → `treats` if therapeutic, `prevents` if prophylactic
+   - "induces resistance" / "selects for resistance" / "associated with treatment failure" → `resists` (when subject = parasite/pathogen, object = drug)
+   - "should not be given to" / "avoid in" → `contraindicates`
+   - WHO/CDC/national-program statements like "is recommended for" → `recommends`
+4. **Subject vs object.** For resistance claims, subject is the parasite/pathogen, object is the drug. For treatment, subject is the drug/intervention, object is the disease/population.
+5. **Certainty mapping:**
+   - `high`: large RCT or meta-analysis with consistent results, or current WHO guideline
+   - `moderate`: cohort study, smaller RCT, well-designed observational
+   - `low`: case-control, single-site observational, conflicting evidence
+   - `very_low`: case report, expert opinion, in-vitro only, mechanistic inference
+6. **Skip non-claims.** Background statements ("Malaria affects 200M people"), methodology ("We enrolled 1241 patients"), and meta-commentary ("Further research is needed") are NOT claims. Skip them.
+7. **No claims is a valid output.** If the abstract is purely descriptive epidemiology with no actionable medical claim, return `[]`.
+
+## Output
+
+Return ONLY the JSON array. No prose before or after.
+
+
+===== USER =====
+# Title
+Artemether-lumefantrine efficacy among adults on antiretroviral therapy in Malawi.
+
+# Abstract
+BACKGROUND: When people with human immunodeficiency virus (HIV) infection (PWH) develop malaria, they are at risk of poor anti-malarial treatment efficacy resulting from impairment in the immune response and/or drug-drug interactions that alter anti-malarial metabolism. The therapeutic efficacy of artemether-lumefantrine was evaluated in a cohort of PWH on antiretroviral therapy (ART) and included measurement of day 7 lumefantrine levels in a subset to evaluate for associations between lumefantrine exposure and treatment response.
+
+METHODS: Adults living with HIV (≥ 18 years), on ART for ≥ 6 months with undetectable HIV RNA viral load and CD4 count ≥ 250/mm3 were randomized to daily trimethoprim-sulfamethoxazole (TS), weekly chloroquine (CQ) or no prophylaxis. After diagnosis of uncomplicated Plasmodium falciparum malaria, a therapeutic efficacy monitoring was conducted with PCR-correction according to WHO guidelines. The plasma lumefantrine levels on day 7 in 100 episodes of uncomplicated malaria was measured. A frailty proportional hazards model with random effects models to account for clustering examined the relationship between participant characteristics and malaria treatment failure within 28 days. Pearson's Chi-squared test was used to compare lumefantrine concentrations among patients with treatment failure and adequate clinical and parasitological response (ACPR).
+
+RESULTS: 411 malaria episodes were observed among 186 participants over 5 years. The unadjusted ACPR rate was 81% (95% CI 77-86). However, after PCR correction to exclude new infections, ACPR rate was 94% (95% CI 92-97). Increasing age and living in Ndirande were associated with decreased hazard of treatment failure. In this population of adults with HIV on ART, 54% (51/94) had levels below a previously defined optimal day 7 lumefantrine level of 200 ng/ml. This occurred more commonly among participants who were receiving an efavirenz-based ART compared to other ART regimens (OR 5.09 [95% CI 1.52-7.9]). Participants who experienced treatment failure had lower day 7 median lumefantrine levels (91 ng/ml [95% CI 48-231]) than participants who experienced ACPR (190 ng/ml [95% CI 101-378], p-value < 0.008).
+
+CONCLUSION: Recurrent malaria infections are frequent in this population of PWH on ART. The PCR-adjusted efficacy of AL meets the WHO criteria for acceptable treatment efficacy. Nevertheless, lumefantrine levels tend to be low in this population, particularly in those on efavirenz-based regimens, with lower concentrations associated with more frequent malaria infections following treatment. These results highlight the importance of understanding drug-drug interactions when diseases commonly co-occur.
+
+# Publication types
+Randomized Controlled Trial, Journal Article
+
+===== STDOUT =====
+```json
+{
+  "title": "Artemether-lumefantrine efficacy among adults on antiretroviral therapy in Malawi",
+  "publication_types": ["Randomized Controlled Trial", "Journal Article"],
+  "background": {
+    "population": "People with HIV (PWH) on antiretroviral therapy (ART)",
+    "condition": "Uncomplicated Plasmodium falciparum malaria",
+    "concern": "Poor anti-malarial treatment efficacy due to impaired immune response and/or drug-drug interactions altering anti-malarial metabolism",
+    "intervention_evaluated": "Artemether-lumefantrine (AL) therapeutic efficacy",
+    "secondary_measure": "Day 7 lumefantrine plasma levels in subset"
+  },
+  "methods": {
+    "study_design": "Randomized controlled trial with therapeutic efficacy monitoring",
+    "eligibility_criteria": {
+      "age": ">=18 years",
+      "hiv_status": "Living with HIV",
+      "art_duration": ">=6 months",
+      "viral_load": "Undetectable HIV RNA",
+      "cd4_count": ">=250 cells/mm3"
+    },
+    "randomization_arms": [
+      "Daily trimethoprim-sulfamethoxazole (TS)",
+      "Weekly chloroquine (CQ)",
+      "No prophylaxis"
+    ],
+    "follow_up": "28 days per malaria episode",
+    "pcr_correction": true,
+    "pcr_guideline": "WHO guidelines",
+    "lumefantrine_measurement": {
+      "sample_size": 100,
+      "timepoint": "Day 7",
+      "matrix": "Plasma"
+    },
+    "statistical_methods": [
+      "Frailty proportional hazards model with random effects (clustering)",
+      "Pearson's Chi-squared test"
+    ],
+    "outcome": "Malaria treatment failure within 28 days"
+  },
+  "results": {
+    "total_malaria_episodes": 411,
+    "total_participants": 186,
+    "follow_up_duration_years": 5,
+    "acpr_unadjusted": {
+      "rate": 0.81,
+      "ci_95": [0.77, 0.86]
+    },
+    "acpr_pcr_corrected": {
+      "rate": 0.94,
+      "ci_95": [0.92, 0.97]
+    },
+    "predictors_of_decreased_treatment_failure": [
+      "Increasing age",
+      "Residence in Ndirande"
+    ],
+    "lumefantrine_day7": {
+      "n_measured": 94,
+      "below_200_ngml_threshold": {
+        "count": 51,
+        "percentage": 0.54
+      },
+      "efavirenz_association": {
+        "or": 5.09,
+        "ci_95": [1.52, 7.9],
+        "interpretation": "Efavirenz-based ART significantly associated with subtherapeutic lumefantrine levels"
+      },
+      "median_level_treatment_failure": {
+        "value_ngml": 91,
+        "ci_95": [48, 231]
+      },
+      "median_level_acpr": {
+        "value_ngml": 190,
+        "ci_95": [101, 378]
+      },
+      "p_value_comparison": 0.008
+    }
+  },
+  "conclusions": {
+    "recurrence_frequency": "High in PWH on ART",
+    "who_efficacy_criteria_met": true,
+    "lumefantrine_levels_concern": "Subtherapeutic levels common, especially with efavirenz-based ART",
+    "clinical_implication": "Lower lumefantrine levels associated with higher recurrent malaria risk",
+    "key_message": "Drug-drug interactions critical when HIV and malaria co-occur; efavirenz reduces lumefantrine exposure"
+  },
+  "drug_interaction_summary": {
+    "interacting_drugs": ["Efavirenz (EFV)", "Lumefantrine"],
+    "mechanism": "Efavirenz induces CYP3A4, reducing lumefantrine plasma exposure",
+    "clinical_impact": "Increased treatment failure risk due to subtherapeutic lumefantrine concentrations"
+  }
+}
+```

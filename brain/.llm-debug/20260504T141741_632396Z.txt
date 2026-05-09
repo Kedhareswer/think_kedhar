@@ -1,0 +1,224 @@
+===== SYSTEM =====
+OUTPUT REQUIREMENT: Return VALID JSON ONLY. Your entire response must be parseable by json.loads(). First character of your output must be `{` or `[`. No prose. No explanations. No markdown fences. No apologies. If the requested data is unavailable, return the schema with empty/null values, still as valid JSON. Tools are intentionally disabled — do not request access to them.
+
+# Student extractor — qualified claims from a PubMed abstract
+
+You are extracting **atomic, qualified medical claims** from a malaria-focused biomedical abstract.
+
+## Output format
+
+Return a JSON array. Each element is one qualified claim.
+
+```json
+[
+  {
+    "subject": "string — entity name (drug, organism, gene, syndrome, intervention)",
+    "predicate": "one of: treats | causes | resists | requires | contraindicates | prevents | co_occurs | recommends",
+    "object": "string — entity or value",
+    "qualifiers": {
+      "population": {
+        "age_range": "e.g. adults | pediatric | <5 years | pregnant | null",
+        "pregnancy": "first_trimester | second_third_trimester | not_pregnant | null",
+        "region": "geographic region — e.g. Greater Mekong | West Africa | sub-Saharan Africa | null",
+        "immune_status": "naive | semi-immune | immunocompromised | null",
+        "comorbidities": ["list of strings or empty"]
+      },
+      "setting": {
+        "care_level": "outpatient | inpatient | community | null",
+        "endemic_status": "endemic | non_endemic | traveler | null"
+      },
+      "dose_regimen": {
+        "drug": "string or null",
+        "mg_per_kg": "number or null",
+        "frequency": "string or null",
+        "duration": "string or null"
+      },
+      "comparator": "what the intervention was compared against — string or null",
+      "effect_size": {
+        "metric": "e.g. day-3 positivity rate | parasite clearance time | hazard ratio | null",
+        "value": "number or null",
+        "ci_low": "number or null",
+        "ci_high": "number or null"
+      }
+    },
+    "certainty": "high | moderate | low | very_low",
+    "evidence_note": "one short sentence on why this certainty (sample size, design quality, etc.)"
+  }
+]
+```
+
+## Rules
+
+1. **Atomic.** Each claim is one subject-predicate-object triple. If an abstract states "X treats Y AND X causes Z", emit two claims.
+2. **Qualified.** Populate `qualifiers` from what the abstract explicitly states. Leave NULL if not stated — do NOT invent values.
+3. **Predicates.** Use only the listed enum values. Map free-text to the closest:
+   - "is associated with" / "linked to" / "shown to be effective for" → `treats` if therapeutic, `prevents` if prophylactic
+   - "induces resistance" / "selects for resistance" / "associated with treatment failure" → `resists` (when subject = parasite/pathogen, object = drug)
+   - "should not be given to" / "avoid in" → `contraindicates`
+   - WHO/CDC/national-program statements like "is recommended for" → `recommends`
+4. **Subject vs object.** For resistance claims, subject is the parasite/pathogen, object is the drug. For treatment, subject is the drug/intervention, object is the disease/population.
+5. **Certainty mapping:**
+   - `high`: large RCT or meta-analysis with consistent results, or current WHO guideline
+   - `moderate`: cohort study, smaller RCT, well-designed observational
+   - `low`: case-control, single-site observational, conflicting evidence
+   - `very_low`: case report, expert opinion, in-vitro only, mechanistic inference
+6. **Skip non-claims.** Background statements ("Malaria affects 200M people"), methodology ("We enrolled 1241 patients"), and meta-commentary ("Further research is needed") are NOT claims. Skip them.
+7. **No claims is a valid output.** If the abstract is purely descriptive epidemiology with no actionable medical claim, return `[]`.
+
+## Output
+
+Return ONLY the JSON array. No prose before or after.
+
+
+===== USER =====
+# Title
+A randomized controlled trial of dihydroartemisinin-piperaquine, artesunate-mefloquine and extended artemether-lumefantrine treatments for malaria in pregnancy on the Thailand-Myanmar border.
+
+# Abstract
+BACKGROUND: Artemisinin and artemisinin-based combination therapy (ACT) partner drug resistance in Plasmodium falciparum have spread across the Greater Mekong Subregion compromising antimalarial treatment. The current 3-day artemether-lumefantrine regimen has been associated with high treatment failure rates in pregnant women. Although ACTs are recommended for treating Plasmodium vivax malaria, no clinical trials in pregnancy have been reported.
+
+METHODS: Pregnant women with uncomplicated malaria on the Thailand-Myanmar border participated in an open-label randomized controlled trial comparing dihydroartemisinin-piperaquine (DP), artesunate-mefloquine (ASMQ) and a 4-day artemether-lumefantrine regimen (AL+). The primary endpoint for P. falciparum infections was the PCR-corrected cure rate and for P. vivax infections was recurrent parasitaemia, before delivery or day 63, whichever was longer, assessed by Kaplan-Meier estimate.
+
+RESULTS: Between February 2010 and August 2016, 511 pregnant women with malaria (353 P. vivax, 142 P. falciparum, 15 co-infections, 1 Plasmodium malariae) were randomized to either DP (n=170), ASMQ (n=169) or AL+ (n=172) treatments. Successful malaria elimination efforts in the region resulted in premature termination of the trial. The majority of women had recurrent malaria (mainly P. vivax relapses, which are not prevented by these treatments). Recurrence-free proportions (95% confidence interval [95% CI]) for vivax malaria were 20.6% (5.1-43.4) for DP (n=125), 46.0% (30.9-60.0) for ASMQ (n=117) and 28.7% (10.0-50.8) for AL+ (n=126). DP and ASMQ provided longer recurrence-free intervals. PCR-corrected cure rates (95% CI) for falciparum malaria were 93.7% (81.6-97.9) for DP (n=49), 79.6% (66.1-88.1) for AMSQ (n=55) and 87.5% (74.3-94.2) for AL+ (n=50). Overall 65% (85/130) of P. falciparum infections had Pfkelch13 propeller mutations which increased over time and recrudescence occurred almost exclusively in them; risk ratio 9.42 (95% CI 1.30-68.29). Among the women with falciparum malaria, 24.0% (95% CI 16.8-33.6) had P. vivax parasitaemia within 4 months. Nausea, vomiting, dizziness and sleep disturbance were more frequent with ASMQ. Miscarriage, small-for-gestational-age and preterm birth did not differ significantly among the treatment groups, including first trimester exposures (n=46).
+
+CONCLUSIONS: DP was well tolerated and safe, and was the only drug providing satisfactory efficacy for P. falciparum-infected pregnant woman in this area of widespread artemisinin resistance. Vivax malaria recurrences are very common and warrant chloroquine prophylaxis after antimalarial treatment in this area.
+
+TRIAL REGISTRATION: ClinicalTrials.gov identifier NCT01054248 , registered on 22 January 2010.
+
+# Publication types
+Journal Article, Randomized Controlled Trial, Research Support, Non-U.S. Gov't
+
+===== STDOUT =====
+```json
+{
+  "title": "A randomized controlled trial of dihydroartemisinin-piperaquine, artesunate-mefloquine and extended artemether-lumefantrine treatments for malaria in pregnancy on the Thailand-Myanmar border",
+  "publication_types": [
+    "Journal Article",
+    "Randomized Controlled Trial",
+    "Research Support, Non-U.S. Gov't"
+  ],
+  "trial_registration": {
+    "registry": "ClinicalTrials.gov",
+    "identifier": "NCT01054248",
+    "registration_date": "2010-01-22"
+  },
+  "study_design": {
+    "type": "Open-label randomized controlled trial",
+    "location": "Thailand-Myanmar border",
+    "enrollment_period": {
+      "start": "2010-02",
+      "end": "2016-08"
+    },
+    "termination": "Premature — successful malaria elimination in region"
+  },
+  "population": {
+    "total_enrolled": 511,
+    "condition": "Pregnant women with uncomplicated malaria",
+    "species_breakdown": {
+      "Plasmodium_vivax": 353,
+      "Plasmodium_falciparum": 142,
+      "co_infections": 15,
+      "Plasmodium_malariae": 1
+    },
+    "first_trimester_exposures": 46
+  },
+  "interventions": {
+    "DP": {
+      "name": "Dihydroartemisinin-piperaquine",
+      "n": 170
+    },
+    "ASMQ": {
+      "name": "Artesunate-mefloquine",
+      "n": 169
+    },
+    "AL_plus": {
+      "name": "Extended 4-day artemether-lumefantrine",
+      "n": 172
+    }
+  },
+  "primary_endpoints": {
+    "P_falciparum": "PCR-corrected cure rate",
+    "P_vivax": "Recurrent parasitaemia before delivery or day 63 (whichever longer), Kaplan-Meier estimate"
+  },
+  "results": {
+    "P_vivax_recurrence_free_proportions": {
+      "DP": {
+        "n": 125,
+        "proportion_percent": 20.6,
+        "CI_95": [5.1, 43.4]
+      },
+      "ASMQ": {
+        "n": 117,
+        "proportion_percent": 46.0,
+        "CI_95": [30.9, 60.0]
+      },
+      "AL_plus": {
+        "n": 126,
+        "proportion_percent": 28.7,
+        "CI_95": [10.0, 50.8]
+      },
+      "note": "DP and ASMQ provided longer recurrence-free intervals; majority of recurrences were P. vivax relapses not prevented by these treatments"
+    },
+    "P_falciparum_PCR_corrected_cure_rates": {
+      "DP": {
+        "n": 49,
+        "cure_rate_percent": 93.7,
+        "CI_95": [81.6, 97.9]
+      },
+      "ASMQ": {
+        "n": 55,
+        "cure_rate_percent": 79.6,
+        "CI_95": [66.1, 88.1]
+      },
+      "AL_plus": {
+        "n": 50,
+        "cure_rate_percent": 87.5,
+        "CI_95": [74.3, 94.2]
+      }
+    },
+    "resistance": {
+      "Pfkelch13_propeller_mutations_prevalence_percent": 65,
+      "Pfkelch13_n_tested": 130,
+      "recrudescence_almost_exclusively_in_mutants": true,
+      "recrudescence_risk_ratio": {
+        "value": 9.42,
+        "CI_95": [1.30, 68.29]
+      },
+      "note": "Pfkelch13 mutation prevalence increased over time"
+    },
+    "P_vivax_after_falciparum_infection": {
+      "proportion_percent": 24.0,
+      "CI_95": [16.8, 33.6],
+      "timeframe_months": 4
+    },
+    "adverse_effects": {
+      "ASMQ_more_frequent": [
+        "Nausea",
+        "Vomiting",
+        "Dizziness",
+        "Sleep disturbance"
+      ]
+    },
+    "obstetric_outcomes": {
+      "miscarriage": "No significant difference among groups",
+      "small_for_gestational_age": "No significant difference among groups",
+      "preterm_birth": "No significant difference among groups",
+      "first_trimester_subgroup_significant_difference": false
+    }
+  },
+  "conclusions": {
+    "best_overall_treatment": "DP",
+    "reasons": [
+      "Well tolerated",
+      "Safe",
+      "Only treatment with satisfactory efficacy for P. falciparum in area of widespread artemisinin resistance"
+    ],
+    "recommendation": "Chloroquine prophylaxis after antimalarial treatment warranted due to very common P. vivax recurrences"
+  },
+  "background_context": {
+    "resistance_concern": "Artemisinin and ACT partner drug resistance in P. falciparum spread across Greater Mekong Subregion",
+    "prior_issue": "Standard 3-day artemether-lumefantrine associated with high treatment failure in pregnant women",
+    "knowledge_gap_addressed": "No prior clinical trials of ACTs for P. vivax malaria in pregnancy reported"
+  }
+}
+```

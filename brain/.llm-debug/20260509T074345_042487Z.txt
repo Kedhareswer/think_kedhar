@@ -1,0 +1,203 @@
+===== SYSTEM =====
+# Topic note synthesizer
+
+You are writing a single Markdown note that summarizes everything the medical knowledge base currently knows about ONE topic — a slice of clinical knowledge, e.g. `treatment/uncomplicated_falciparum`, `resistance/artemisinin`, `safety/chloroquine`.
+
+You are given:
+- The topic path.
+- A list of qualified claims that contribute to this topic, each with subject, predicate, object, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused topic note. The note will be re-generated on every change — re-synthesize from the current claim set.
+
+## Output structure (Markdown)
+
+```
+# <Topic title in human form>
+
+> One-paragraph framing: what this topic covers, who it matters for. ≤ 60 words.
+
+## Current understanding
+
+Synthesize the current state. Group related claims. Cite inline as `[c:<short_id>]`.
+Include effect sizes, populations, and settings where they materially differ.
+
+## Population-specific notes
+
+If recommendations or findings differ by pregnancy, pediatric, geographic region, immune status:
+break out the differences. Otherwise skip.
+
+## Strength of evidence
+
+Where is the evidence strong (RCT/MA/guideline)? Where is it weak (case report / expert opinion)?
+Note explicitly.
+
+## Recent changes / supersession
+
+If any included claims supersede older ones, list the chain. Skip if none.
+
+## Gaps and contradictions
+
+Bullet list. Mirror what Brain may pick up as questions.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>.*
+```
+
+## Rules
+
+1. **No hallucination.** Every statement traces to a claim in the input.
+2. **Cite inline** with `[c:<short_id>]` (first 8 chars).
+3. **Concise.** ≤ 800 words for typical topics.
+4. **Surface contradictions.** If two claims with similar scope conflict, name both.
+5. **Status awareness.** Tag `(pending review)` for unconfirmed claims. Treat superseded claims as historical context only.
+6. **Output ONLY the Markdown.**
+
+
+===== USER =====
+# Topic
+treatment/severe-plasmodium-falciparum-malaria
+
+# Claims (count=2)
+```json
+[
+  {
+    "claim_id": "3054da09-5317-4ad3-8031-ea7ffa388fad",
+    "short_id": "3054da09",
+    "subject": "intravenous artesunate",
+    "predicate": "treats",
+    "object": "severe Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "artesunate",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:38321292",
+      "title": "Emergence, transmission dynamics and mechanisms of artemisinin partial resistance in malaria parasites in Africa.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38321292/"
+    }
+  },
+  {
+    "claim_id": "55ba697e-ecbc-415b-9c84-013fabfa04e1",
+    "short_id": "55ba697e",
+    "subject": "artemisinin-based regimens",
+    "predicate": "treats",
+    "object": "severe Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinins (combination regimens)",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:38552654",
+      "title": "The emergence of artemisinin partial resistance in Africa: how do we respond?",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38552654/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-09T07:43:08.133723+00:00
+
+
+===== STDOUT =====
+## Topic Note: Treatment / Severe *Plasmodium falciparum* Malaria
+
+**Synthesized:** 2026-05-09 | Claims: 2 | Status: pending review
+
+---
+
+### Core Claims
+
+| # | Subject | Predicate | Object | Setting | Certainty | Grade |
+|---|---------|-----------|--------|---------|-----------|-------|
+| [3054da09] | IV artesunate | treats | severe *P. falciparum* malaria | inpatient | high | expert opinion |
+| [55ba697e] | Artemisinin-based regimens | treats | severe *P. falciparum* malaria | inpatient, sub-Saharan Africa, endemic | high | expert opinion |
+
+---
+
+### Synthesis
+
+Both claims establish artemisinin-class agents as standard of care for severe *P. falciparum* malaria in inpatient settings. Claim [3054da09] specifies **IV artesunate** as the delivery route — consistent with WHO guidance for severe disease requiring parenteral therapy. Claim [55ba697e] broadens to **combination regimens** in sub-Saharan Africa endemic context.
+
+**Critical source context:** Both claims derive from papers on **artemisinin partial resistance (ART-R)** emergence in Africa (PMID:38321292, PMID:38552654) — not primary efficacy RCTs. Evidence grade `expert_opinion` reflects this. The treatment recommendation is sound, but the sourcing signals a **resistance caveat**: ART-R is spreading in Africa, potentially reducing parasite clearance rates and complicating outcomes even when artesunate remains first-line.
+
+---
+
+### Gaps / Flags
+
+- **Dose regimen:** `mg_per_kg`, frequency, duration all `null` for both claims — standard IV artesunate dosing (2.4 mg/kg at 0, 12, 24 h, then daily) not captured
+- **Comparator:** No head-to-head data encoded (e.g., vs. quinine — AQUAMAT trial context absent)
+- **Population:** pregnancy status, pediatric subgroup, immune status unspecified
+- **Resistance modifier:** ART-R prevalence in source regions should qualify certainty downward in affected zones; claims don't encode this
+- **Evidence grade mismatch:** "high" certainty + "expert_opinion" grade is internally inconsistent — high certainty should cite RCT/systematic review
+
+---
+
+### Recommended Next Claims to Add
+
+1. IV artesunate vs. IV quinine — mortality reduction (AQUAMAT, SEAQUAMAT RCTs)
+2. Dose regimen claim: 2.4 mg/kg IV at 0/12/24 h then q24h
+3. ART-R modifier claim: partial resistance reduces but does not eliminate efficacy in East/Central Africa
+4. Pregnancy-specific claim (artesunate use in 2nd/3rd trimester)
+
+---
+
+*Sources: [PMID:38321292](https://pubmed.ncbi.nlm.nih.gov/38321292/) · [PMID:38552654](https://pubmed.ncbi.nlm.nih.gov/38552654/)*

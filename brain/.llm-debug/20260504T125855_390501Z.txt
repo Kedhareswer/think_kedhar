@@ -1,0 +1,163 @@
+===== SYSTEM =====
+OUTPUT REQUIREMENT: Return VALID JSON ONLY. Your entire response must be parseable by json.loads(). First character of your output must be `{` or `[`. No prose. No explanations. No markdown fences. No apologies. If the requested data is unavailable, return the schema with empty/null values, still as valid JSON. Tools are intentionally disabled — do not request access to them.
+
+# Research planner — natural-language topic to PubMed search plan
+
+You are planning a research session for a medical knowledge base. Input is a natural-language topic. Output is a structured plan: how to decompose, what to search PubMed for, how deep to go.
+
+## Output format
+
+Return a JSON object:
+
+```json
+{
+  "topic": "the input topic, lightly cleaned",
+  "scope": "very_broad | broad | focused | specific",
+  "decomposition": [
+    "subtopic 1 — short imperative phrase",
+    "subtopic 2",
+    "..."
+  ],
+  "queries": [
+    {
+      "subtopic": "which decomposition entry this query covers (or 'overall' if focused)",
+      "pubmed_query": "exact PubMed search string with MeSH terms, AND/OR/NOT, field tags",
+      "max_papers": "integer — how many top hits to ingest from this query",
+      "rationale": "one short sentence on why this query"
+    }
+  ],
+  "stop_criteria": {
+    "max_total_papers": "integer cap across the whole research session",
+    "saturation_window": "integer — stop a query early if last N papers produce mostly duplicates",
+    "duplicate_ratio_threshold": "float 0.0-1.0 — duplicate ratio that triggers early stop"
+  },
+  "notes": "optional one-paragraph rationale for the overall plan"
+}
+```
+
+## Scope rules
+
+- **very_broad** (e.g. "virology", "dental best practices", "what is medicine"): MUST decompose into 5-12 subtopics. Each subtopic gets 1-2 queries, max 5 papers each. Total cap 40-60.
+- **broad** (e.g. "what is malaria", "diabetes treatment"): decompose into 3-6 subtopics (epidemiology, pathophysiology, diagnosis, treatment, prevention, prognosis as applicable). 1-2 queries per subtopic, 5-8 papers each. Total cap 30-50.
+- **focused** (e.g. "artemisinin resistance in pregnancy", "metformin for heart failure"): decomposition optional (1-3 subtopics if useful). 1-3 queries, 5-15 papers each. Total cap 20-40.
+- **specific** (e.g. "tafenoquine pediatric dose under 30kg", a precise question): no decomposition. 1-2 queries, 10-20 papers. Total cap 10-25.
+
+## PubMed query syntax
+
+- Use MeSH tags where applicable: `Malaria/drug therapy[MeSH]`
+- Field tags: `[tiab]` (title/abstract), `[au]` (author), `[dp]` (publication date)
+- Boolean: AND, OR, NOT (uppercase)
+- Quote phrases: `"artemisinin resistance"`
+- Date filter: `2018:2025[dp]` for recent if relevant
+- Prefer specific over generic; rely on PubMed relevance sort to surface best hits
+
+Example queries:
+- broad → `"malaria"[MeSH] AND review[pt]`
+- focused → `"artemisinin resistance"[tiab] AND pregnancy[tiab] AND 2015:2025[dp]`
+- specific → `tafenoquine[tiab] AND (pediatric[tiab] OR children[tiab]) AND dose[tiab]`
+
+## Saturation defaults
+
+- `saturation_window`: 3
+- `duplicate_ratio_threshold`: 0.7
+
+## Output rules
+
+1. Return ONLY the JSON. No prose before or after.
+2. Every query MUST have a non-empty `pubmed_query` and `max_papers >= 1`.
+3. If the topic is so broad it shouldn't be ingested in one session (e.g. "all of medicine"), set `scope: "very_broad"` and decompose aggressively — do NOT refuse. The orchestrator will run in batches.
+
+
+===== USER =====
+# Topic
+intermittent preventive treatment of malaria in pregnancy sulfadoxine-pyrimethamine
+
+===== STDOUT =====
+```json
+{
+  "topic": "Intermittent Preventive Treatment in Pregnancy (IPTp) with Sulfadoxine-Pyrimethamine (SP)",
+  "overview": {
+    "definition": "Administration of full therapeutic course of SP to pregnant women at routine antenatal care visits, regardless of malaria infection status, to prevent malaria-related adverse outcomes in pregnancy.",
+    "target_population": "All HIV-negative pregnant women in moderate-to-high malaria transmission areas",
+    "who_recommendation": "Monthly doses of SP from 13 weeks gestation until delivery (minimum 3 doses in areas of moderate-to-high transmission)"
+  },
+  "drug": {
+    "name": "Sulfadoxine-Pyrimethamine",
+    "abbreviation": "SP",
+    "formulation": "Fixed-dose combination tablet: Sulfadoxine 500 mg + Pyrimethamine 25 mg",
+    "dose_per_administration": "3 tablets (1500 mg sulfadoxine + 75 mg pyrimethamine) as single oral dose",
+    "mechanism": {
+      "sulfadoxine": "DHPS inhibitor — blocks para-aminobenzoic acid incorporation into folate",
+      "pyrimethamine": "DHFR inhibitor — blocks dihydrofolate reductase, preventing folate synthesis",
+      "combined_effect": "Sequential folate pathway blockade → Plasmodium falciparum death"
+    }
+  },
+  "schedule": {
+    "start": "13–16 weeks gestation (second trimester onset)",
+    "interval": "Monthly (≥4 weeks between doses)",
+    "minimum_doses": 3,
+    "maximum_doses": "Up to delivery — no upper limit if ≥4 weeks since last dose",
+    "administration": "Directly observed therapy (DOT) at ANC visit",
+    "co_administration_note": "Do NOT give with folic acid ≥5 mg on same day — antagonizes SP antiparasitic effect. Low-dose folic acid (0.4 mg) acceptable."
+  },
+  "benefits": {
+    "maternal": [
+      "Reduced malaria parasitemia",
+      "Reduced maternal anemia",
+      "Reduced symptomatic malaria episodes"
+    ],
+    "fetal_and_neonatal": [
+      "Reduced placental malaria",
+      "Reduced low birth weight (LBW)",
+      "Reduced preterm birth",
+      "Reduced neonatal mortality (indirect)"
+    ]
+  },
+  "contraindications": [
+    "HIV-positive women on cotrimoxazole prophylaxis (drug interaction — both are antifolates)",
+    "Known sulfonamide allergy",
+    "First trimester (<13 weeks) — teratogenicity risk (folate antagonism during organogenesis)",
+    "Near term (last 4 weeks before EDD) — neonatal hyperbilirubinemia risk from sulfonamide displacement of bilirubin"
+  ],
+  "hiv_considerations": {
+    "cotrimoxazole_on_ART": "SP contraindicated — cotrimoxazole provides adequate malaria prophylaxis",
+    "hiv_positive_not_on_cotrimoxazole": "SP may be used — consult national guidelines",
+    "rationale": "Additive antifolate toxicity risk with SP + cotrimoxazole"
+  },
+  "resistance": {
+    "concern": "P. falciparum resistance to SP rising, especially sub-Saharan Africa",
+    "key_mutations": {
+      "dhfr": ["N51I", "C59R", "S108N", "I164L"],
+      "dhps": ["A437G", "K540E", "A581G", "A613S/T"]
+    },
+    "quintuple_mutant": "dhfr triple (51I/59R/108N) + dhps double (437G/540E) — reduced SP efficacy",
+    "clinical_impact": "Despite resistance, IPTp-SP retains partial benefit — non-antiparasitic mechanisms hypothesized (anti-inflammatory, placental effects)",
+    "alternatives_in_research": [
+      "Dihydroartemisinin-piperaquine (DP) — superior to SP in high-resistance settings (trials ongoing)",
+      "Azithromycin combinations",
+      "Mefloquine — effective but poor tolerability"
+    ]
+  },
+  "monitoring": {
+    "anc_integration": "Dose at every ANC visit ≥4 weeks after last dose from 13 weeks",
+    "documentation": "Record dose, date, gestational age in maternal health booklet",
+    "adverse_effects_to_watch": [
+      "Stevens-Johnson syndrome (rare but severe)",
+      "Rash, pruritus",
+      "GI intolerance"
+    ]
+  },
+  "global_context": {
+    "who_policy_since": 2012,
+    "eligible_countries": "Sub-Saharan Africa primarily; also parts of Asia and Americas per WHO guidance",
+    "coverage_gap": "Many women receive <3 doses despite recommendation — access and late ANC initiation are barriers",
+    "sustainable_development_goal_link": "SDG 3.3 — end epidemic of malaria by 2030"
+  },
+  "key_references": [
+    "WHO Guidelines for Malaria, 2023",
+    "Desai et al., Lancet Infect Dis (2007) — systematic review IPTp efficacy",
+    "Kayentao et al., JAMA (2013) — monthly vs. intermittent dosing",
+    "Unger et al., PLOS Med (2015) — SP resistance and IPTp outcomes"
+  ]
+}
+```

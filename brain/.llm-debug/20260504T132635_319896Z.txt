@@ -1,0 +1,190 @@
+===== SYSTEM =====
+OUTPUT REQUIREMENT: Return VALID JSON ONLY. Your entire response must be parseable by json.loads(). First character of your output must be `{` or `[`. No prose. No explanations. No markdown fences. No apologies. If the requested data is unavailable, return the schema with empty/null values, still as valid JSON. Tools are intentionally disabled — do not request access to them.
+
+# Student extractor — qualified claims from a PubMed abstract
+
+You are extracting **atomic, qualified medical claims** from a malaria-focused biomedical abstract.
+
+## Output format
+
+Return a JSON array. Each element is one qualified claim.
+
+```json
+[
+  {
+    "subject": "string — entity name (drug, organism, gene, syndrome, intervention)",
+    "predicate": "one of: treats | causes | resists | requires | contraindicates | prevents | co_occurs | recommends",
+    "object": "string — entity or value",
+    "qualifiers": {
+      "population": {
+        "age_range": "e.g. adults | pediatric | <5 years | pregnant | null",
+        "pregnancy": "first_trimester | second_third_trimester | not_pregnant | null",
+        "region": "geographic region — e.g. Greater Mekong | West Africa | sub-Saharan Africa | null",
+        "immune_status": "naive | semi-immune | immunocompromised | null",
+        "comorbidities": ["list of strings or empty"]
+      },
+      "setting": {
+        "care_level": "outpatient | inpatient | community | null",
+        "endemic_status": "endemic | non_endemic | traveler | null"
+      },
+      "dose_regimen": {
+        "drug": "string or null",
+        "mg_per_kg": "number or null",
+        "frequency": "string or null",
+        "duration": "string or null"
+      },
+      "comparator": "what the intervention was compared against — string or null",
+      "effect_size": {
+        "metric": "e.g. day-3 positivity rate | parasite clearance time | hazard ratio | null",
+        "value": "number or null",
+        "ci_low": "number or null",
+        "ci_high": "number or null"
+      }
+    },
+    "certainty": "high | moderate | low | very_low",
+    "evidence_note": "one short sentence on why this certainty (sample size, design quality, etc.)"
+  }
+]
+```
+
+## Rules
+
+1. **Atomic.** Each claim is one subject-predicate-object triple. If an abstract states "X treats Y AND X causes Z", emit two claims.
+2. **Qualified.** Populate `qualifiers` from what the abstract explicitly states. Leave NULL if not stated — do NOT invent values.
+3. **Predicates.** Use only the listed enum values. Map free-text to the closest:
+   - "is associated with" / "linked to" / "shown to be effective for" → `treats` if therapeutic, `prevents` if prophylactic
+   - "induces resistance" / "selects for resistance" / "associated with treatment failure" → `resists` (when subject = parasite/pathogen, object = drug)
+   - "should not be given to" / "avoid in" → `contraindicates`
+   - WHO/CDC/national-program statements like "is recommended for" → `recommends`
+4. **Subject vs object.** For resistance claims, subject is the parasite/pathogen, object is the drug. For treatment, subject is the drug/intervention, object is the disease/population.
+5. **Certainty mapping:**
+   - `high`: large RCT or meta-analysis with consistent results, or current WHO guideline
+   - `moderate`: cohort study, smaller RCT, well-designed observational
+   - `low`: case-control, single-site observational, conflicting evidence
+   - `very_low`: case report, expert opinion, in-vitro only, mechanistic inference
+6. **Skip non-claims.** Background statements ("Malaria affects 200M people"), methodology ("We enrolled 1241 patients"), and meta-commentary ("Further research is needed") are NOT claims. Skip them.
+7. **No claims is a valid output.** If the abstract is purely descriptive epidemiology with no actionable medical claim, return `[]`.
+
+## Output
+
+Return ONLY the JSON array. No prose before or after.
+
+
+===== USER =====
+# Title
+Efficacy of Artesunate-mefloquine for Chloroquine-resistant Plasmodium vivax Malaria in Malaysia: An Open-label, Randomized, Controlled Trial.
+
+# Abstract
+BACKGROUND: Chloroquine (CQ)-resistant Plasmodium vivax is increasingly reported throughout southeast Asia. The efficacy of CQ and alternative artemisinin combination therapies (ACTs) for vivax malaria in Malaysia is unknown.
+
+METHODS: A randomized, controlled trial of CQ vs artesunate-mefloquine (AS-MQ) for uncomplicated vivax malaria was conducted in 3 district hospitals in Sabah, Malaysia. Primaquine was administered on day 28. The primary outcome was the cumulative risk of treatment failure by day 28 by Kaplan-Meier analysis.
+
+RESULTS: From 2012 to 2014, 103 adults and children were enrolled. Treatment failure by day 28 was 61.1% (95% confidence interval [CI], 46.8-75.6) after CQ and 0% (95% CI, 0-.08) following AS-MQ (P < .001), of which 8.2% (95% CI, 2.5-9.6) were early treatment failures. All patients with treatment failure had therapeutic plasma CQ concentrations at day 7. Compared with CQ, AS-MQ was associated with faster parasite clearance (normalized clearance slope, 0.311 vs 0.127; P < .001) and fever clearance (mean, 19.0 vs 37.7 hours; P =001) and with lower risk of anemia at day 28 (odds ratio = 3.7; 95% CI, 1.5-9.3; P =005). Gametocytes were present at day 28 in 23.8% (10/42) of patients following CQ vs none with AS-MQ (P < .001). AS-MQ resulted in lower bed occupancy: 4037 vs 6510 days/1000 patients (incidence rate ratio 0.62; 95% CI, .60-.65; P < .001). One patient developed severe anemia not regarded as related to their AS-MQ treatment.
+
+CONCLUSIONS: High-grade CQ-resistant P. vivax is prevalent in eastern Malaysia. AS-MQ is an efficacious ACT for all malaria species. Wider CQ-efficacy surveillance is needed in vivax-endemic regions with earlier replacement with ACT when treatment failure is detected.Clinical Trials Registration NCT01708876.
+
+# Publication types
+Journal Article, Randomized Controlled Trial
+
+===== STDOUT =====
+```json
+{
+  "title": "Efficacy of Artesunate-mefloquine for Chloroquine-resistant Plasmodium vivax Malaria in Malaysia: An Open-label, Randomized, Controlled Trial",
+  "publication_types": ["Journal Article", "Randomized Controlled Trial"],
+  "clinical_trial_registration": "NCT01708876",
+  "study_design": {
+    "type": "Randomized Controlled Trial",
+    "blinding": "Open-label",
+    "setting": "3 district hospitals, Sabah, Malaysia",
+    "enrollment_period": "2012-2014",
+    "total_enrolled": 103,
+    "population": "Adults and children with uncomplicated vivax malaria"
+  },
+  "interventions": [
+    {
+      "arm": "Control",
+      "treatment": "Chloroquine (CQ)"
+    },
+    {
+      "arm": "Experimental",
+      "treatment": "Artesunate-Mefloquine (AS-MQ)"
+    }
+  ],
+  "concomitant_treatment": {
+    "drug": "Primaquine",
+    "timing": "Day 28"
+  },
+  "primary_outcome": {
+    "measure": "Cumulative risk of treatment failure by day 28",
+    "method": "Kaplan-Meier analysis"
+  },
+  "results": {
+    "treatment_failure_by_day28": {
+      "CQ": {
+        "value_percent": 61.1,
+        "CI_95": [46.8, 75.6]
+      },
+      "AS_MQ": {
+        "value_percent": 0,
+        "CI_95": [0, 0.08]
+      },
+      "p_value": "<0.001"
+    },
+    "early_treatment_failure": {
+      "value_percent": 8.2,
+      "CI_95": [2.5, 9.6]
+    },
+    "therapeutic_CQ_plasma_concentration_at_day7": {
+      "note": "All treatment failure patients had therapeutic plasma CQ concentrations at day 7, confirming true resistance"
+    },
+    "parasite_clearance": {
+      "CQ_normalized_slope": 0.127,
+      "AS_MQ_normalized_slope": 0.311,
+      "p_value": "<0.001",
+      "faster_clearance_with": "AS-MQ"
+    },
+    "fever_clearance_hours": {
+      "CQ_mean": 37.7,
+      "AS_MQ_mean": 19.0,
+      "p_value": 0.001,
+      "faster_clearance_with": "AS-MQ"
+    },
+    "anemia_at_day28": {
+      "odds_ratio": 3.7,
+      "CI_95": [1.5, 9.3],
+      "p_value": 0.005,
+      "higher_risk_with": "CQ"
+    },
+    "gametocytes_at_day28": {
+      "CQ_percent": 23.8,
+      "CQ_fraction": "10/42",
+      "AS_MQ_percent": 0,
+      "p_value": "<0.001"
+    },
+    "bed_occupancy_days_per_1000_patients": {
+      "CQ": 6510,
+      "AS_MQ": 4037,
+      "incidence_rate_ratio": 0.62,
+      "CI_95": [0.60, 0.65],
+      "p_value": "<0.001"
+    },
+    "adverse_events": {
+      "severe_anemia_cases": 1,
+      "related_to_AS_MQ": false
+    }
+  },
+  "conclusions": {
+    "CQ_resistance": "High-grade chloroquine-resistant P. vivax prevalent in eastern Malaysia",
+    "AS_MQ_efficacy": "Efficacious ACT for all malaria species",
+    "recommendations": [
+      "Wider CQ-efficacy surveillance needed in vivax-endemic regions",
+      "Earlier replacement with ACT when treatment failure detected"
+    ]
+  },
+  "background": {
+    "condition": "Chloroquine-resistant Plasmodium vivax malaria",
+    "geographic_focus": "Southeast Asia, Malaysia",
+    "problem_statement": "CQ-resistant P. vivax increasingly reported; efficacy of CQ and ACTs in Malaysia unknown"
+  }
+}
+```

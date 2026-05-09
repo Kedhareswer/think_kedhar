@@ -1,0 +1,653 @@
+===== SYSTEM =====
+# Topic note synthesizer
+
+You are writing a single Markdown note that summarizes everything the medical knowledge base currently knows about ONE topic — a slice of clinical knowledge, e.g. `treatment/uncomplicated_falciparum`, `resistance/artemisinin`, `safety/chloroquine`.
+
+You are given:
+- The topic path.
+- A list of qualified claims that contribute to this topic, each with subject, predicate, object, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused topic note. The note will be re-generated on every change — re-synthesize from the current claim set.
+
+## Output structure (Markdown)
+
+```
+# <Topic title in human form>
+
+> One-paragraph framing: what this topic covers, who it matters for. ≤ 60 words.
+
+## Current understanding
+
+Synthesize the current state. Group related claims. Cite inline as `[c:<short_id>]`.
+Include effect sizes, populations, and settings where they materially differ.
+
+## Population-specific notes
+
+If recommendations or findings differ by pregnancy, pediatric, geographic region, immune status:
+break out the differences. Otherwise skip.
+
+## Strength of evidence
+
+Where is the evidence strong (RCT/MA/guideline)? Where is it weak (case report / expert opinion)?
+Note explicitly.
+
+## Recent changes / supersession
+
+If any included claims supersede older ones, list the chain. Skip if none.
+
+## Gaps and contradictions
+
+Bullet list. Mirror what Brain may pick up as questions.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>.*
+```
+
+## Rules
+
+1. **No hallucination.** Every statement traces to a claim in the input.
+2. **Cite inline** with `[c:<short_id>]` (first 8 chars).
+3. **Concise.** ≤ 800 words for typical topics.
+4. **Surface contradictions.** If two claims with similar scope conflict, name both.
+5. **Status awareness.** Tag `(pending review)` for unconfirmed claims. Treat superseded claims as historical context only.
+6. **Output ONLY the Markdown.**
+
+
+===== USER =====
+# Topic
+resistance/artemisinin
+
+# Claims (count=12)
+```json
+[
+  {
+    "claim_id": "0022b2de-1484-4acf-823c-c573efa17e7f",
+    "short_id": "0022b2de",
+    "subject": "Plasmodium falciparum with kelch13 mutations",
+    "predicate": "resists",
+    "object": "artemisinin",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Southeast Asia",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "in vitro",
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "dihydroartemisinin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": "6 hours"
+      },
+      "comparator": "Plasmodium falciparum without kelch13 mutations",
+      "effect_size": {
+        "metric": "patient clearance half-life",
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:32005233",
+      "title": "The extended recovery ring-stage survival assay provides a superior association with patient clearance half-life and increases throughput.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/32005233/"
+    }
+  },
+  {
+    "claim_id": "6ebe3019-4f70-4079-8c7d-7a7f7461fb9e",
+    "short_id": "6ebe3019",
+    "subject": "Plasmodium falciparum",
+    "predicate": "resists",
+    "object": "artemisinin",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "artemisinin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:24867976",
+      "title": "Flow cytometry-based analysis of artemisinin-resistant Plasmodium falciparum in the ring-stage survival assay.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/24867976/"
+    }
+  },
+  {
+    "claim_id": "ddef37b2-70c0-4305-a200-378f291ecef8",
+    "short_id": "ddef37b2",
+    "subject": "pfcoronin mutations G50E, R100K, E107V",
+    "predicate": "resists",
+    "object": "artemisinin",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:34452235",
+      "title": "Prevalence of Mutations in the pfcoronin Gene and Association with Ex Vivo Susceptibility to Common Quinoline Drugs against Plasmodium falciparum.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/34452235/"
+    }
+  },
+  {
+    "claim_id": "80d82d1a-98f4-4b2b-9675-9397a4bfdf0f",
+    "short_id": "80d82d1a",
+    "subject": "Plasmodium falciparum",
+    "predicate": "resists",
+    "object": "artemisinin",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26545449",
+      "title": "Optimum population-level use of artemisinin combination therapies: a modelling study.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26545449/"
+    }
+  },
+  {
+    "claim_id": "e9434155-29ad-416e-9f0f-8e9715a688ff",
+    "short_id": "e9434155",
+    "subject": "Pfk13 validated mutations (476I, 539T, 561H)",
+    "predicate": "resists",
+    "object": "artemisinin",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "sub-Saharan Africa and India",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "malaria endemic"
+      },
+      "dose_regimen": {
+        "drug": "Artemisinin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "mutation circulation prevalence",
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "meta_analysis",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:33556786",
+      "title": "Artemisinin-based combination therapy (ACT) and drug resistance molecular markers: A systematic review of clinical studies from two malaria endemic regions - India and sub-Saharan Africa.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/33556786/"
+    }
+  },
+  {
+    "claim_id": "406fe294-bf98-47b6-ab4e-03a21c4afe78",
+    "short_id": "406fe294",
+    "subject": "Plasmodium falciparum K13 Arg561His mutation",
+    "predicate": "resists",
+    "object": "artemisinin",
+    "qualifiers": {
+      "population": {
+        "age_range": "6-120 months",
+        "pregnancy": null,
+        "region": "Karagwe district, Kagera region, northwestern Tanzania",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "dispensary",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "validated molecular resistance marker presence confirmed",
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:39159633",
+      "title": "Evidence of artemisinin partial resistance in northwestern Tanzania: clinical and molecular markers of resistance.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/39159633/"
+    }
+  },
+  {
+    "claim_id": "3218ac32-291a-480e-9209-62a9f680d24e",
+    "short_id": "3218ac32",
+    "subject": "Plasmodium falciparum Kelch13 C580Y mutation",
+    "predicate": "resists",
+    "object": "artemisinin",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Greater Mekong Subregion",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "isogenic wild-type PfK13",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:35420484",
+      "title": "Autophagy Underlies the Proteostasis Mechanisms of Artemisinin Resistance in P. falciparum Malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35420484/"
+    }
+  },
+  {
+    "claim_id": "f570e2ee-35d4-4cfa-af9b-03d8ca347443",
+    "short_id": "f570e2ee",
+    "subject": "Kelch13 (K13) mutations",
+    "predicate": "resists",
+    "object": "artemisinin",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "15 countries (MalariaGEN Network)",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "field",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "artemisinin-sensitive isolates",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "meta_analysis",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:35464842",
+      "title": "Identification of Co-Existing Mutations and Gene Expression Trends Associated With K13-Mediated Artemisinin Resistance in Plasmodium falciparum.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35464842/"
+    }
+  },
+  {
+    "claim_id": "e346c10f-091d-48de-bedc-e4eb53447260",
+    "short_id": "e346c10f",
+    "subject": "Pfcoronin mutations",
+    "predicate": "resists",
+    "object": "artemisinin",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:40964400",
+      "title": "Cellular and molecular basis of Pf Coronin function in artemisinin resistance in Plasmodium falciparum.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/40964400/"
+    }
+  },
+  {
+    "claim_id": "cff41947-2234-4a06-a65f-b50a8d4a22fd",
+    "short_id": "cff41947",
+    "subject": "fatty acid-associated metabolic activity in Plasmodium falciparum Kelch13 C580Y mutant",
+    "predicate": "resists",
+    "object": "artemisinin",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "in vitro",
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "artemisinin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "ART-sensitive wild-type strain",
+      "effect_size": {
+        "metric": "ART-insensitivity of fatty acid-associated activities",
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37385107",
+      "title": "Multi-omics dissection of stage-specific artemisinin tolerance mechanisms in Kelch13-mutant Plasmodium falciparum.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37385107/"
+    }
+  },
+  {
+    "claim_id": "b881dd32-062b-43c3-b9dd-35ff5a224033",
+    "short_id": "b881dd32",
+    "subject": "Plasmodium falciparum Kelch13 C580Y mutant",
+    "predicate": "resists",
+    "object": "artemisinin",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "artemisinin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "Kelch13 wild-type P. falciparum",
+      "effect_size": {
+        "metric": "partial resistance",
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37385107",
+      "title": "Multi-omics dissection of stage-specific artemisinin tolerance mechanisms in Kelch13-mutant Plasmodium falciparum.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37385107/"
+    }
+  },
+  {
+    "claim_id": "403eae89-ec08-4020-9adb-d544dc21097f",
+    "short_id": "403eae89",
+    "subject": "Plasmodium falciparum",
+    "predicate": "resists",
+    "object": "artemisinin",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "endemic areas",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37269964",
+      "title": "Molecular insights into artemisinin resistance in Plasmodium falciparum: An updated review.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37269964/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-09T07:38:42.015873+00:00
+
+
+===== STDOUT =====
+## Artemisinin Resistance in *P. falciparum* — Synthesized Note
+
+### Core Mechanism: Kelch13 (K13) Mutations
+
+Primary resistance driver. Mutations in *pfkelch13* propeller domain reduce artemisinin activity during ring stage. Mechanism involves autophagy-mediated proteostasis (PMID:35420484) and altered fatty acid metabolism (PMID:37385107).
+
+**Validated mutations by region:**
+
+| Mutation | Region | Certainty | Evidence |
+|---|---|---|---|
+| C580Y | Greater Mekong Subregion | High | Expert opinion |
+| R561H | Tanzania (Kagera, NW) | High | Expert opinion |
+| 476I, 539T, 561H | sub-Saharan Africa + India | Moderate | Meta-analysis |
+| General K13 | 15 countries (MalariaGEN) | High | Meta-analysis |
+
+**C580Y** is best-characterized: validated in isogenic lines vs. wild-type PfK13; multi-omics shows ring-stage fatty acid insensitivity to ART (PMID:37385107). **R561H** confirmed in Tanzanian children 6–120 months (dispensary-level surveillance; PMID:39159633) — signals Africa spread.
+
+### Secondary Mechanism: Pfcoronin Mutations
+
+Pfcoronin (G50E, R100K, E107V) associated with resistance in Africa. **Low certainty** for these specific variants (PMID:34452235). Broader pfcoronin mutations supported at moderate certainty with clearer cellular/molecular basis emerging (PMID:40964400). K13-independent pathway — relevant for non-GMS contexts.
+
+### Detection
+
+Ring-stage survival assay (RSA) is standard in-vitro correlate. Extended recovery RSA (erRSA) superior predictor of *in vivo* patient clearance half-life vs. standard 6h DHA exposure (PMID:32005233). Flow cytometry-based RSA enables higher throughput (PMID:24867976).
+
+### Epidemiology Signal
+
+- GMS: entrenched K13 resistance, C580Y dominant
+- Africa: K13 variants (R561H Tanzania confirmed; 476I/539T/561H circulating sub-Saharan + India) — partial resistance, not yet full treatment failure
+- Modeling: ACT combination strategy critical to slow spread (PMID:26545449)
+
+### Certainty Landscape
+
+| Claim type | Certainty | Grade |
+|---|---|---|
+| K13 → resistance (GMS, Africa, India) | High | Expert opinion / Meta-analysis |
+| C580Y mechanism (autophagy, fatty acid) | Moderate–High | Expert opinion |
+| Pfcoronin → resistance | Low–Moderate | Expert opinion |
+| General Pf resistance (no mutation specified) | Moderate–High | Expert opinion |
+
+### Gaps
+
+Most claims lack quantitative effect sizes (no HR/OR/CI). Pfcoronin claims weak — need clinical correlation. Africa K13 spread trajectory unquantified. No pregnancy-specific data across any claim.

@@ -1,0 +1,235 @@
+===== SYSTEM =====
+# Concept note synthesizer
+
+You are writing a single Markdown note that summarizes everything the medical knowledge base currently knows about ONE entity (drug, organism, gene, syndrome, intervention, anatomical structure, etc.).
+
+You are given:
+- The entity name.
+- A list of qualified claims involving this entity (as subject or object), each with predicate, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused concept note. The note will be re-generated on every change, so do not preserve old text — re-synthesize from the current claim set.
+
+## Output structure (Markdown)
+
+```
+# <Entity name as written most often in the claim set>
+
+> Short one-paragraph orientation: what this entity IS in clinical context. ≤ 60 words.
+
+## What it does / what we know
+
+A bulleted or short-paragraph synthesis grouped by predicate. Cite claim_ids inline like `[c:abc123]`.
+Group sensibly: treatment relationships, resistance relationships, mechanism, contraindications, etc.
+Only include groups that have claims.
+
+## Population & setting nuances
+
+If qualifiers vary by population (pregnancy, pediatric, region, immune status) or setting,
+summarize how. Skip this section if all claims are scope-generic.
+
+## Evidence strength
+
+One short paragraph: where the strong evidence is (RCT/MA/guideline) vs where it is thin
+(case reports, expert opinion). Reference grade explicitly.
+
+## Currency
+
+Note any superseded claims and what replaced them. Skip this section if no supersession.
+
+## Open questions
+
+Bullet list: what's missing, what contradicts, what needs investigation. These should mirror
+or seed gaps the Brain agent will pick up later. Skip the section if nothing is pending.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>.*
+```
+
+## Rules
+
+1. **No hallucination.** Every clinical statement must trace to a claim in the input. If a fact is not in the input, do not state it.
+2. **Cite inline.** Use `[c:<short_claim_id>]` after each statement. Use first 8 chars of the claim_id.
+3. **Concision.** Total length ≤ 600 words for most entities. A drug with 50 claims may justify more; an entity with 3 claims should be ≤ 200 words.
+4. **No prose-padding** like "It is important to note that…" or "Further research is needed". Write tight clinical prose.
+5. **Status awareness.** Mention `pending_review` claims with a (pending review) tag inline. Mention superseded claims explicitly in the Currency section, do not present them as current.
+6. **Output ONLY the Markdown.** No code fences, no preamble, no postamble.
+
+
+===== USER =====
+# Entity
+hemoglobin endocytosis
+
+# Surface variants
+hemoglobin endocytosis
+
+# Claims (count=2)
+```json
+[
+  {
+    "claim_id": "70f90342-fc18-42e9-9fb1-b19dd634955c",
+    "short_id": "70f90342",
+    "subject": "artemisinin activation",
+    "predicate": "requires",
+    "object": "hemoglobin endocytosis",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "artemisinin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:32905757",
+      "title": "Molecular Mechanisms of Drug Resistance in Plasmodium falciparum Malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/32905757/"
+    }
+  },
+  {
+    "claim_id": "74df7b8b-101f-4c4f-a6c2-b12dde1e5eaa",
+    "short_id": "74df7b8b",
+    "subject": "P. falciparum parasite growth",
+    "predicate": "requires",
+    "object": "hemoglobin endocytosis",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:32905757",
+      "title": "Molecular Mechanisms of Drug Resistance in Plasmodium falciparum Malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/32905757/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-09T07:20:45.955154+00:00
+
+
+===== STDOUT =====
+## Concept Note: Hemoglobin Endocytosis
+
+**Entity:** `hemoglobin endocytosis`
+**Claims:** 2 | **Source:** PMID:32905757 | **As of:** 2026-05-09
+
+---
+
+### Definition
+
+Hemoglobin endocytosis — process by which intraerythrocytic *Plasmodium falciparum* ingests host red blood cell hemoglobin via receptor-mediated or bulk endocytosis into the parasite's digestive vacuole.
+
+---
+
+### Role in Parasite Biology
+
+**P. falciparum* growth requires hemoglobin endocytosis** (certainty: high). Parasite digests ~60–80% of host cell hemoglobin for amino acids and to create space for replication. Block endocytosis → starve parasite, halt growth.
+
+---
+
+### Role in Drug Mechanism
+
+**Artemisinin activation requires hemoglobin endocytosis** (certainty: high). Hemoglobin digestion releases free heme (ferrous iron, Fe²⁺). Fe²⁺ cleaves artemisinin's endoperoxide bridge → reactive radical species → alkylates parasite proteins → parasite death.
+
+**Implication:** Reduced hemoglobin uptake (e.g., in ring-stage parasites or artemisinin-resistant strains with *kelch13* mutations) = less Fe²⁺ = less artemisinin activation = resistance phenotype.
+
+---
+
+### Mechanistic Summary
+
+```
+RBC hemoglobin
+      │
+      ▼ endocytosis (parasite)
+ digestive vacuole
+      │
+      ├─► proteolysis → amino acids → parasite growth
+      │
+      └─► free heme (Fe²⁺)
+                │
+                ▼
+          artemisinin + Fe²⁺ → radical → parasite death
+```
+
+---
+
+### Evidence Quality
+
+| Claim | Certainty | Grade |
+|---|---|---|
+| Growth requires Hb endocytosis | High | Expert opinion |
+| Artemisinin activation requires Hb endocytosis | High | Expert opinion |
+
+Both claims from single source (PMID:32905757). No RCT-level mechanistic data recorded. Status: **pending review**.
+
+---
+
+### Knowledge Gaps
+
+- No quantitative thresholds (what % reduction in endocytosis sufficient to confer resistance?)
+- No population/setting qualifiers — unclear if endocytosis rate varies by host immune status or parasite strain
+- Evidence grade capped at expert opinion — mechanistic biochemistry studies (e.g., heme quantification assays) not yet linked as supporting claims
+
+---
+
+### Related Entities to Explore
+
+- `kelch13 mutation` — upstream regulator of endocytosis rate in resistant strains
+- `artemisinin resistance` — downstream consequence of reduced endocytosis
+- `digestive vacuole` — organelle executing endocytosis
+- `free heme / ferrous iron` — intermediate linking endocytosis to drug activation

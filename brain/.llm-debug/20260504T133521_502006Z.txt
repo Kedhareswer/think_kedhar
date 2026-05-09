@@ -1,0 +1,193 @@
+===== SYSTEM =====
+OUTPUT REQUIREMENT: Return VALID JSON ONLY. Your entire response must be parseable by json.loads(). First character of your output must be `{` or `[`. No prose. No explanations. No markdown fences. No apologies. If the requested data is unavailable, return the schema with empty/null values, still as valid JSON. Tools are intentionally disabled — do not request access to them.
+
+# Student extractor — qualified claims from a PubMed abstract
+
+You are extracting **atomic, qualified medical claims** from a malaria-focused biomedical abstract.
+
+## Output format
+
+Return a JSON array. Each element is one qualified claim.
+
+```json
+[
+  {
+    "subject": "string — entity name (drug, organism, gene, syndrome, intervention)",
+    "predicate": "one of: treats | causes | resists | requires | contraindicates | prevents | co_occurs | recommends",
+    "object": "string — entity or value",
+    "qualifiers": {
+      "population": {
+        "age_range": "e.g. adults | pediatric | <5 years | pregnant | null",
+        "pregnancy": "first_trimester | second_third_trimester | not_pregnant | null",
+        "region": "geographic region — e.g. Greater Mekong | West Africa | sub-Saharan Africa | null",
+        "immune_status": "naive | semi-immune | immunocompromised | null",
+        "comorbidities": ["list of strings or empty"]
+      },
+      "setting": {
+        "care_level": "outpatient | inpatient | community | null",
+        "endemic_status": "endemic | non_endemic | traveler | null"
+      },
+      "dose_regimen": {
+        "drug": "string or null",
+        "mg_per_kg": "number or null",
+        "frequency": "string or null",
+        "duration": "string or null"
+      },
+      "comparator": "what the intervention was compared against — string or null",
+      "effect_size": {
+        "metric": "e.g. day-3 positivity rate | parasite clearance time | hazard ratio | null",
+        "value": "number or null",
+        "ci_low": "number or null",
+        "ci_high": "number or null"
+      }
+    },
+    "certainty": "high | moderate | low | very_low",
+    "evidence_note": "one short sentence on why this certainty (sample size, design quality, etc.)"
+  }
+]
+```
+
+## Rules
+
+1. **Atomic.** Each claim is one subject-predicate-object triple. If an abstract states "X treats Y AND X causes Z", emit two claims.
+2. **Qualified.** Populate `qualifiers` from what the abstract explicitly states. Leave NULL if not stated — do NOT invent values.
+3. **Predicates.** Use only the listed enum values. Map free-text to the closest:
+   - "is associated with" / "linked to" / "shown to be effective for" → `treats` if therapeutic, `prevents` if prophylactic
+   - "induces resistance" / "selects for resistance" / "associated with treatment failure" → `resists` (when subject = parasite/pathogen, object = drug)
+   - "should not be given to" / "avoid in" → `contraindicates`
+   - WHO/CDC/national-program statements like "is recommended for" → `recommends`
+4. **Subject vs object.** For resistance claims, subject is the parasite/pathogen, object is the drug. For treatment, subject is the drug/intervention, object is the disease/population.
+5. **Certainty mapping:**
+   - `high`: large RCT or meta-analysis with consistent results, or current WHO guideline
+   - `moderate`: cohort study, smaller RCT, well-designed observational
+   - `low`: case-control, single-site observational, conflicting evidence
+   - `very_low`: case report, expert opinion, in-vitro only, mechanistic inference
+6. **Skip non-claims.** Background statements ("Malaria affects 200M people"), methodology ("We enrolled 1241 patients"), and meta-commentary ("Further research is needed") are NOT claims. Skip them.
+7. **No claims is a valid output.** If the abstract is purely descriptive epidemiology with no actionable medical claim, return `[]`.
+
+## Output
+
+Return ONLY the JSON array. No prose before or after.
+
+
+===== USER =====
+# Title
+Therapeutic efficacies of artemether-lumefantrine and dihydroartemisinin-piperaquine for the treatment of uncomplicated Plasmodium falciparum and chloroquine and dihydroartemisinin-piperaquine for uncomplicated Plasmodium vivax infection in Ethiopia.
+
+# Abstract
+BACKGROUND: Routine monitoring of anti-malarial drugs is recommended for early detection of drug resistance and to inform national malaria treatment guidelines. In Ethiopia, the national treatment guidelines employ a species-specific approach. Artemether-lumefantrine (AL) and chloroquine (CQ) are the first-line schizonticidal treatments for Plasmodium falciparum and Plasmodium vivax, respectively. The National Malaria Control and Elimination Programme in Ethiopia is considering dihydroartemisinin-piperaquine (DHA/PPQ) as an alternative regimen for P. falciparum and P. vivax.
+
+METHODS: The study assessed the clinical and parasitological efficacy of AL, CQ, and DHA/PPQ in four arms. Patients over 6 months and less than 18 years of age with uncomplicated malaria mono-infection were recruited and allocated to AL against P. falciparum and CQ against P. vivax. Patients 18 years or older with uncomplicated malaria mono-infection were recruited and randomized to AL or dihydroartemisinin-piperaquine (DHA/PPQ) against P. falciparum and CQ or DHA/PPQ for P. vivax. Patients were followed up for 28 (for CQ and AL) or 42 days (for DHA/PPQ) according to the WHO recommendations. Polymerase chain reaction (PCR)-corrected and uncorrected estimates were analysed by Kaplan Meier survival analysis and per protocol methods.
+
+RESULTS: A total of 379 patients were enroled in four arms (n = 106, AL-P. falciparum; n = 75, DHA/PPQ- P. falciparum; n = 142, CQ-P. vivax; n = 56, DHA/PPQ-P. vivax). High PCR-corrected adequate clinical and parasitological response (ACPR) rates were observed at the primary end points of 28 days for AL and CQ and 42 days for DHA/PPQ. ACPR rates were 100% in AL-Pf (95% CI: 96-100), 98% in CQ-P. vivax (95% CI: 95-100) at 28 days, and 100% in the DHA/PPQ arms for both P. falciparum and P. vivax at 42 days. For secondary endpoints, by day three 99% of AL-P. falciparum patients (n = 101) cleared parasites and 100% were afebrile. For all other arms, 100% of patients cleared parasites and were afebrile by day three. No serious adverse events were reported.
+
+CONCLUSION: This study demonstrated high therapeutic efficacy for the anti-malarial drugs currently used by the malaria control programme in Ethiopia and provides information on the efficacy of DHA/PPQ for the treatment of P. falciparum and P. vivax as an alternative option.
+
+# Publication types
+Randomized Controlled Trial, Journal Article
+
+===== STDOUT =====
+```json
+{
+  "title": "Therapeutic efficacies of artemether-lumefantrine and dihydroartemisinin-piperaquine for the treatment of uncomplicated Plasmodium falciparum and chloroquine and dihydroartemisinin-piperaquine for uncomplicated Plasmodium vivax infection in Ethiopia",
+  "publication_types": ["Randomized Controlled Trial", "Journal Article"],
+  "study_location": "Ethiopia",
+  "background": {
+    "context": "Routine anti-malarial drug monitoring for early resistance detection and treatment guideline updates",
+    "current_first_line_treatments": {
+      "Plasmodium_falciparum": "Artemether-lumefantrine (AL)",
+      "Plasmodium_vivax": "Chloroquine (CQ)"
+    },
+    "alternative_under_consideration": "Dihydroartemisinin-piperaquine (DHA/PPQ) for both P. falciparum and P. vivax",
+    "programme": "National Malaria Control and Elimination Programme, Ethiopia"
+  },
+  "methods": {
+    "study_design": "Four-arm clinical efficacy study with randomization in adult arm",
+    "population": {
+      "pediatric_arm": {
+        "age": ">6 months and <18 years",
+        "condition": "Uncomplicated malaria mono-infection",
+        "allocation": "AL for P. falciparum; CQ for P. vivax"
+      },
+      "adult_arm": {
+        "age": ">=18 years",
+        "condition": "Uncomplicated malaria mono-infection",
+        "allocation": "Randomized to AL or DHA/PPQ for P. falciparum; CQ or DHA/PPQ for P. vivax"
+      }
+    },
+    "follow_up_duration": {
+      "AL": "28 days",
+      "CQ": "28 days",
+      "DHA_PPQ": "42 days"
+    },
+    "analysis_methods": ["Kaplan-Meier survival analysis", "Per protocol method"],
+    "PCR_correction": true,
+    "guideline": "WHO recommendations"
+  },
+  "enrollment": {
+    "total": 379,
+    "arms": [
+      {"arm": "AL - P. falciparum", "n": 106},
+      {"arm": "DHA/PPQ - P. falciparum", "n": 75},
+      {"arm": "CQ - P. vivax", "n": 142},
+      {"arm": "DHA/PPQ - P. vivax", "n": 56}
+    ]
+  },
+  "results": {
+    "primary_endpoint_ACPR_PCR_corrected": [
+      {
+        "arm": "AL - P. falciparum",
+        "endpoint_day": 28,
+        "ACPR_percent": 100,
+        "CI_95": "96-100"
+      },
+      {
+        "arm": "CQ - P. vivax",
+        "endpoint_day": 28,
+        "ACPR_percent": 98,
+        "CI_95": "95-100"
+      },
+      {
+        "arm": "DHA/PPQ - P. falciparum",
+        "endpoint_day": 42,
+        "ACPR_percent": 100,
+        "CI_95": null
+      },
+      {
+        "arm": "DHA/PPQ - P. vivax",
+        "endpoint_day": 42,
+        "ACPR_percent": 100,
+        "CI_95": null
+      }
+    ],
+    "secondary_endpoints_day3": [
+      {
+        "arm": "AL - P. falciparum",
+        "parasite_clearance_percent": 99,
+        "afebrile_percent": 100,
+        "n_cleared": 101
+      },
+      {
+        "arm": "DHA/PPQ - P. falciparum",
+        "parasite_clearance_percent": 100,
+        "afebrile_percent": 100
+      },
+      {
+        "arm": "CQ - P. vivax",
+        "parasite_clearance_percent": 100,
+        "afebrile_percent": 100
+      },
+      {
+        "arm": "DHA/PPQ - P. vivax",
+        "parasite_clearance_percent": 100,
+        "afebrile_percent": 100
+      }
+    ],
+    "serious_adverse_events": false
+  },
+  "conclusion": {
+    "summary": "High therapeutic efficacy demonstrated for AL, CQ, and DHA/PPQ; DHA/PPQ confirmed as viable alternative for both P. falciparum and P. vivax treatment in Ethiopia",
+    "policy_implication": "Supports DHA/PPQ as alternative regimen for national treatment guidelines"
+  }
+}
+```

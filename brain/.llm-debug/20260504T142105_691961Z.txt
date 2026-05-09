@@ -1,0 +1,187 @@
+===== SYSTEM =====
+OUTPUT REQUIREMENT: Return VALID JSON ONLY. Your entire response must be parseable by json.loads(). First character of your output must be `{` or `[`. No prose. No explanations. No markdown fences. No apologies. If the requested data is unavailable, return the schema with empty/null values, still as valid JSON. Tools are intentionally disabled — do not request access to them.
+
+# Student extractor — qualified claims from a PubMed abstract
+
+You are extracting **atomic, qualified medical claims** from a malaria-focused biomedical abstract.
+
+## Output format
+
+Return a JSON array. Each element is one qualified claim.
+
+```json
+[
+  {
+    "subject": "string — entity name (drug, organism, gene, syndrome, intervention)",
+    "predicate": "one of: treats | causes | resists | requires | contraindicates | prevents | co_occurs | recommends",
+    "object": "string — entity or value",
+    "qualifiers": {
+      "population": {
+        "age_range": "e.g. adults | pediatric | <5 years | pregnant | null",
+        "pregnancy": "first_trimester | second_third_trimester | not_pregnant | null",
+        "region": "geographic region — e.g. Greater Mekong | West Africa | sub-Saharan Africa | null",
+        "immune_status": "naive | semi-immune | immunocompromised | null",
+        "comorbidities": ["list of strings or empty"]
+      },
+      "setting": {
+        "care_level": "outpatient | inpatient | community | null",
+        "endemic_status": "endemic | non_endemic | traveler | null"
+      },
+      "dose_regimen": {
+        "drug": "string or null",
+        "mg_per_kg": "number or null",
+        "frequency": "string or null",
+        "duration": "string or null"
+      },
+      "comparator": "what the intervention was compared against — string or null",
+      "effect_size": {
+        "metric": "e.g. day-3 positivity rate | parasite clearance time | hazard ratio | null",
+        "value": "number or null",
+        "ci_low": "number or null",
+        "ci_high": "number or null"
+      }
+    },
+    "certainty": "high | moderate | low | very_low",
+    "evidence_note": "one short sentence on why this certainty (sample size, design quality, etc.)"
+  }
+]
+```
+
+## Rules
+
+1. **Atomic.** Each claim is one subject-predicate-object triple. If an abstract states "X treats Y AND X causes Z", emit two claims.
+2. **Qualified.** Populate `qualifiers` from what the abstract explicitly states. Leave NULL if not stated — do NOT invent values.
+3. **Predicates.** Use only the listed enum values. Map free-text to the closest:
+   - "is associated with" / "linked to" / "shown to be effective for" → `treats` if therapeutic, `prevents` if prophylactic
+   - "induces resistance" / "selects for resistance" / "associated with treatment failure" → `resists` (when subject = parasite/pathogen, object = drug)
+   - "should not be given to" / "avoid in" → `contraindicates`
+   - WHO/CDC/national-program statements like "is recommended for" → `recommends`
+4. **Subject vs object.** For resistance claims, subject is the parasite/pathogen, object is the drug. For treatment, subject is the drug/intervention, object is the disease/population.
+5. **Certainty mapping:**
+   - `high`: large RCT or meta-analysis with consistent results, or current WHO guideline
+   - `moderate`: cohort study, smaller RCT, well-designed observational
+   - `low`: case-control, single-site observational, conflicting evidence
+   - `very_low`: case report, expert opinion, in-vitro only, mechanistic inference
+6. **Skip non-claims.** Background statements ("Malaria affects 200M people"), methodology ("We enrolled 1241 patients"), and meta-commentary ("Further research is needed") are NOT claims. Skip them.
+7. **No claims is a valid output.** If the abstract is purely descriptive epidemiology with no actionable medical claim, return `[]`.
+
+## Output
+
+Return ONLY the JSON array. No prose before or after.
+
+
+===== USER =====
+# Title
+Artemisinin versus nonartemisinin combination therapy for uncomplicated malaria: randomized clinical trials from four sites in Uganda.
+
+# Abstract
+BACKGROUND: Drug resistance in Plasmodium falciparum poses a major threat to malaria control. Combination antimalarial therapy including artemisinins has been advocated recently to improve efficacy and limit the spread of resistance, but artemisinins are expensive and relatively untested in highly endemic areas. We compared artemisinin-based and other combination therapies in four districts in Uganda with varying transmission intensity.
+
+METHODS AND FINDINGS: We enrolled 2,160 patients aged 6 mo or greater with uncomplicated falciparum malaria. Patients were randomized to receive chloroquine (CQ) + sulfadoxine-pyrimethamine (SP); amodiaquine (AQ) + SP; or AQ + artesunate (AS). Primary endpoints were the 28-d risks of parasitological failure either unadjusted or adjusted by genotyping to distinguish recrudescence from new infections. A total of 2,081 patients completed follow-up, of which 1,749 (84%) were under the age of 5 y. The risk of recrudescence after treatment with CQ + SP was high, ranging from 22% to 46% at the four sites. This risk was significantly lower (p < 0.01) after AQ + SP or AQ + AS (7%-18% and 4%-12%, respectively). Compared to AQ + SP, AQ + AS was associated with a lower risk of recrudescence but a higher risk of new infection. The overall risk of repeat therapy due to any recurrent infection (recrudescence or new infection) was similar at two sites and significantly higher for AQ + AS at the two highest transmission sites (risk differences = 15% and 16%, p < 0.003).
+
+CONCLUSION: AQ + AS was the most efficacious regimen for preventing recrudescence, but this benefit was outweighed by an increased risk of new infection. Considering all recurrent infections, the efficacy of AQ + SP was at least as efficacious at all sites and superior to AQ + AS at the highest transmission sites. The high endemicity of malaria in Africa may impact on the efficacy of artemisinin-based combination therapy. The registration number for this trial is ISRCTN67520427 (http://www.controlled-trials.com/isrctn/trial/|/0/67520427.html).
+
+# Publication types
+Journal Article, Multicenter Study, Randomized Controlled Trial, Research Support, Non-U.S. Gov't, Research Support, U.S. Gov't, P.H.S.
+
+===== STDOUT =====
+```json
+{
+  "title": "Artemisinin versus nonartemisinin combination therapy for uncomplicated malaria: randomized clinical trials from four sites in Uganda",
+  "publication_types": [
+    "Journal Article",
+    "Multicenter Study",
+    "Randomized Controlled Trial",
+    "Research Support, Non-U.S. Gov't",
+    "Research Support, U.S. Gov't, P.H.S."
+  ],
+  "trial_registration": "ISRCTN67520427",
+  "background": {
+    "condition": "Uncomplicated Plasmodium falciparum malaria",
+    "context": "Drug resistance in P. falciparum threatens malaria control. Artemisinin-based combination therapy (ACT) advocated to improve efficacy and limit resistance spread, but artemisinins are expensive and undertested in high-endemic areas.",
+    "study_location": "Four districts in Uganda with varying transmission intensity"
+  },
+  "methods": {
+    "sample_size": 2160,
+    "eligibility": "Age >= 6 months with uncomplicated falciparum malaria",
+    "design": "Randomized controlled trial, four sites",
+    "arms": [
+      {
+        "regimen": "Chloroquine + Sulfadoxine-Pyrimethamine",
+        "abbreviation": "CQ + SP"
+      },
+      {
+        "regimen": "Amodiaquine + Sulfadoxine-Pyrimethamine",
+        "abbreviation": "AQ + SP"
+      },
+      {
+        "regimen": "Amodiaquine + Artesunate",
+        "abbreviation": "AQ + AS",
+        "is_artemisinin_based": true
+      }
+    ],
+    "primary_endpoints": [
+      "28-day risk of parasitological failure (unadjusted)",
+      "28-day risk of parasitological failure (adjusted by genotyping to distinguish recrudescence from new infections)"
+    ]
+  },
+  "results": {
+    "completed_followup": 2081,
+    "under_5_years_percent": 84,
+    "recrudescence_risk": {
+      "CQ_SP": {
+        "range_percent": "22-46",
+        "note": "High risk across all four sites"
+      },
+      "AQ_SP": {
+        "range_percent": "7-18",
+        "significantly_lower_than_CQ_SP": true,
+        "p_value": "<0.01"
+      },
+      "AQ_AS": {
+        "range_percent": "4-12",
+        "significantly_lower_than_CQ_SP": true,
+        "p_value": "<0.01",
+        "lower_recrudescence_than_AQ_SP": true
+      }
+    },
+    "new_infection_risk": {
+      "AQ_AS_vs_AQ_SP": "AQ+AS associated with higher risk of new infection compared to AQ+SP"
+    },
+    "repeat_therapy_risk": {
+      "two_sites": "Similar between AQ+SP and AQ+AS",
+      "two_highest_transmission_sites": {
+        "finding": "Significantly higher for AQ+AS",
+        "risk_differences_percent": [15, 16],
+        "p_value": "<0.003"
+      }
+    }
+  },
+  "conclusions": {
+    "most_efficacious_for_recrudescence": "AQ + AS",
+    "caveat": "Benefit of AQ+AS offset by increased risk of new infection",
+    "overall_finding": "AQ+SP at least as efficacious at all sites; superior to AQ+AS at highest transmission sites when considering all recurrent infections",
+    "implication": "High malaria endemicity in Africa may reduce efficacy advantage of artemisinin-based combination therapy"
+  },
+  "key_comparisons": [
+    {
+      "comparison": "CQ+SP vs AQ+SP",
+      "winner": "AQ+SP",
+      "metric": "Recrudescence risk",
+      "significance": "p < 0.01"
+    },
+    {
+      "comparison": "CQ+SP vs AQ+AS",
+      "winner": "AQ+AS",
+      "metric": "Recrudescence risk",
+      "significance": "p < 0.01"
+    },
+    {
+      "comparison": "AQ+SP vs AQ+AS",
+      "winner": "AQ+AS for recrudescence; AQ+SP for overall recurrent infection at high-transmission sites",
+      "metric": "Recrudescence and new infection combined",
+      "significance": "p < 0.003 at two highest transmission sites"
+    }
+  ]
+}
+```

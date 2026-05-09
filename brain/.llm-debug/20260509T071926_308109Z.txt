@@ -1,0 +1,248 @@
+===== SYSTEM =====
+# Concept note synthesizer
+
+You are writing a single Markdown note that summarizes everything the medical knowledge base currently knows about ONE entity (drug, organism, gene, syndrome, intervention, anatomical structure, etc.).
+
+You are given:
+- The entity name.
+- A list of qualified claims involving this entity (as subject or object), each with predicate, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused concept note. The note will be re-generated on every change, so do not preserve old text — re-synthesize from the current claim set.
+
+## Output structure (Markdown)
+
+```
+# <Entity name as written most often in the claim set>
+
+> Short one-paragraph orientation: what this entity IS in clinical context. ≤ 60 words.
+
+## What it does / what we know
+
+A bulleted or short-paragraph synthesis grouped by predicate. Cite claim_ids inline like `[c:abc123]`.
+Group sensibly: treatment relationships, resistance relationships, mechanism, contraindications, etc.
+Only include groups that have claims.
+
+## Population & setting nuances
+
+If qualifiers vary by population (pregnancy, pediatric, region, immune status) or setting,
+summarize how. Skip this section if all claims are scope-generic.
+
+## Evidence strength
+
+One short paragraph: where the strong evidence is (RCT/MA/guideline) vs where it is thin
+(case reports, expert opinion). Reference grade explicitly.
+
+## Currency
+
+Note any superseded claims and what replaced them. Skip this section if no supersession.
+
+## Open questions
+
+Bullet list: what's missing, what contradicts, what needs investigation. These should mirror
+or seed gaps the Brain agent will pick up later. Skip the section if nothing is pending.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>.*
+```
+
+## Rules
+
+1. **No hallucination.** Every clinical statement must trace to a claim in the input. If a fact is not in the input, do not state it.
+2. **Cite inline.** Use `[c:<short_claim_id>]` after each statement. Use first 8 chars of the claim_id.
+3. **Concision.** Total length ≤ 600 words for most entities. A drug with 50 claims may justify more; an entity with 3 claims should be ≤ 200 words.
+4. **No prose-padding** like "It is important to note that…" or "Further research is needed". Write tight clinical prose.
+5. **Status awareness.** Mention `pending_review` claims with a (pending review) tag inline. Mention superseded claims explicitly in the Currency section, do not present them as current.
+6. **Output ONLY the Markdown.** No code fences, no preamble, no postamble.
+
+
+===== USER =====
+# Entity
+chloroquine resistance
+
+# Surface variants
+chloroquine resistance (Plasmodium falciparum), chloroquine resistance in Plasmodium falciparum
+
+# Claims (count=3)
+```json
+[
+  {
+    "claim_id": "c0578483-1402-46ef-ae21-16cdabef6946",
+    "short_id": "c0578483",
+    "subject": "chloroquine resistance (Plasmodium falciparum)",
+    "predicate": "co_occurs",
+    "object": "naphthoquine resistance",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Madang Province, Papua New Guinea",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "IC50 correlation (4-aminoquinolines)",
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:20070627",
+      "title": "In vitro sensitivity of Plasmodium falciparum to conventional and novel antimalarial drugs in Papua New Guinea.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/20070627/"
+    }
+  },
+  {
+    "claim_id": "e0f5f5da-f46f-44bb-9167-1bdd20b73d8b",
+    "short_id": "e0f5f5da",
+    "subject": "chloroquine resistance (Plasmodium falciparum)",
+    "predicate": "co_occurs",
+    "object": "amodiaquine resistance",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Madang Province, Papua New Guinea",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "IC50 correlation (4-aminoquinolines)",
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:20070627",
+      "title": "In vitro sensitivity of Plasmodium falciparum to conventional and novel antimalarial drugs in Papua New Guinea.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/20070627/"
+    }
+  },
+  {
+    "claim_id": "dee236ce-0f1e-4b8e-9675-669f3fe2976e",
+    "short_id": "dee236ce",
+    "subject": "pfcrt resistance allele",
+    "predicate": "causes",
+    "object": "chloroquine resistance in Plasmodium falciparum",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Papua New Guinea",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "allele prevalence",
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:20070627",
+      "title": "In vitro sensitivity of Plasmodium falciparum to conventional and novel antimalarial drugs in Papua New Guinea.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/20070627/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-09T07:18:47.750335+00:00
+
+
+===== STDOUT =====
+## Concept Note: Chloroquine Resistance in *Plasmodium falciparum*
+
+**Source:** PMID:20070627 — *In vitro sensitivity of P. falciparum to conventional and novel antimalarial drugs in Papua New Guinea*
+**Region:** Madang Province / Papua New Guinea (endemic setting)
+**Evidence grade:** Expert opinion | **Certainty:** High (all claims)
+
+---
+
+### Mechanism
+
+**pfcrt** resistance allele drives CQ resistance in PNG *P. falciparum* isolates. Allele prevalence data confirm causal link; quantitative effect size not reported.
+
+### Cross-Resistance Pattern
+
+CQ resistance co-occurs with resistance to two other **4-aminoquinolines**:
+
+| Co-resistant drug | Metric | Notes |
+|---|---|---|
+| Amodiaquine | IC50 correlation | Correlated in vitro |
+| Naphthoquine | IC50 correlation | Correlated in vitro |
+
+All three drugs share the 4-aminoquinoline scaffold — shared pfcrt-mediated efflux mechanism likely explains co-resistance.
+
+### Implications
+
+- Switching from CQ → amodiaquine in PNG likely selects on pre-existing cross-resistant parasites; efficacy gains may be limited.
+- Naphthoquine (used in fixed-dose ACT combinations) faces same liability.
+- Novel drugs outside 4-aminoquinoline class warranted for PNG.
+
+### Gaps
+
+- No IC50 values or CIs reported — magnitude of correlations unknown.
+- Evidence graded *expert opinion* despite in vitro data; formal resistance thresholds and clinical correlation absent.
+- pfcrt allele type (e.g., K76T vs. PNG-specific haplotypes) not specified.
+
+---
+
+**Status:** All claims pending review. Treat as hypothesis-generating; do not use alone for treatment policy.

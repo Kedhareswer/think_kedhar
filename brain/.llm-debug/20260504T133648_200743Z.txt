@@ -1,0 +1,160 @@
+===== SYSTEM =====
+OUTPUT REQUIREMENT: Return VALID JSON ONLY. Your entire response must be parseable by json.loads(). First character of your output must be `{` or `[`. No prose. No explanations. No markdown fences. No apologies. If the requested data is unavailable, return the schema with empty/null values, still as valid JSON. Tools are intentionally disabled — do not request access to them.
+
+# Student extractor — qualified claims from a PubMed abstract
+
+You are extracting **atomic, qualified medical claims** from a malaria-focused biomedical abstract.
+
+## Output format
+
+Return a JSON array. Each element is one qualified claim.
+
+```json
+[
+  {
+    "subject": "string — entity name (drug, organism, gene, syndrome, intervention)",
+    "predicate": "one of: treats | causes | resists | requires | contraindicates | prevents | co_occurs | recommends",
+    "object": "string — entity or value",
+    "qualifiers": {
+      "population": {
+        "age_range": "e.g. adults | pediatric | <5 years | pregnant | null",
+        "pregnancy": "first_trimester | second_third_trimester | not_pregnant | null",
+        "region": "geographic region — e.g. Greater Mekong | West Africa | sub-Saharan Africa | null",
+        "immune_status": "naive | semi-immune | immunocompromised | null",
+        "comorbidities": ["list of strings or empty"]
+      },
+      "setting": {
+        "care_level": "outpatient | inpatient | community | null",
+        "endemic_status": "endemic | non_endemic | traveler | null"
+      },
+      "dose_regimen": {
+        "drug": "string or null",
+        "mg_per_kg": "number or null",
+        "frequency": "string or null",
+        "duration": "string or null"
+      },
+      "comparator": "what the intervention was compared against — string or null",
+      "effect_size": {
+        "metric": "e.g. day-3 positivity rate | parasite clearance time | hazard ratio | null",
+        "value": "number or null",
+        "ci_low": "number or null",
+        "ci_high": "number or null"
+      }
+    },
+    "certainty": "high | moderate | low | very_low",
+    "evidence_note": "one short sentence on why this certainty (sample size, design quality, etc.)"
+  }
+]
+```
+
+## Rules
+
+1. **Atomic.** Each claim is one subject-predicate-object triple. If an abstract states "X treats Y AND X causes Z", emit two claims.
+2. **Qualified.** Populate `qualifiers` from what the abstract explicitly states. Leave NULL if not stated — do NOT invent values.
+3. **Predicates.** Use only the listed enum values. Map free-text to the closest:
+   - "is associated with" / "linked to" / "shown to be effective for" → `treats` if therapeutic, `prevents` if prophylactic
+   - "induces resistance" / "selects for resistance" / "associated with treatment failure" → `resists` (when subject = parasite/pathogen, object = drug)
+   - "should not be given to" / "avoid in" → `contraindicates`
+   - WHO/CDC/national-program statements like "is recommended for" → `recommends`
+4. **Subject vs object.** For resistance claims, subject is the parasite/pathogen, object is the drug. For treatment, subject is the drug/intervention, object is the disease/population.
+5. **Certainty mapping:**
+   - `high`: large RCT or meta-analysis with consistent results, or current WHO guideline
+   - `moderate`: cohort study, smaller RCT, well-designed observational
+   - `low`: case-control, single-site observational, conflicting evidence
+   - `very_low`: case report, expert opinion, in-vitro only, mechanistic inference
+6. **Skip non-claims.** Background statements ("Malaria affects 200M people"), methodology ("We enrolled 1241 patients"), and meta-commentary ("Further research is needed") are NOT claims. Skip them.
+7. **No claims is a valid output.** If the abstract is purely descriptive epidemiology with no actionable medical claim, return `[]`.
+
+## Output
+
+Return ONLY the JSON array. No prose before or after.
+
+
+===== USER =====
+# Title
+Comparison of artemether-lumefantrine and chloroquine with and without primaquine for the treatment of Plasmodium vivax infection in Ethiopia: A randomized controlled trial.
+
+# Abstract
+BACKGROUND: Recent efforts in malaria control have resulted in great gains in reducing the burden of Plasmodium falciparum, but P. vivax has been more refractory. Its ability to form dormant liver stages confounds control and elimination efforts. To compare the efficacy and safety of primaquine regimens for radical cure, we undertook a randomized controlled trial in Ethiopia.
+
+METHODS AND FINDINGS: Patients with normal glucose-6-phosphate dehydrogenase status with symptomatic P. vivax mono-infection were enrolled and randomly assigned to receive either chloroquine (CQ) or artemether-lumefantrine (AL), alone or in combination with 14 d of semi-supervised primaquine (PQ) (3.5 mg/kg total). A total of 398 patients (n = 104 in the CQ arm, n = 100 in the AL arm, n = 102 in the CQ+PQ arm, and n = 92 in the AL+PQ arm) were followed for 1 y, and recurrent episodes were treated with the same treatment allocated at enrolment. The primary endpoints were the risk of P. vivax recurrence at day 28 and at day 42. The risk of recurrent P. vivax infection at day 28 was 4.0% (95% CI 1.5%-10.4%) after CQ treatment and 0% (95% CI 0%-4.0%) after CQ+PQ. The corresponding risks were 12.0% (95% CI 6.8%-20.6%) following AL alone and 2.3% (95% CI 0.6%-9.0%) following AL+PQ. On day 42, the risk was 18.7% (95% CI 12.2%-28.0%) after CQ, 1.2% (95% CI 0.2%-8.0%) after CQ+PQ, 29.9% (95% CI 21.6%-40.5%) after AL, and 5.9% (95% CI 2.4%-13.5%) after AL+PQ (overall p < 0.001). In those not prescribed PQ, the risk of recurrence by day 42 appeared greater following AL treatment than CQ treatment (HR = 1.8 [95% CI 1.0-3.2]; p = 0.059). At the end of follow-up, the incidence rate of P. vivax was 2.2 episodes/person-year for patients treated with CQ compared to 0.4 for patients treated with CQ+PQ (rate ratio: 5.1 [95% CI 2.9-9.1]; p < 0.001) and 2.3 episodes/person-year for AL compared to 0.5 for AL+PQ (rate ratio: 6.4 [95% CI 3.6-11.3]; p < 0.001). There was no difference in the occurrence of adverse events between treatment arms. The main limitations of the study were the early termination of the trial and the omission of haemoglobin measurement after day 42, resulting in an inability to estimate the cumulative risk of anaemia.
+
+CONCLUSIONS: Despite evidence of CQ-resistant P. vivax, the risk of recurrence in this study was greater following treatment with AL unless it was combined with a supervised course of PQ. PQ combined with either CQ or AL was well tolerated and reduced recurrence of vivax malaria by 5-fold at 1 y.
+
+TRIAL REGISTRATION: ClinicalTrials.gov NCT01680406.
+
+# Publication types
+Journal Article, Randomized Controlled Trial
+
+===== STDOUT =====
+```json
+{
+  "title": "Comparison of artemether-lumefantrine and chloroquine with and without primaquine for the treatment of Plasmodium vivax infection in Ethiopia: A randomized controlled trial",
+  "publication_types": ["Journal Article", "Randomized Controlled Trial"],
+  "trial_registration": {
+    "registry": "ClinicalTrials.gov",
+    "identifier": "NCT01680406"
+  },
+  "background": {
+    "condition": "Plasmodium vivax malaria",
+    "clinical_challenge": "Dormant liver stages (hypnozoites) complicate control and elimination",
+    "study_rationale": "Compare efficacy and safety of primaquine regimens for radical cure"
+  },
+  "study_design": {
+    "type": "Randomized controlled trial",
+    "location": "Ethiopia",
+    "population": "Patients with normal G6PD status and symptomatic P. vivax mono-infection",
+    "total_enrolled": 398,
+    "follow_up_duration": "1 year"
+  },
+  "arms": [
+    {"name": "CQ", "treatment": "Chloroquine alone", "n": 104},
+    {"name": "AL", "treatment": "Artemether-lumefantrine alone", "n": 100},
+    {"name": "CQ+PQ", "treatment": "Chloroquine + primaquine 14d semi-supervised (3.5 mg/kg total)", "n": 102},
+    {"name": "AL+PQ", "treatment": "Artemether-lumefantrine + primaquine 14d semi-supervised (3.5 mg/kg total)", "n": 92}
+  ],
+  "primary_endpoints": [
+    "Risk of P. vivax recurrence at day 28",
+    "Risk of P. vivax recurrence at day 42"
+  ],
+  "results": {
+    "recurrence_day28": [
+      {"arm": "CQ", "risk_percent": 4.0, "ci_95": "1.5%-10.4%"},
+      {"arm": "CQ+PQ", "risk_percent": 0.0, "ci_95": "0%-4.0%"},
+      {"arm": "AL", "risk_percent": 12.0, "ci_95": "6.8%-20.6%"},
+      {"arm": "AL+PQ", "risk_percent": 2.3, "ci_95": "0.6%-9.0%"}
+    ],
+    "recurrence_day42": [
+      {"arm": "CQ", "risk_percent": 18.7, "ci_95": "12.2%-28.0%"},
+      {"arm": "CQ+PQ", "risk_percent": 1.2, "ci_95": "0.2%-8.0%"},
+      {"arm": "AL", "risk_percent": 29.9, "ci_95": "21.6%-40.5%"},
+      {"arm": "AL+PQ", "risk_percent": 5.9, "ci_95": "2.4%-13.5%"},
+      {"overall_p_value": "<0.001"}
+    ],
+    "al_vs_cq_without_pq_day42": {
+      "hazard_ratio": 1.8,
+      "ci_95": "1.0-3.2",
+      "p_value": 0.059,
+      "interpretation": "AL recurrence risk appeared greater than CQ without PQ"
+    },
+    "incidence_rate_1year": [
+      {"arm": "CQ", "episodes_per_person_year": 2.2},
+      {"arm": "CQ+PQ", "episodes_per_person_year": 0.4, "rate_ratio_vs_cq": 5.1, "rr_ci_95": "2.9-9.1", "p_value": "<0.001"},
+      {"arm": "AL", "episodes_per_person_year": 2.3},
+      {"arm": "AL+PQ", "episodes_per_person_year": 0.5, "rate_ratio_vs_al": 6.4, "rr_ci_95": "3.6-11.3", "p_value": "<0.001"}
+    ],
+    "adverse_events": "No difference between treatment arms",
+    "pq_reduction_in_recurrence_at_1year": "~5-fold"
+  },
+  "conclusions": {
+    "key_finding_1": "AL alone showed greater recurrence risk than CQ alone despite CQ-resistant P. vivax evidence",
+    "key_finding_2": "AL+PQ comparable to CQ+PQ in reducing recurrence",
+    "key_finding_3": "PQ combined with either CQ or AL well tolerated and reduced 1-year recurrence ~5-fold"
+  },
+  "limitations": [
+    "Early termination of trial",
+    "No haemoglobin measurement after day 42",
+    "Unable to estimate cumulative anaemia risk"
+  ]
+}
+```

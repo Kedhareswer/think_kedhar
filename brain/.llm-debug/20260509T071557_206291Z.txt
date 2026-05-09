@@ -1,0 +1,320 @@
+===== SYSTEM =====
+# Concept note synthesizer
+
+You are writing a single Markdown note that summarizes everything the medical knowledge base currently knows about ONE entity (drug, organism, gene, syndrome, intervention, anatomical structure, etc.).
+
+You are given:
+- The entity name.
+- A list of qualified claims involving this entity (as subject or object), each with predicate, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused concept note. The note will be re-generated on every change, so do not preserve old text — re-synthesize from the current claim set.
+
+## Output structure (Markdown)
+
+```
+# <Entity name as written most often in the claim set>
+
+> Short one-paragraph orientation: what this entity IS in clinical context. ≤ 60 words.
+
+## What it does / what we know
+
+A bulleted or short-paragraph synthesis grouped by predicate. Cite claim_ids inline like `[c:abc123]`.
+Group sensibly: treatment relationships, resistance relationships, mechanism, contraindications, etc.
+Only include groups that have claims.
+
+## Population & setting nuances
+
+If qualifiers vary by population (pregnancy, pediatric, region, immune status) or setting,
+summarize how. Skip this section if all claims are scope-generic.
+
+## Evidence strength
+
+One short paragraph: where the strong evidence is (RCT/MA/guideline) vs where it is thin
+(case reports, expert opinion). Reference grade explicitly.
+
+## Currency
+
+Note any superseded claims and what replaced them. Skip this section if no supersession.
+
+## Open questions
+
+Bullet list: what's missing, what contradicts, what needs investigation. These should mirror
+or seed gaps the Brain agent will pick up later. Skip the section if nothing is pending.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>.*
+```
+
+## Rules
+
+1. **No hallucination.** Every clinical statement must trace to a claim in the input. If a fact is not in the input, do not state it.
+2. **Cite inline.** Use `[c:<short_claim_id>]` after each statement. Use first 8 chars of the claim_id.
+3. **Concision.** Total length ≤ 600 words for most entities. A drug with 50 claims may justify more; an entity with 3 claims should be ≤ 200 words.
+4. **No prose-padding** like "It is important to note that…" or "Further research is needed". Write tight clinical prose.
+5. **Status awareness.** Mention `pending_review` claims with a (pending review) tag inline. Mention superseded claims explicitly in the Currency section, do not present them as current.
+6. **Output ONLY the Markdown.** No code fences, no preamble, no postamble.
+
+
+===== USER =====
+# Entity
+artemisinin-based combination therapy
+
+# Surface variants
+Artemisinin-based combination therapy (ACT), artemisinin-based combination therapy (ACT)
+
+# Claims (count=4)
+```json
+[
+  {
+    "claim_id": "6fa78150-309c-42d8-9e71-5d5631ed0472",
+    "short_id": "6fa78150",
+    "subject": "Artemisinin-based combination therapy (ACT)",
+    "predicate": "treats",
+    "object": "uncomplicated falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinin-based combination therapy",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:34452235",
+      "title": "Prevalence of Mutations in the pfcoronin Gene and Association with Ex Vivo Susceptibility to Common Quinoline Drugs against Plasmodium falciparum.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/34452235/"
+    }
+  },
+  {
+    "claim_id": "a0b4fd86-3597-4a5a-b0c4-911a2509196f",
+    "short_id": "a0b4fd86",
+    "subject": "artemisinin-based combination therapy (ACT)",
+    "predicate": "treats",
+    "object": "uncomplicated Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "artemisinin derivative plus partner drug",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:38321292",
+      "title": "Emergence, transmission dynamics and mechanisms of artemisinin partial resistance in malaria parasites in Africa.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38321292/"
+    }
+  },
+  {
+    "claim_id": "0e0e664c-fc0a-496e-bd53-af4d16662638",
+    "short_id": "0e0e664c",
+    "subject": "Plasmodium falciparum",
+    "predicate": "resists",
+    "object": "artemisinin-based combination therapy (ACT)",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "endemic areas",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinin-based combination therapy",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37269964",
+      "title": "Molecular insights into artemisinin resistance in Plasmodium falciparum: An updated review.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37269964/"
+    }
+  },
+  {
+    "claim_id": "44e5407a-a35f-465c-a889-08b6f97534ba",
+    "short_id": "44e5407a",
+    "subject": "artemisinin-based combination therapy (ACT)",
+    "predicate": "treats",
+    "object": "malaria caused by Plasmodium falciparum",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "endemic areas",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinin-based combination therapy",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37269964",
+      "title": "Molecular insights into artemisinin resistance in Plasmodium falciparum: An updated review.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37269964/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-09T07:15:20.346818+00:00
+
+
+===== STDOUT =====
+## Concept Note: Artemisinin-Based Combination Therapy (ACT)
+
+**As of:** 2026-05-09 | **Claims synthesized:** 4 | **Status:** All pending review
+
+---
+
+### Core Identity
+
+ACT = artemisinin derivative + partner drug. First-line standard for uncomplicated *Plasmodium falciparum* malaria in endemic settings and outpatient care.
+
+---
+
+### Claim Synthesis
+
+#### Treatment efficacy (3 claims, high certainty)
+
+| Claim ID | Object | Setting | Regimen note |
+|----------|--------|---------|--------------|
+| `6fa78150` | Uncomplicated falciparum malaria | Endemic | ACT (generic) |
+| `a0b4fd86` | Uncomplicated *P. falciparum* malaria | Outpatient | Artemisinin derivative + partner drug |
+| `44e5407a` | *P. falciparum* malaria | Endemic | ACT (generic) |
+
+**Synthesis:** Claims converge — ACT is established treatment across endemic and outpatient contexts. No dose/kg, duration, or effect size captured; evidence grade is expert opinion across all three. Claims `44e5407a` and `6fa78150` share endemic setting; `a0b4fd86` adds outpatient specificity and names the structural mechanism (combination = derivative + partner).
+
+#### Resistance threat (1 claim, high certainty)
+
+| Claim ID | Subject | Predicate | Region |
+|----------|---------|-----------|--------|
+| `0e0e664c` | *P. falciparum* | resists ACT | Endemic areas |
+
+**Synthesis:** Same endemic settings where ACT is first-line also host documented resistance. High certainty, expert opinion (PMID:37269964 — molecular resistance review). This claim is in direct tension with `44e5407a` (same source paper), reflecting the dual-narrative of the original literature: ACT treats, yet resistance undermines it.
+
+---
+
+### Tensions & Gaps
+
+| Issue | Detail |
+|-------|--------|
+| **Efficacy vs. resistance** | Three claims assert treatment; one asserts resistance — same endemic region, one overlapping source |
+| **No quantitative effect size** | Zero claims carry metric/value/CI — efficacy strength unmeasured |
+| **Evidence grade ceiling** | All 4 = expert opinion. No RCT-level grading present |
+| **Population blanks** | Age, pregnancy, immune status null across all claims |
+| **Resistance mechanism missing** | Claim `0e0e664c` notes resistance exists; no pfkelch13/pfcoronin variant detail captured at claim level |
+
+---
+
+### Source Map
+
+| PMID | Claims | Topic |
+|------|--------|-------|
+| 34452235 | `6fa78150` | pfcoronin mutations & quinoline susceptibility |
+| 38321292 | `a0b4fd86` | Artemisinin partial resistance emergence in Africa |
+| 37269964 | `0e0e664c`, `44e5407a` | Molecular artemisinin resistance mechanisms |
+
+Note: PMID:37269964 yields both a treatment claim and a resistance claim — consistent with a review paper covering both efficacy context and resistance data.
+
+---
+
+### Recommended Next Steps
+
+1. **Upgrade evidence grade** — link RCT/meta-analysis sources for efficacy claims; expert opinion insufficient for clinical decision support
+2. **Populate dose regimen** — 3-day course, specific ACT regimens (AL, ASMQ, DHA-PPQ) should be discrete claims
+3. **Stratify by partner drug** — resistance profiles differ by ACT partner; merge into `0e0e664c` variants
+4. **Add region specificity** — SEA partial resistance vs. emerging African resistance require separate claims
+5. **Resolve claim overlap** — `6fa78150` and `44e5407a` near-duplicate; candidate for supersession after regimen detail added

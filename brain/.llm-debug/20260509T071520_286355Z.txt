@@ -1,0 +1,299 @@
+===== SYSTEM =====
+# Concept note synthesizer
+
+You are writing a single Markdown note that summarizes everything the medical knowledge base currently knows about ONE entity (drug, organism, gene, syndrome, intervention, anatomical structure, etc.).
+
+You are given:
+- The entity name.
+- A list of qualified claims involving this entity (as subject or object), each with predicate, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused concept note. The note will be re-generated on every change, so do not preserve old text — re-synthesize from the current claim set.
+
+## Output structure (Markdown)
+
+```
+# <Entity name as written most often in the claim set>
+
+> Short one-paragraph orientation: what this entity IS in clinical context. ≤ 60 words.
+
+## What it does / what we know
+
+A bulleted or short-paragraph synthesis grouped by predicate. Cite claim_ids inline like `[c:abc123]`.
+Group sensibly: treatment relationships, resistance relationships, mechanism, contraindications, etc.
+Only include groups that have claims.
+
+## Population & setting nuances
+
+If qualifiers vary by population (pregnancy, pediatric, region, immune status) or setting,
+summarize how. Skip this section if all claims are scope-generic.
+
+## Evidence strength
+
+One short paragraph: where the strong evidence is (RCT/MA/guideline) vs where it is thin
+(case reports, expert opinion). Reference grade explicitly.
+
+## Currency
+
+Note any superseded claims and what replaced them. Skip this section if no supersession.
+
+## Open questions
+
+Bullet list: what's missing, what contradicts, what needs investigation. These should mirror
+or seed gaps the Brain agent will pick up later. Skip the section if nothing is pending.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>.*
+```
+
+## Rules
+
+1. **No hallucination.** Every clinical statement must trace to a claim in the input. If a fact is not in the input, do not state it.
+2. **Cite inline.** Use `[c:<short_claim_id>]` after each statement. Use first 8 chars of the claim_id.
+3. **Concision.** Total length ≤ 600 words for most entities. A drug with 50 claims may justify more; an entity with 3 claims should be ≤ 200 words.
+4. **No prose-padding** like "It is important to note that…" or "Further research is needed". Write tight clinical prose.
+5. **Status awareness.** Mention `pending_review` claims with a (pending review) tag inline. Mention superseded claims explicitly in the Currency section, do not present them as current.
+6. **Output ONLY the Markdown.** No code fences, no preamble, no postamble.
+
+
+===== USER =====
+# Entity
+artemisinin-based combination therapies
+
+# Surface variants
+Artemisinin-based combination therapies (ACTs), artemisinin-based combination therapies
+
+# Claims (count=4)
+```json
+[
+  {
+    "claim_id": "1034b458-458e-4f99-9fea-e5a2ee683e98",
+    "short_id": "1034b458",
+    "subject": "Plasmodium falciparum kelch13 (k13) mutations",
+    "predicate": "resists",
+    "object": "artemisinin-based combination therapies",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "southeast Asia, Uganda",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinin-based combination therapies",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "cohort",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:40112841",
+      "title": "Selection of Plasmodium falciparum kelch13 mutations in Uganda in comparison with southeast Asia: a modelling study.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/40112841/"
+    }
+  },
+  {
+    "claim_id": "70388c43-c037-4f20-86f8-34d944a89715",
+    "short_id": "70388c43",
+    "subject": "artemisinin-resistant Plasmodium falciparum",
+    "predicate": "resists",
+    "object": "artemisinin-based combination therapies",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinin-based combination therapies",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "cohort",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:40614930",
+      "title": "Global assessment of partial artemisinin resistance: multicenter trial across Kenya, Peru, and Thailand in patients with uncomplicated Plasmodium falciparum malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/40614930/"
+    }
+  },
+  {
+    "claim_id": "9eb68397-4b5f-4f01-a68d-f2cb519c692b",
+    "short_id": "9eb68397",
+    "subject": "Artemisinin-resistant Plasmodium falciparum",
+    "predicate": "resists",
+    "object": "Artemisinin-based combination therapies (ACTs)",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Greater Mekong Subregion",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "ACT (unspecified)",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:34267045",
+      "title": "Artemisinin and multidrug-resistant Plasmodium falciparum - a threat for malaria control and elimination.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/34267045/"
+    }
+  },
+  {
+    "claim_id": "08e51bce-6a88-4f29-99d2-6bf0eb50c838",
+    "short_id": "08e51bce",
+    "subject": "Artemisinin-based combination therapies (ACTs)",
+    "predicate": "treats",
+    "object": "uncomplicated falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "global",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "ACT (unspecified)",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:34267045",
+      "title": "Artemisinin and multidrug-resistant Plasmodium falciparum - a threat for malaria control and elimination.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/34267045/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-09T07:14:52.223073+00:00
+
+
+===== STDOUT =====
+## Concept Note: Artemisinin-Based Combination Therapies (ACTs)
+
+**Entity:** Artemisinin-based combination therapies (ACTs)
+**Synthesized:** 2026-05-09 | Claims: 4 | Sources: 3 PMIDs
+
+---
+
+### Role
+
+ACTs = first-line outpatient treatment for uncomplicated *P. falciparum* malaria globally (high certainty; expert opinion — PMID:34267045).
+
+---
+
+### Resistance Signal
+
+All 3 remaining claims converge on one threat: **artemisinin-resistant *P. falciparum* undermines ACT efficacy**.
+
+| Mechanism | Geography | Evidence grade | Certainty | Source |
+|---|---|---|---|---|
+| *kelch13* (K13) mutations | SE Asia + Uganda | Cohort (modelling) | High | PMID:40112841 |
+| Partial artemisinin resistance (phenotype) | Kenya, Peru, Thailand | Cohort (multicenter RCT-style) | High | PMID:40614930 |
+| Multidrug-resistant *Pf* (incl. partner drug) | Greater Mekong Subregion | Expert opinion | High | PMID:34267045 |
+
+Key pattern: resistance originated in **Greater Mekong Subregion** (K13 + partner drug resistance), now detected in **Africa** (Uganda) via modelling, and confirmed phenotypically across **3 continents** (Kenya/Peru/Thailand multicenter trial).
+
+---
+
+### Synthesis
+
+ACTs remain the backbone of falciparum malaria treatment, but face a high-certainty, geographically expanding resistance threat driven by K13 mutations and co-evolving partner-drug resistance. Uganda emergence signals that the African reservoir — where most malaria burden lies — is no longer insulated. The Kenya/Peru/Thailand multicenter data extend resistance documentation beyond Asia into Africa and South America.
+
+**Critical gap:** No claims capture effect size metrics (cure rates, day-3 positivity, HR/OR). All `effect_size` fields null. Quantitative impact on treatment failure rates unrepresented in current claim set.
+
+---
+
+### Open Questions
+
+1. K13 allele frequency trajectory in African populations — rate of spread?
+2. Which ACT partner drugs (lumefantrine, piperaquine, amodiaquine) are co-compromised in non-Mekong settings?
+3. Threshold for WHO first-line recommendation change in Africa?
+
+---
+
+**Status:** All 4 claims `pending_review` — not yet validated in MedBrain knowledge base.

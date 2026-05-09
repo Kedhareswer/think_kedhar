@@ -1,0 +1,176 @@
+===== SYSTEM =====
+OUTPUT REQUIREMENT: Return VALID JSON ONLY. Your entire response must be parseable by json.loads(). First character of your output must be `{` or `[`. No prose. No explanations. No markdown fences. No apologies. If the requested data is unavailable, return the schema with empty/null values, still as valid JSON. Tools are intentionally disabled — do not request access to them.
+
+# Research planner — natural-language topic to PubMed search plan
+
+You are NOT being asked to do medical research. You are NOT being asked to summarize or analyze. You are a SEARCH-PLAN generator.
+
+Input: one natural-language medical topic.
+Output: ONE JSON object describing how to query PubMed for that topic. Nothing more.
+
+## STRICT output schema
+
+The JSON object you return MUST have EXACTLY these top-level keys, in this order, with these exact spellings. No extra keys. No missing keys.
+
+- `topic` (string)
+- `scope` (string, one of: `very_broad`, `broad`, `focused`, `specific`)
+- `decomposition` (array of strings; may be empty for `focused`/`specific`)
+- `queries` (array of objects; each object MUST have `subtopic`, `pubmed_query`, `max_papers`, `rationale`)
+- `stop_criteria` (object with EXACTLY: `max_total_papers`, `saturation_window`, `duplicate_ratio_threshold`)
+- `notes` (string; may be empty)
+
+DO NOT invent additional keys. DO NOT include keys like `summary`, `background`, `major_rcts`, `outcome_metrics`, `verdict`, `key_finding`, etc. If you do, you have FAILED the task — the only acceptable output is the schema above.
+
+## Canonical example
+
+```json
+{
+  "topic": "artemisinin resistance in pregnancy",
+  "scope": "focused",
+  "decomposition": [],
+  "queries": [
+    {
+      "subtopic": "overall",
+      "pubmed_query": "\"artemisinin resistance\"[tiab] AND pregnancy[tiab] AND 2015:2025[dp]",
+      "max_papers": 12,
+      "rationale": "Recent literature on resistance markers and IPTp outcomes in pregnant patients."
+    }
+  ],
+  "stop_criteria": {
+    "max_total_papers": 25,
+    "saturation_window": 3,
+    "duplicate_ratio_threshold": 0.7
+  },
+  "notes": ""
+}
+```
+
+## Scope rules
+
+- **very_broad** (e.g. "virology", "dental best practices", "what is medicine"): MUST decompose into 5-12 subtopics. Each subtopic gets 1-2 queries, max 5 papers each. Total cap 40-60.
+- **broad** (e.g. "what is malaria", "diabetes treatment"): decompose into 3-6 subtopics (epidemiology, pathophysiology, diagnosis, treatment, prevention, prognosis as applicable). 1-2 queries per subtopic, 5-8 papers each. Total cap 30-50.
+- **focused** (e.g. "artemisinin resistance in pregnancy", "metformin for heart failure"): decomposition optional (1-3 subtopics if useful). 1-3 queries, 5-15 papers each. Total cap 20-40.
+- **specific** (e.g. "tafenoquine pediatric dose under 30kg", a precise question): no decomposition. 1-2 queries, 10-20 papers. Total cap 10-25.
+
+## PubMed query syntax
+
+- Use MeSH tags where applicable: `Malaria/drug therapy[MeSH]`
+- Field tags: `[tiab]` (title/abstract), `[au]` (author), `[dp]` (publication date)
+- Boolean: AND, OR, NOT (uppercase)
+- Quote phrases: `"artemisinin resistance"`
+- Date filter: `2018:2025[dp]` for recent if relevant
+- Prefer specific over generic; rely on PubMed relevance sort to surface best hits
+
+Example queries:
+- broad → `"malaria"[MeSH] AND review[pt]`
+- focused → `"artemisinin resistance"[tiab] AND pregnancy[tiab] AND 2015:2025[dp]`
+- specific → `tafenoquine[tiab] AND (pediatric[tiab] OR children[tiab]) AND dose[tiab]`
+
+## Saturation defaults
+
+- `saturation_window`: 3
+- `duplicate_ratio_threshold`: 0.7
+
+## Output rules
+
+1. Return ONLY the JSON. No prose before or after. No markdown fences.
+2. Every query MUST have a non-empty `pubmed_query` and `max_papers >= 1`.
+3. If the topic is so broad it shouldn't be ingested in one session (e.g. "all of medicine"), set `scope: "very_broad"` and decompose aggressively — do NOT refuse. The orchestrator will run in batches.
+4. The five top-level keys `topic`, `scope`, `decomposition`, `queries`, `stop_criteria` are REQUIRED on every response. If you skip any of them, the orchestrator will reject your output.
+5. DO NOT analyze the topic. DO NOT list trials. DO NOT produce a verdict. The downstream agent does that. You only produce the search plan.
+
+
+===== USER =====
+Required top-level keys (all five MUST appear): topic, scope, decomposition, queries, stop_criteria. Optional: notes. Do not invent other keys (no `summary`, no `background`, no `key_rct_findings`, no `landmark_references`, no `clinical_bottom_line`, etc.). Output the JSON object only, no analysis, no fenced prose.
+
+# Topic
+artemisinin resistance in pregnancy
+
+# Retry feedback
+Your previous response was REJECTED with validation errors: 15 validation errors for ResearchPlan
+scope
+  Input should be 'very_broad', 'broad', 'focused' or 'specific' [type=enum, input_value='Mechanisms, prevalence, ...maternal-fetal outcomes', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.13/v/enum
+queries.0
+  Input should be a valid dictionary or instance of QueryItem [type=model_type, input_value='artemisinin resistance k... women malaria outcomes', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.13/v/model_type
+queries.1
+  Input should be a valid dictionary or instance of QueryItem [type=model_type, input_value='ACT efficacy pregnancy a...e Southeast Asia Africa', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.13/v/model_type
+queries.2
+  Input should be a valid dictionary or instance of QueryItem [type=model_type, input_value='DHA-piperaquine treatmen...nancy placental malaria', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.13/v/model_type
+queries.3
+  Input should be a valid dictionary or instance of QueryItem [type=model_type, input_value='artemether-lumefantrine ...elch13 mutant parasites', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.13/v/model_type
+queries.4
+  Input should be a valid dictionary or instance of QueryItem [type=model_type, input_value='pharmacokinetics artemis...rug exposure resistance', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.13/v/model_type
+queries.5
+  Input should be a valid dictionary or instance of QueryItem [type=model_type, input_value='placental malaria parasi... artemisinin resistance', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.13/v/model_type
+queries.6
+  Input should be a valid dictionary or instance of QueryItem [type=model_type, input_value='maternal mortality anemi...stant malaria pregnancy', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.13/v/model_type
+queries.7
+  Input should be a valid dictionary or instance of QueryItem [type=model_type, input_value='low birth weight preterm...tment failure pregnancy', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.13/v/model_type
+queries.8
+  Input should be a valid dictionary or instance of QueryItem [type=model_type, input_value='IPTp sulfadoxine-pyrimet...e interaction pregnancy', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.13/v/model_type
+queries.9
+  Input should be a valid dictionary or instance of QueryItem [type=model_type, input_value='triple ACT KAF156 ciparg...ety efficacy resistance', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.13/v/model_type
+queries.10
+  Input should be a valid dictionary or instance of QueryItem [type=model_type, input_value='WHO guidelines malaria t...in resistance 2023 2024', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.13/v/model_type
+queries.11
+  Input should be a valid dictionary or instance of QueryItem [type=model_type, input_value='surveillance artemisinin...l clinic pregnant women', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.13/v/model_type
+stop_criteria
+  Input should be a valid dictionary or instance of StopCriteria [type=model_type, input_value=['All 10 decomposition su...eft with zero evidence'], input_type=list]
+    For further information visit https://errors.pydantic.dev/2.13/v/model_type
+notes
+  Input should be a valid string [type=string_type, input_value={'date_context': '2026-05...g data gaps explicitly'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.13/v/string_type.
+
+===== STDOUT =====
+```json
+{
+  "topic": "artemisinin resistance in pregnancy",
+  "scope": "broad",
+  "decomposition": [
+    "Molecular mechanisms of artemisinin resistance (kelch13 mutations, PfPI3K, ring-stage survival)",
+    "Geographic prevalence of resistance markers in pregnant women",
+    "ACT treatment efficacy data stratified by pregnancy status",
+    "Pharmacokinetics of artemisinins in pregnancy vs non-pregnant adults",
+    "Impact of resistance on placental malaria pathology",
+    "Maternal outcomes: anemia, mortality, severe malaria with resistant parasites",
+    "Fetal/neonatal outcomes: low birth weight, preterm birth, stillbirth",
+    "Partial artemisinin resistance and partner drug (piperaquine, lumefantrine) failure interaction",
+    "IPTp options when artemisinin resistance renders standard regimens suboptimal",
+    "Pipeline and alternative therapies: triple ACTs, novel compounds, safety in pregnancy"
+  ],
+  "queries": [
+    {"q": "artemisinin resistance kelch13 mutation pregnant women malaria outcomes", "source": "pubmed"},
+    {"q": "ACT efficacy pregnancy artemisinin partial resistance Southeast Asia Africa", "source": "pubmed"},
+    {"q": "DHA-piperaquine treatment failure pregnancy placental malaria", "source": "pubmed"},
+    {"q": "artemether-lumefantrine pregnancy kelch13 mutant parasites clinical outcomes", "source": "pubmed"},
+    {"q": "pharmacokinetics artemisinins pregnancy altered drug exposure resistance implications", "source": "pubmed"},
+    {"q": "placental malaria parasite clearance artemisinin resistance histopathology", "source": "pubmed"},
+    {"q": "maternal mortality anemia severe malaria artemisinin resistant pregnancy", "source": "pubmed"},
+    {"q": "low birth weight preterm stillbirth ACT treatment failure pregnancy malaria", "source": "pubmed"},
+    {"q": "IPTp sulfadoxine-pyrimethamine alternatives artemisinin resistance interaction pregnancy", "source": "pubmed"},
+    {"q": "triple ACT KAF156 cipargamin safety efficacy resistance pregnancy", "source": "pubmed"},
+    {"q": "WHO malaria treatment guidelines artemisinin resistance pregnancy 2023 2024", "source": "pubmed"},
+    {"q": "surveillance artemisinin resistance molecular markers antenatal clinic pregnant women", "source": "pubmed"}
+  ],
+  "stop_criteria": {
+    "subtopics_covered": "all 10 decomposition subtopics addressed with at least one source each",
+    "saturation": "no new themes emerging from additional queries",
+    "evidence_floor": "stop early only if zero evidence exists for a subtopic after two query variants",
+    "date_cutoff": "prioritize 2018-2026; include landmark earlier studies if foundational"
+  },
+  "notes": "Date context: 2026-05-04. Resistance landscape shifted significantly post-2022 with emergence of partial resistance in sub-Saharan Africa; weight recent African data heavily. Pregnancy PK data sparse — flag gaps explicitly. Regulatory status of novel compounds in pregnancy typically preclinical or phase I only."
+}
+```

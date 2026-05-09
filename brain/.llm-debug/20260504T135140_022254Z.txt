@@ -1,0 +1,159 @@
+===== SYSTEM =====
+OUTPUT REQUIREMENT: Return VALID JSON ONLY. Your entire response must be parseable by json.loads(). First character of your output must be `{` or `[`. No prose. No explanations. No markdown fences. No apologies. If the requested data is unavailable, return the schema with empty/null values, still as valid JSON. Tools are intentionally disabled — do not request access to them.
+
+# Student extractor — qualified claims from a PubMed abstract
+
+You are extracting **atomic, qualified medical claims** from a malaria-focused biomedical abstract.
+
+## Output format
+
+Return a JSON array. Each element is one qualified claim.
+
+```json
+[
+  {
+    "subject": "string — entity name (drug, organism, gene, syndrome, intervention)",
+    "predicate": "one of: treats | causes | resists | requires | contraindicates | prevents | co_occurs | recommends",
+    "object": "string — entity or value",
+    "qualifiers": {
+      "population": {
+        "age_range": "e.g. adults | pediatric | <5 years | pregnant | null",
+        "pregnancy": "first_trimester | second_third_trimester | not_pregnant | null",
+        "region": "geographic region — e.g. Greater Mekong | West Africa | sub-Saharan Africa | null",
+        "immune_status": "naive | semi-immune | immunocompromised | null",
+        "comorbidities": ["list of strings or empty"]
+      },
+      "setting": {
+        "care_level": "outpatient | inpatient | community | null",
+        "endemic_status": "endemic | non_endemic | traveler | null"
+      },
+      "dose_regimen": {
+        "drug": "string or null",
+        "mg_per_kg": "number or null",
+        "frequency": "string or null",
+        "duration": "string or null"
+      },
+      "comparator": "what the intervention was compared against — string or null",
+      "effect_size": {
+        "metric": "e.g. day-3 positivity rate | parasite clearance time | hazard ratio | null",
+        "value": "number or null",
+        "ci_low": "number or null",
+        "ci_high": "number or null"
+      }
+    },
+    "certainty": "high | moderate | low | very_low",
+    "evidence_note": "one short sentence on why this certainty (sample size, design quality, etc.)"
+  }
+]
+```
+
+## Rules
+
+1. **Atomic.** Each claim is one subject-predicate-object triple. If an abstract states "X treats Y AND X causes Z", emit two claims.
+2. **Qualified.** Populate `qualifiers` from what the abstract explicitly states. Leave NULL if not stated — do NOT invent values.
+3. **Predicates.** Use only the listed enum values. Map free-text to the closest:
+   - "is associated with" / "linked to" / "shown to be effective for" → `treats` if therapeutic, `prevents` if prophylactic
+   - "induces resistance" / "selects for resistance" / "associated with treatment failure" → `resists` (when subject = parasite/pathogen, object = drug)
+   - "should not be given to" / "avoid in" → `contraindicates`
+   - WHO/CDC/national-program statements like "is recommended for" → `recommends`
+4. **Subject vs object.** For resistance claims, subject is the parasite/pathogen, object is the drug. For treatment, subject is the drug/intervention, object is the disease/population.
+5. **Certainty mapping:**
+   - `high`: large RCT or meta-analysis with consistent results, or current WHO guideline
+   - `moderate`: cohort study, smaller RCT, well-designed observational
+   - `low`: case-control, single-site observational, conflicting evidence
+   - `very_low`: case report, expert opinion, in-vitro only, mechanistic inference
+6. **Skip non-claims.** Background statements ("Malaria affects 200M people"), methodology ("We enrolled 1241 patients"), and meta-commentary ("Further research is needed") are NOT claims. Skip them.
+7. **No claims is a valid output.** If the abstract is purely descriptive epidemiology with no actionable medical claim, return `[]`.
+
+## Output
+
+Return ONLY the JSON array. No prose before or after.
+
+
+===== USER =====
+# Title
+Artesunate-amodiaquine fixed dose combination for the treatment of Plasmodium falciparum malaria in India.
+
+# Abstract
+BACKGROUND: Artemisinin-based combination therapy (ACT) has been recommended for the treatment of falciparum malaria by the World Health Organization. Though India has already switched to ACT for treating falciparum malaria, there is need to have multiple options of alternative forms of ACT. A randomized trial was conducted to assess the safety and efficacy of the fixed dose combination of artesunate-amodiaquine (ASAQ) and amodiaquine (AQ) for the treatment of uncomplicated falciparum malaria for the first time in India. The study sites are located in malaria-endemic, chloroquine-resistant areas.
+
+METHODS: This was an open label, randomized trial conducted at two sites in India from January 2007 to January 2008. Patients between six months and 60 years of age having Plasmodium falciparum mono-infection were randomly allocated to ASAQ and AQ arms. The primary endpoint was 28-day PCR-corrected parasitological cure rate.
+
+RESULTS: Three hundred patients were enrolled at two participating centres, Ranchi, Jharkhand and Rourkela, Odisha. Two patients in AQ arm had early treatment failure while there was no early treatment failure in ASAQ arm. Late treatment failures were seen in 13 and 12 patients in ASAQ and AQ arms, respectively. The PCR-corrected cure rates in intent-to-treat population were 97.51% (94.6-99.1%) in ASAQ and 88.65% (81.3-93.9%) in AQ arms. In per-protocol population, they were 97.47% (94.2-99.2%) and 88.30% (80-94%) in ASAQ and AQ arms respectively. Seven serious adverse events (SAEs) were reported in five patients, of which two were reported as related to the treatment. All SAEs resolved without sequel.
+
+CONCLUSION: The fixed dose combination of ASAQ was found to be efficacious and safe treatment for P. falciparum malaria. Amodiaquine also showed acceptable efficacy, making it a suitable partner of artesunate. The combination could prove to be a viable option in case India opts for fixed dose combination ACT.
+
+CLINICAL TRIAL REGISTRY: ISRCTN84408319.
+
+# Publication types
+Journal Article, Randomized Controlled Trial, Research Support, Non-U.S. Gov't
+
+===== STDOUT =====
+```json
+{
+  "title": "Artesunate-amodiaquine fixed dose combination for the treatment of Plasmodium falciparum malaria in India.",
+  "publication_types": [
+    "Journal Article",
+    "Randomized Controlled Trial",
+    "Research Support, Non-U.S. Gov't"
+  ],
+  "clinical_trial_registry": "ISRCTN84408319",
+  "study_design": {
+    "type": "Open label randomized controlled trial",
+    "sites": 2,
+    "location": "India",
+    "period": "January 2007 to January 2008",
+    "arms": ["ASAQ", "AQ"]
+  },
+  "population": {
+    "total_enrolled": 300,
+    "age_range": "6 months to 60 years",
+    "inclusion_criteria": "Plasmodium falciparum mono-infection, uncomplicated",
+    "sites": [
+      {"city": "Ranchi", "state": "Jharkhand"},
+      {"city": "Rourkela", "state": "Odisha"}
+    ],
+    "area_characteristics": ["malaria-endemic", "chloroquine-resistant"]
+  },
+  "interventions": {
+    "experimental": "Artesunate-amodiaquine fixed dose combination (ASAQ)",
+    "comparator": "Amodiaquine monotherapy (AQ)"
+  },
+  "primary_endpoint": "28-day PCR-corrected parasitological cure rate",
+  "results": {
+    "early_treatment_failure": {
+      "ASAQ": 0,
+      "AQ": 2
+    },
+    "late_treatment_failure": {
+      "ASAQ": 13,
+      "AQ": 12
+    },
+    "pcr_corrected_cure_rate": {
+      "intent_to_treat": {
+        "ASAQ": {"rate_percent": 97.51, "ci_95": "94.6-99.1%"},
+        "AQ": {"rate_percent": 88.65, "ci_95": "81.3-93.9%"}
+      },
+      "per_protocol": {
+        "ASAQ": {"rate_percent": 97.47, "ci_95": "94.2-99.2%"},
+        "AQ": {"rate_percent": 88.30, "ci_95": "80-94%"}
+      }
+    },
+    "serious_adverse_events": {
+      "total_events": 7,
+      "total_patients_affected": 5,
+      "treatment_related": 2,
+      "outcome": "All resolved without sequelae"
+    }
+  },
+  "conclusions": {
+    "ASAQ_efficacy": "Efficacious and safe for P. falciparum malaria",
+    "AQ_efficacy": "Acceptable efficacy; suitable partner for artesunate",
+    "recommendation": "ASAQ fixed dose combination is a viable ACT option for India"
+  },
+  "background": {
+    "context": "WHO recommends ACT for falciparum malaria; India had already switched to ACT; study explores alternative ACT options",
+    "first_in_india": true
+  }
+}
+```

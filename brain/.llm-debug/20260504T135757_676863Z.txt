@@ -1,0 +1,161 @@
+===== SYSTEM =====
+OUTPUT REQUIREMENT: Return VALID JSON ONLY. Your entire response must be parseable by json.loads(). First character of your output must be `{` or `[`. No prose. No explanations. No markdown fences. No apologies. If the requested data is unavailable, return the schema with empty/null values, still as valid JSON. Tools are intentionally disabled — do not request access to them.
+
+# Student extractor — qualified claims from a PubMed abstract
+
+You are extracting **atomic, qualified medical claims** from a malaria-focused biomedical abstract.
+
+## Output format
+
+Return a JSON array. Each element is one qualified claim.
+
+```json
+[
+  {
+    "subject": "string — entity name (drug, organism, gene, syndrome, intervention)",
+    "predicate": "one of: treats | causes | resists | requires | contraindicates | prevents | co_occurs | recommends",
+    "object": "string — entity or value",
+    "qualifiers": {
+      "population": {
+        "age_range": "e.g. adults | pediatric | <5 years | pregnant | null",
+        "pregnancy": "first_trimester | second_third_trimester | not_pregnant | null",
+        "region": "geographic region — e.g. Greater Mekong | West Africa | sub-Saharan Africa | null",
+        "immune_status": "naive | semi-immune | immunocompromised | null",
+        "comorbidities": ["list of strings or empty"]
+      },
+      "setting": {
+        "care_level": "outpatient | inpatient | community | null",
+        "endemic_status": "endemic | non_endemic | traveler | null"
+      },
+      "dose_regimen": {
+        "drug": "string or null",
+        "mg_per_kg": "number or null",
+        "frequency": "string or null",
+        "duration": "string or null"
+      },
+      "comparator": "what the intervention was compared against — string or null",
+      "effect_size": {
+        "metric": "e.g. day-3 positivity rate | parasite clearance time | hazard ratio | null",
+        "value": "number or null",
+        "ci_low": "number or null",
+        "ci_high": "number or null"
+      }
+    },
+    "certainty": "high | moderate | low | very_low",
+    "evidence_note": "one short sentence on why this certainty (sample size, design quality, etc.)"
+  }
+]
+```
+
+## Rules
+
+1. **Atomic.** Each claim is one subject-predicate-object triple. If an abstract states "X treats Y AND X causes Z", emit two claims.
+2. **Qualified.** Populate `qualifiers` from what the abstract explicitly states. Leave NULL if not stated — do NOT invent values.
+3. **Predicates.** Use only the listed enum values. Map free-text to the closest:
+   - "is associated with" / "linked to" / "shown to be effective for" → `treats` if therapeutic, `prevents` if prophylactic
+   - "induces resistance" / "selects for resistance" / "associated with treatment failure" → `resists` (when subject = parasite/pathogen, object = drug)
+   - "should not be given to" / "avoid in" → `contraindicates`
+   - WHO/CDC/national-program statements like "is recommended for" → `recommends`
+4. **Subject vs object.** For resistance claims, subject is the parasite/pathogen, object is the drug. For treatment, subject is the drug/intervention, object is the disease/population.
+5. **Certainty mapping:**
+   - `high`: large RCT or meta-analysis with consistent results, or current WHO guideline
+   - `moderate`: cohort study, smaller RCT, well-designed observational
+   - `low`: case-control, single-site observational, conflicting evidence
+   - `very_low`: case report, expert opinion, in-vitro only, mechanistic inference
+6. **Skip non-claims.** Background statements ("Malaria affects 200M people"), methodology ("We enrolled 1241 patients"), and meta-commentary ("Further research is needed") are NOT claims. Skip them.
+7. **No claims is a valid output.** If the abstract is purely descriptive epidemiology with no actionable medical claim, return `[]`.
+
+## Output
+
+Return ONLY the JSON array. No prose before or after.
+
+
+===== USER =====
+# Title
+Efficacy and safety of artemisinin-based combination therapy for uncomplicated Plasmodium falciparum malaria in Sudan: a systematic review and meta-analysis.
+
+# Abstract
+BACKGROUND: Malaria is a major public health problem in endemic countries including Sudan, where about 75% of populations are at risk. Due to widespread of chloroquine-resistant strains of Plasmodium falciparum, artemisinin-based combination therapy (ACT) is currently treatment of choice for malaria in the vast majority of malaria-endemic countries. This systematic review and meta-analysis is performed to obtain an overall stronger evidence of the outcomes of ACT in the treatment of uncomplicated falciparum malaria from the existing literature in Sudan.
+
+METHODS: The preferred reporting items for systematic review and meta-analysis statement were used to select studies to be included in this review. A computerized systematic strategy was adopted to search articles from PubMed, Google Scholar and Science Direct databases. Unpublished materials were also included. Open Meta-Analyst software was used to perform the meta-analysis. Random effects model was used to combine the included studies and the heterogeneity of studies was assessed using Cochrane Q and I2 (χ2 = 73.05, df (19), P < 0.001 and I2 = 73.99).
+
+RESULTS: Twenty studies fulfilled the inclusion criteria (ACT in the treatment of uncomplicated falciparum malaria) and were included in the final analysis with a total number of 4070 participants. Malaria treatment outcome was assessed using World Health Organization guidelines. Adequate clinical and parasitological response was used to assess treatment success at the 28th day. Treatment success of all combined studies was 98% [(95% CI 97.2-98.8%), P < 0.001]. Treatment success was higher in malaria patients treated with artemether + lumefantrine (AL) than patients treated with artesunate + sulfadoxine-pyrimethamine (AS + SP) (98.9% (95% CI 98.4-99.4%) vs 97.1% (95% CI 95.5-98.6%), P < 0.001). Eleven studies reported adverse drug reactions (ADRs) to ACT (184 participants out of 3957 (4.65%). The ADRs were mild and resolved spontaneously. There was no severe ADRs or deaths.
+
+CONCLUSION: Based on this review, the overall malaria treatment success was high (98%). AL regimen showed higher efficacy compared to AS + SP. The overall regimens were associated with mild low rates ADRs.
+
+# Publication types
+Journal Article, Meta-Analysis, Systematic Review
+
+===== STDOUT =====
+```json
+{
+  "title": "Efficacy and safety of artemisinin-based combination therapy for uncomplicated Plasmodium falciparum malaria in Sudan: a systematic review and meta-analysis",
+  "publication_types": [
+    "Journal Article",
+    "Meta-Analysis",
+    "Systematic Review"
+  ],
+  "background": {
+    "condition": "Uncomplicated Plasmodium falciparum malaria",
+    "setting": "Sudan",
+    "population_at_risk_percent": 75,
+    "treatment": "Artemisinin-based combination therapy (ACT)",
+    "reason_for_ACT": "Widespread chloroquine-resistant strains of P. falciparum"
+  },
+  "methods": {
+    "reporting_guideline": "PRISMA (Preferred Reporting Items for Systematic Reviews and Meta-Analyses)",
+    "databases_searched": ["PubMed", "Google Scholar", "Science Direct"],
+    "unpublished_materials_included": true,
+    "software": "Open Meta-Analyst",
+    "statistical_model": "Random effects model",
+    "heterogeneity": {
+      "chi_square": 73.05,
+      "degrees_of_freedom": 19,
+      "p_value": "<0.001",
+      "I2_percent": 73.99
+    },
+    "outcome_assessment_guideline": "WHO guidelines",
+    "primary_endpoint": "Adequate Clinical and Parasitological Response (ACPR) at day 28"
+  },
+  "results": {
+    "studies_included": 20,
+    "total_participants": 4070,
+    "overall_treatment_success": {
+      "percent": 98,
+      "CI_95_lower": 97.2,
+      "CI_95_upper": 98.8,
+      "p_value": "<0.001"
+    },
+    "by_regimen": [
+      {
+        "regimen": "Artemether + Lumefantrine (AL)",
+        "treatment_success_percent": 98.9,
+        "CI_95_lower": 98.4,
+        "CI_95_upper": 99.4
+      },
+      {
+        "regimen": "Artesunate + Sulfadoxine-Pyrimethamine (AS+SP)",
+        "treatment_success_percent": 97.1,
+        "CI_95_lower": 95.5,
+        "CI_95_upper": 98.6
+      }
+    ],
+    "adverse_drug_reactions": {
+      "studies_reporting_ADR": 11,
+      "participants_with_ADR": 184,
+      "total_participants_in_ADR_studies": 3957,
+      "ADR_rate_percent": 4.65,
+      "severity": "Mild",
+      "resolved_spontaneously": true,
+      "severe_ADR": false,
+      "deaths": 0
+    }
+  },
+  "conclusions": {
+    "overall_treatment_success_percent": 98,
+    "preferred_regimen": "AL",
+    "AL_superior_to_AS_SP": true,
+    "safety_profile": "Mild, low-rate adverse drug reactions"
+  }
+}
+```

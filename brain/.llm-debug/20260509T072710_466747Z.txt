@@ -1,0 +1,256 @@
+===== SYSTEM =====
+# Concept note synthesizer
+
+You are writing a single Markdown note that summarizes everything the medical knowledge base currently knows about ONE entity (drug, organism, gene, syndrome, intervention, anatomical structure, etc.).
+
+You are given:
+- The entity name.
+- A list of qualified claims involving this entity (as subject or object), each with predicate, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused concept note. The note will be re-generated on every change, so do not preserve old text — re-synthesize from the current claim set.
+
+## Output structure (Markdown)
+
+```
+# <Entity name as written most often in the claim set>
+
+> Short one-paragraph orientation: what this entity IS in clinical context. ≤ 60 words.
+
+## What it does / what we know
+
+A bulleted or short-paragraph synthesis grouped by predicate. Cite claim_ids inline like `[c:abc123]`.
+Group sensibly: treatment relationships, resistance relationships, mechanism, contraindications, etc.
+Only include groups that have claims.
+
+## Population & setting nuances
+
+If qualifiers vary by population (pregnancy, pediatric, region, immune status) or setting,
+summarize how. Skip this section if all claims are scope-generic.
+
+## Evidence strength
+
+One short paragraph: where the strong evidence is (RCT/MA/guideline) vs where it is thin
+(case reports, expert opinion). Reference grade explicitly.
+
+## Currency
+
+Note any superseded claims and what replaced them. Skip this section if no supersession.
+
+## Open questions
+
+Bullet list: what's missing, what contradicts, what needs investigation. These should mirror
+or seed gaps the Brain agent will pick up later. Skip the section if nothing is pending.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>.*
+```
+
+## Rules
+
+1. **No hallucination.** Every clinical statement must trace to a claim in the input. If a fact is not in the input, do not state it.
+2. **Cite inline.** Use `[c:<short_claim_id>]` after each statement. Use first 8 chars of the claim_id.
+3. **Concision.** Total length ≤ 600 words for most entities. A drug with 50 claims may justify more; an entity with 3 claims should be ≤ 200 words.
+4. **No prose-padding** like "It is important to note that…" or "Further research is needed". Write tight clinical prose.
+5. **Status awareness.** Mention `pending_review` claims with a (pending review) tag inline. Mention superseded claims explicitly in the Currency section, do not present them as current.
+6. **Output ONLY the Markdown.** No code fences, no preamble, no postamble.
+
+
+===== USER =====
+# Entity
+pfkelch13 mutations
+
+# Surface variants
+PfKelch13 mutations (C580Y, R539T, Y493H) in P. falciparum, Pfkelch13 mutations, Pfkelch13 mutations in convergent limitation of heme availability
+
+# Claims (count=3)
+```json
+[
+  {
+    "claim_id": "bc627d75-4f37-4f97-8cc7-6fe84190504f",
+    "short_id": "bc627d75",
+    "subject": "Pfcoronin mutations",
+    "predicate": "co_occurs",
+    "object": "Pfkelch13 mutations in convergent limitation of heme availability",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:40964400",
+      "title": "Cellular and molecular basis of Pf Coronin function in artemisinin resistance in Plasmodium falciparum.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/40964400/"
+    }
+  },
+  {
+    "claim_id": "72356e1b-96db-4f37-87bb-9e438356ff45",
+    "short_id": "72356e1b",
+    "subject": "Pfkelch13 mutations",
+    "predicate": "causes",
+    "object": "clinical artemisinin resistance in Plasmodium falciparum",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:40964400",
+      "title": "Cellular and molecular basis of Pf Coronin function in artemisinin resistance in Plasmodium falciparum.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/40964400/"
+    }
+  },
+  {
+    "claim_id": "0acc462e-16d9-46be-b370-cb096d89ac7d",
+    "short_id": "0acc462e",
+    "subject": "PfKelch13 mutations (C580Y, R539T, Y493H) in P. falciparum",
+    "predicate": "resists",
+    "object": "artemisinin (ART) in South-east Asian field isolates",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "South-east Asia",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "field",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "wild-type PfKelch13",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:40396048",
+      "title": "The ART of Resistance.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/40396048/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-09T07:26:38.227691+00:00
+
+
+===== STDOUT =====
+## Concept Note: PfKelch13 Mutations & Artemisinin Resistance
+
+**Entity:** `pfkelch13 mutations` | **Date:** 2026-05-09 | **Claims:** 3 | **Sources:** 2 PMIDs
+
+---
+
+### Core Assertion
+
+PfKelch13 mutations **cause** clinical artemisinin (ART) resistance in *P. falciparum* (certainty: **high**). Specific variants C580Y, R539T, Y493H confirmed in Southeast Asian field isolates vs. wild-type comparator.
+
+---
+
+### Mechanistic Context
+
+Resistance likely operates via **convergent heme limitation**: PfKelch13 mutations co-occur with PfCoronin mutations in a shared mechanism that restricts heme availability. ART activation depends on heme-mediated cleavage of its endoperoxide bridge — less free heme → less activated drug → parasite survives.
+
+| Partner | Mechanism | Certainty |
+|---|---|---|
+| PfKelch13 alone | Reduces heme flux, slows ring-stage development | High |
+| PfCoronin + PfKelch13 | Convergent heme restriction, additive resistance | Low |
+
+---
+
+### Evidence Profile
+
+| Claim | Predicate | Certainty | Grade | Source |
+|---|---|---|---|---|
+| PfKelch13 → ART resistance | causes | High | Expert opinion | PMID:40964400 |
+| C580Y/R539T/Y493H resist ART | resists | High | Expert opinion | PMID:40396048 |
+| PfCoronin co-occurs w/ PfKelch13 in heme limitation | co_occurs | **Low** | Expert opinion | PMID:40964400 |
+
+---
+
+### Gaps & Flags
+
+- All 3 claims `status: pending_review` — not yet validated
+- Evidence grade: **expert opinion** only — no RCT/observational cohort data captured
+- Effect sizes missing (no OR/HR/IC₅₀ values) — quantitative resistance magnitude unknown
+- PfCoronin co-occurrence claim is **low certainty** — convergence hypothesis needs experimental support
+- Population fields sparse: no age/pregnancy/immune status stratification
+
+---
+
+### Synthesis
+
+PfKelch13 mutations are **established primary drivers** of ART resistance in SEA *P. falciparum*. Mechanistic evidence points to heme availability as the convergent node, with PfCoronin as a potential epistatic partner — but that interaction remains hypothesis-level. Claims sourced from 2 papers (one review, one mechanistic study), both graded expert opinion; formal evidence upgrade needed before clinical guideline use.

@@ -1,0 +1,512 @@
+===== SYSTEM =====
+OUTPUT REQUIREMENT: Return VALID JSON ONLY. Your entire response must be parseable by json.loads(). First character of your output must be `{` or `[`. No prose. No explanations. No markdown fences. No apologies. If the requested data is unavailable, return the schema with empty/null values, still as valid JSON. Tools are intentionally disabled — do not request access to them.
+
+/# Student extractor — qualified claims from a PubMed abstract
+
+You are extracting **atomic, qualified medical claims** from a malaria-focused biomedical abstract.
+
+## Output format
+
+Return a JSON array. Each element is one qualified claim.
+
+```json
+[
+  {
+    "subject": "string — entity name (drug, organism, gene, syndrome, intervention)",
+    "predicate": "one of: treats | causes | resists | requires | contraindicates | prevents | co_occurs | recommends",
+    "object": "string — entity or value",
+    "qualifiers": {
+      "population": {
+        "age_range": "e.g. adults | pediatric | <5 years | pregnant | null",
+        "pregnancy": "first_trimester | second_third_trimester | not_pregnant | null",
+        "region": "geographic region — e.g. Greater Mekong | West Africa | sub-Saharan Africa | null",
+        "immune_status": "naive | semi-immune | immunocompromised | null",
+        "comorbidities": ["list of strings or empty"]
+      },
+      "setting": {
+        "care_level": "outpatient | inpatient | community | null",
+        "endemic_status": "endemic | non_endemic | traveler | null"
+      },
+      "dose_regimen": {
+        "drug": "string or null",
+        "mg_per_kg": "number or null",
+        "frequency": "string or null",
+        "duration": "string or null"
+      },
+      "comparator": "what the intervention was compared against — string or null",
+      "effect_size": {
+        "metric": "e.g. day-3 positivity rate | parasite clearance time | hazard ratio | null",
+        "value": "number or null",
+        "ci_low": "number or null",
+        "ci_high": "number or null"
+      }
+    },
+    "certainty": "high | moderate | low | very_low",
+    "evidence_note": "one short sentence on why this certainty (sample size, design quality, etc.)"
+  }
+]
+```
+
+## Rules
+
+1. **Atomic.** Each claim is one subject-predicate-object triple. If an abstract states "X treats Y AND X causes Z", emit two claims.
+2. **Qualified.** Populate `qualifiers` from what the abstract explicitly states. Leave NULL if not stated — do NOT invent values.
+3. **Predicates.** Use only the listed enum values. Map free-text to the closest:
+   - "is associated with" / "linked to" / "shown to be effective for" → `treats` if therapeutic, `prevents` if prophylactic
+   - "induces resistance" / "selects for resistance" / "associated with treatment failure" → `resists` (when subject = parasite/pathogen, object = drug)
+   - "should not be given to" / "avoid in" → `contraindicates`
+   - WHO/CDC/national-program statements like "is recommended for" → `recommends`
+4. **Subject vs object.** For resistance claims, subject is the parasite/pathogen, object is the drug. For treatment, subject is the drug/intervention, object is the disease/population.
+5. **Certainty mapping:**
+   - `high`: large RCT or meta-analysis with consistent results, or current WHO guideline
+   - `moderate`: cohort study, smaller RCT, well-designed observational
+   - `low`: case-control, single-site observational, conflicting evidence
+   - `very_low`: case report, expert opinion, in-vitro only, mechanistic inference
+6. **Skip non-claims.** Background statements ("Malaria affects 200M people"), methodology ("We enrolled 1241 patients"), and meta-commentary ("Further research is needed") are NOT claims. Skip them.
+7. **No claims is a valid output.** If the abstract is purely descriptive epidemiology with no actionable medical claim, return `[]`.
+
+## DO NOT
+
+- DO NOT summarize the abstract.
+- DO NOT return a `{"title": ..., "methods": [...], "key_findings": [...]}` paper-summary object. That is wrong.
+- DO NOT wrap claims in any object key. The top-level value must be a JSON array `[ ... ]`.
+- DO NOT return an array of strings like `["Drug X treats Y", "Drug Z prevents W"]`. Each element MUST be a full JSON object with the keys: `subject`, `predicate`, `object`, `qualifiers`, `certainty`, `evidence_note`.
+- DO NOT invent facts not in the abstract.
+
+## More wrong examples
+
+```json
+["Artemisinin treats malaria", "Chloroquine resistance rising"]
+```
+
+```json
+{"claims": ["..."]}
+```
+
+Both wrong. Each claim must be a full object as shown in the schema above.
+
+## Negative example (WRONG)
+
+```json
+{"title": "...", "key_findings": [{"finding": "..."}], "conclusion": "..."}
+```
+
+## Positive example (CORRECT)
+
+```json
+[
+  {
+    "subject": "artemether-lumefantrine",
+    "predicate": "treats",
+    "object": "uncomplicated P. falciparum malaria",
+    "qualifiers": {
+      "population": {"age_range": "adults", "pregnancy": null, "region": "sub-Saharan Africa", "immune_status": null, "comorbidities": []},
+      "setting": {"care_level": "outpatient", "endemic_status": "endemic"},
+      "dose_regimen": {"drug": "artemether-lumefantrine", "mg_per_kg": null, "frequency": "twice daily", "duration": "3 days"},
+      "comparator": "dihydroartemisinin-piperaquine",
+      "effect_size": {"metric": "day-28 PCR-corrected cure rate", "value": 96.2, "ci_low": 94.1, "ci_high": 97.8}
+    },
+    "certainty": "high",
+    "evidence_note": "Multi-site RCT, n=1241, day-28 PCR-corrected efficacy."
+  }
+]
+```
+
+## Output
+
+Return ONLY the JSON array. First character of your response must be `[`. No prose before or after. If no qualified claims exist, return `[]`.
+
+
+===== USER =====
+# Title
+Efficacy and safety of artemether-lumefantrine and dihydroartemisinin-piperaquine for the treatment of uncomplicated Plasmodium falciparum malaria and prevalence of molecular markers associated with artemisinin and partner drug resistance in Uganda.
+
+# Abstract
+BACKGROUND: In Uganda, artemether-lumefantrine (AL) is first-line therapy and dihydroartemisinin-piperaquine (DP) second-line therapy for the treatment of uncomplicated malaria. This study evaluated the efficacy and safety of AL and DP in the management of uncomplicated falciparum malaria and measured the prevalence of molecular markers of resistance in three sentinel sites in Uganda from 2018 to 2019.
+
+METHODS: This was a randomized, open-label, phase IV clinical trial. Children aged 6 months to 10 years with uncomplicated falciparum malaria were randomly assigned to treatment with AL or DP and followed for 28 and 42 days, respectively. Genotyping was used to distinguish recrudescence from new infection, and a Bayesian algorithm was used to assign each treatment failure a posterior probability of recrudescence. For monitoring resistance, Pfk13 and Pfmdr1 genes were Sanger sequenced and plasmepsin-2 copy number was assessed by qPCR.
+
+RESULTS: There were no early treatment failures. The uncorrected 28-day cumulative efficacy of AL ranged from 41.2 to 71.2% and the PCR-corrected cumulative 28-day efficacy of AL ranged from 87.2 to 94.4%. The uncorrected 28-day cumulative efficacy of DP ranged from 95.8 to 97.9% and the PCR-corrected cumulative 28-day efficacy of DP ranged from 98.9 to 100%. The uncorrected 42-day efficacy of DP ranged from 73.5 to 87.4% and the PCR-corrected 42-day efficacy of DP ranged from 92.1 to 97.5%. There were no reported serious adverse events associated with any of the regimens. No resistance-associated mutations in the Pfk13 gene were found in the successfully sequenced samples. In the AL arm, the NFD haplotype (N86Y, Y184F, D1246Y) was the predominant Pfmdr1 haplotype, present in 78 of 127 (61%) and 76 of 110 (69%) of the day 0 and day of failure samples, respectively. All the day 0 samples in the DP arm had one copy of the plasmepsin-2 gene.
+
+CONCLUSIONS: DP remains highly effective and safe for the treatment of uncomplicated malaria in Uganda. Recurrent infections with AL were common. In Busia and Arua, the 95% confidence interval for PCR-corrected AL efficacy fell below 90%. Further efficacy monitoring for AL, including pharmacokinetic studies, is recommended. Trial registration The trail was also registered with the ISRCTN registry with study Trial No. PACTR201811640750761.
+
+# Publication types
+Journal Article
+# Task
+Extract atomic qualified medical claims from the abstract above. Return a JSON ARRAY (not a paper-summary object). Each element MUST be an object with exactly these keys: subject, predicate, object, qualifiers, certainty, evidence_note.
+
+STRICT FIELD CONSTRAINTS:
+- `predicate` MUST be EXACTLY one of: treats, causes, resists, requires, contraindicates, prevents, co_occurs, recommends, supersedes. Map free-text relations to the closest enum. NO other values allowed. If you cannot map cleanly, drop the claim.
+- `certainty` MUST be EXACTLY one of: high, moderate, low, very_low. NO other values (no 'established', no 'low-to-moderate').
+- `qualifiers` MUST be an object with the nested shape: {population:{age_range, pregnancy, region, immune_status, comorbidities}, setting:{care_level, endemic_status}, dose_regimen:{drug, mg_per_kg, frequency, duration}, comparator, effect_size:{metric, value, ci_low, ci_high}}. Use null for unknown leaf values. DO NOT use a flat free-form qualifiers object.
+- `subject` and `object` MUST be non-empty strings.
+
+DO NOT summarize the paper. DO NOT return {"title":...,"key_findings":...}. DO NOT return an array of strings. If no qualified claims exist, return [].
+Your output MUST start with `[` and end with `]`. Output ONLY the JSON array, nothing else.
+
+===== STDOUT =====
+[
+  {
+    "subject": "artemether-lumefantrine",
+    "predicate": "treats",
+    "object": "uncomplicated Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "6 months to 10 years",
+        "pregnancy": null,
+        "region": "Uganda (three sentinel sites)",
+        "immune_status": null,
+        "comorbidities": null
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemether-lumefantrine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": "28-day follow-up"
+      },
+      "comparator": "dihydroartemisinin-piperaquine",
+      "effect_size": {
+        "metric": "PCR-corrected 28-day cumulative efficacy",
+        "value": null,
+        "ci_low": 87.2,
+        "ci_high": 94.4
+      }
+    },
+    "certainty": "moderate",
+    "evidence_note": "Randomized open-label phase IV trial 2018-2019; PCR-corrected 28-day efficacy ranged 87.2-94.4% across three sentinel sites; range reflects site variation not traditional CI"
+  },
+  {
+    "subject": "dihydroartemisinin-piperaquine",
+    "predicate": "treats",
+    "object": "uncomplicated Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "6 months to 10 years",
+        "pregnancy": null,
+        "region": "Uganda (three sentinel sites)",
+        "immune_status": null,
+        "comorbidities": null
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "dihydroartemisinin-piperaquine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": "28-day follow-up"
+      },
+      "comparator": "artemether-lumefantrine",
+      "effect_size": {
+        "metric": "PCR-corrected 28-day cumulative efficacy",
+        "value": null,
+        "ci_low": 98.9,
+        "ci_high": 100.0
+      }
+    },
+    "certainty": "high",
+    "evidence_note": "Randomized open-label phase IV trial; PCR-corrected 28-day efficacy ranged 98.9-100% across three sentinel sites"
+  },
+  {
+    "subject": "dihydroartemisinin-piperaquine",
+    "predicate": "treats",
+    "object": "uncomplicated Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "6 months to 10 years",
+        "pregnancy": null,
+        "region": "Uganda (three sentinel sites)",
+        "immune_status": null,
+        "comorbidities": null
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "dihydroartemisinin-piperaquine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": "42-day follow-up"
+      },
+      "comparator": "artemether-lumefantrine",
+      "effect_size": {
+        "metric": "PCR-corrected 42-day cumulative efficacy",
+        "value": null,
+        "ci_low": 92.1,
+        "ci_high": 97.5
+      }
+    },
+    "certainty": "high",
+    "evidence_note": "Randomized open-label phase IV trial; PCR-corrected 42-day efficacy ranged 92.1-97.5% across three sentinel sites"
+  },
+  {
+    "subject": "Plasmodium falciparum",
+    "predicate": "resists",
+    "object": "artemether-lumefantrine",
+    "qualifiers": {
+      "population": {
+        "age_range": "6 months to 10 years",
+        "pregnancy": null,
+        "region": "Uganda (Busia and Arua)",
+        "immune_status": null,
+        "comorbidities": null
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemether-lumefantrine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "PCR-corrected 28-day efficacy 95% CI upper bound relative to WHO 90% threshold",
+        "value": null,
+        "ci_low": null,
+        "ci_high": 90.0
+      }
+    },
+    "certainty": "moderate",
+    "evidence_note": "In Busia and Arua sentinel sites, 95% CI for PCR-corrected AL efficacy fell below WHO 90% adequacy threshold, indicating potential reduced susceptibility"
+  },
+  {
+    "subject": "artemether-lumefantrine",
+    "predicate": "causes",
+    "object": "high rate of recurrent malaria infections",
+    "qualifiers": {
+      "population": {
+        "age_range": "6 months to 10 years",
+        "pregnancy": null,
+        "region": "Uganda (three sentinel sites)",
+        "immune_status": null,
+        "comorbidities": null
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemether-lumefantrine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": "28-day follow-up"
+      },
+      "comparator": "dihydroartemisinin-piperaquine",
+      "effect_size": {
+        "metric": "uncorrected 28-day cumulative efficacy (recurrence = 100 minus efficacy %)",
+        "value": null,
+        "ci_low": 41.2,
+        "ci_high": 71.2
+      }
+    },
+    "certainty": "high",
+    "evidence_note": "Uncorrected 28-day AL efficacy 41.2-71.2% across sites; most recurrences classified as new infections by genotyping, reflecting limited post-treatment prophylactic effect"
+  },
+  {
+    "subject": "Plasmodium falciparum",
+    "predicate": "resists",
+    "object": "artemisinin via Pfk13 mutations",
+    "qualifiers": {
+      "population": {
+        "age_range": "6 months to 10 years",
+        "pregnancy": null,
+        "region": "Uganda (three sentinel sites)",
+        "immune_status": null,
+        "comorbidities": null
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "prevalence of Pfk13 resistance-associated mutations",
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "low",
+    "evidence_note": "No resistance-associated Pfk13 mutations detected in successfully sequenced samples by Sanger sequencing 2018-2019; sequencing success rate not specified, limiting completeness"
+  },
+  {
+    "subject": "Pfmdr1 NFD haplotype (N86Y, Y184F, D1246Y)",
+    "predicate": "co_occurs",
+    "object": "artemether-lumefantrine treatment arm samples",
+    "qualifiers": {
+      "population": {
+        "age_range": "6 months to 10 years",
+        "pregnancy": null,
+        "region": "Uganda",
+        "immune_status": null,
+        "comorbidities": null
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemether-lumefantrine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "prevalence of NFD haplotype at day 0 and day of failure",
+        "value": 61.0,
+        "ci_low": 61.0,
+        "ci_high": 69.0
+      }
+    },
+    "certainty": "high",
+    "evidence_note": "NFD haplotype found in 78/127 (61%) day 0 and 76/110 (69%) day of failure samples in AL arm; predominant Pfmdr1 haplotype; directional enrichment at failure not statistically tested in abstract"
+  },
+  {
+    "subject": "plasmepsin-2 single gene copy",
+    "predicate": "co_occurs",
+    "object": "dihydroartemisinin-piperaquine arm baseline Plasmodium falciparum isolates",
+    "qualifiers": {
+      "population": {
+        "age_range": "6 months to 10 years",
+        "pregnancy": null,
+        "region": "Uganda",
+        "immune_status": null,
+        "comorbidities": null
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "dihydroartemisinin-piperaquine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "proportion of day 0 DP arm samples with single plasmepsin-2 copy by qPCR",
+        "value": 100.0,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_note": "All day 0 samples in DP arm had one plasmepsin-2 copy; absence of amplification indicates no piperaquine resistance marker at baseline"
+  },
+  {
+    "subject": "artemether-lumefantrine",
+    "predicate": "causes",
+    "object": "serious adverse events",
+    "qualifiers": {
+      "population": {
+        "age_range": "6 months to 10 years",
+        "pregnancy": null,
+        "region": "Uganda",
+        "immune_status": null,
+        "comorbidities": null
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemether-lumefantrine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "dihydroartemisinin-piperaquine",
+      "effect_size": {
+        "metric": "rate of serious adverse events",
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_note": "No serious adverse events reported associated with AL in phase IV trial; absence finding, denominator not specified in abstract"
+  },
+  {
+    "subject": "dihydroartemisinin-piperaquine",
+    "predicate": "causes",
+    "object": "serious adverse events",
+    "qualifiers": {
+      "population": {
+        "age_range": "6 months to 10 years",
+        "pregnancy": null,
+        "region": "Uganda",
+        "immune_status": null,
+        "comorbidities": null
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "dihydroartemisinin-piperaquine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "artemether-lumefantrine",
+      "effect_size": {
+        "metric": "rate of serious adverse events",
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_note": "No serious adverse events reported associated with DP in phase IV trial; absence finding, denominator not specified in abstract"
+  },
+  {
+    "subject": "artemether-lumefantrine treatment response in Uganda",
+    "predicate": "recommends",
+    "object": "further efficacy monitoring including pharmacokinetic studies",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Uganda",
+        "immune_status": null,
+        "comorbidities": null
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemether-lumefantrine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_note": "Authors recommend continued AL efficacy surveillance including pharmacokinetic studies based on subthreshold efficacy CIs in Busia and Arua sentinel sites"
+  }
+]

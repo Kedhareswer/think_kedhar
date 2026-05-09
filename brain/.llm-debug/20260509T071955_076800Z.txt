@@ -1,0 +1,208 @@
+===== SYSTEM =====
+# Concept note synthesizer
+
+You are writing a single Markdown note that summarizes everything the medical knowledge base currently knows about ONE entity (drug, organism, gene, syndrome, intervention, anatomical structure, etc.).
+
+You are given:
+- The entity name.
+- A list of qualified claims involving this entity (as subject or object), each with predicate, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused concept note. The note will be re-generated on every change, so do not preserve old text — re-synthesize from the current claim set.
+
+## Output structure (Markdown)
+
+```
+# <Entity name as written most often in the claim set>
+
+> Short one-paragraph orientation: what this entity IS in clinical context. ≤ 60 words.
+
+## What it does / what we know
+
+A bulleted or short-paragraph synthesis grouped by predicate. Cite claim_ids inline like `[c:abc123]`.
+Group sensibly: treatment relationships, resistance relationships, mechanism, contraindications, etc.
+Only include groups that have claims.
+
+## Population & setting nuances
+
+If qualifiers vary by population (pregnancy, pediatric, region, immune status) or setting,
+summarize how. Skip this section if all claims are scope-generic.
+
+## Evidence strength
+
+One short paragraph: where the strong evidence is (RCT/MA/guideline) vs where it is thin
+(case reports, expert opinion). Reference grade explicitly.
+
+## Currency
+
+Note any superseded claims and what replaced them. Skip this section if no supersession.
+
+## Open questions
+
+Bullet list: what's missing, what contradicts, what needs investigation. These should mirror
+or seed gaps the Brain agent will pick up later. Skip the section if nothing is pending.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>.*
+```
+
+## Rules
+
+1. **No hallucination.** Every clinical statement must trace to a claim in the input. If a fact is not in the input, do not state it.
+2. **Cite inline.** Use `[c:<short_claim_id>]` after each statement. Use first 8 chars of the claim_id.
+3. **Concision.** Total length ≤ 600 words for most entities. A drug with 50 claims may justify more; an entity with 3 claims should be ≤ 200 words.
+4. **No prose-padding** like "It is important to note that…" or "Further research is needed". Write tight clinical prose.
+5. **Status awareness.** Mention `pending_review` claims with a (pending review) tag inline. Mention superseded claims explicitly in the Currency section, do not present them as current.
+6. **Output ONLY the Markdown.** No code fences, no preamble, no postamble.
+
+
+===== USER =====
+# Entity
+dihydroartemisinin ic50
+
+# Surface variants
+dihydroartemisinin IC50
+
+# Claims (count=2)
+```json
+[
+  {
+    "claim_id": "bee80d39-bbac-4d2a-8e8e-d98a2c3d96f9",
+    "short_id": "bee80d39",
+    "subject": "dihydroartemisinin IC50",
+    "predicate": "co_occurs",
+    "object": "eRRSA fold change in P. falciparum",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "eastern and northern Uganda",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "dihydroartemisinin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "Spearman rs",
+        "value": -0.4116,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:39545737",
+      "title": "The extended recovery ring-stage survival assay is a scalable alternative for artemisinin susceptibility phenotyping of fresh Plasmodium falciparum isolates.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/39545737/"
+    }
+  },
+  {
+    "claim_id": "48663b39-7440-4bc4-b418-522a867a1461",
+    "short_id": "48663b39",
+    "subject": "dihydroartemisinin IC50",
+    "predicate": "co_occurs",
+    "object": "RSA percent survival in P. falciparum",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "eastern and northern Uganda",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "dihydroartemisinin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "Spearman rs",
+        "value": 0.4235,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:39545737",
+      "title": "The extended recovery ring-stage survival assay is a scalable alternative for artemisinin susceptibility phenotyping of fresh Plasmodium falciparum isolates.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/39545737/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-09T07:19:26.418660+00:00
+
+
+===== STDOUT =====
+## Concept Note: dihydroartemisinin IC50
+
+**Entity:** dihydroartemisinin IC50
+**Source:** PMID:39545737 | Eastern & northern Uganda, endemic P. falciparum
+
+---
+
+### What it is
+
+DHA IC50 = in vitro inhibitory concentration measuring artemisinin potency against P. falciparum ring-stage parasites. Used here as cross-validation anchor for two artemisinin resistance phenotyping assays.
+
+---
+
+### Key relationships (both claims, same source)
+
+| Assay metric | Direction | Spearman rs | Interpretation |
+|---|---|---|---|
+| **eRRSA fold change** | Negative | −0.412 | Higher IC50 → smaller recovery fold change → more resistant parasites tolerate DHA |
+| **RSA % survival** | Positive | +0.424 | Higher IC50 → more parasites survive → resistance signal aligns |
+
+Both correlations modest-to-moderate strength, consistent direction: higher DHA IC50 tracks with both resistance readouts.
+
+---
+
+### Mechanistic logic
+
+IC50 (growth inhibition) and survival assays (ring-stage tolerance) measure related but distinct resistance axes. Convergent correlation with DHA IC50 validates eRRSA as functionally equivalent to RSA for field isolate phenotyping.
+
+---
+
+### Caveats
+
+- Evidence grade: `expert_opinion` (not RCT/observational cohort)
+- Status: `pending_review`
+- No CI on rs values — precision unknown
+- Single geographic region (Uganda) — generalizability unconfirmed
+- Correlation ≠ causal pathway; confounders (parasite genetics, mixed infections) not adjusted
+
+---
+
+### Bottom line
+
+DHA IC50 weakly-moderately correlated with both RSA and eRRSA resistance readouts in Ugandan P. falciparum. Supports eRRSA as scalable RSA alternative. IC50 alone insufficient — resistance phenotyping needs survival assay confirmation.

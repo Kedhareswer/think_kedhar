@@ -9,8 +9,8 @@ dist/
 .pytest_cache/
 .ruff_cache/
 
-brain/
-!brain/.gitkeep
+# brain/
+# !brain/.gitkeep
 
 .superpowers/
 .claude/settings.local.json

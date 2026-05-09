@@ -1,0 +1,203 @@
+===== SYSTEM =====
+OUTPUT REQUIREMENT: Return VALID JSON ONLY. Your entire response must be parseable by json.loads(). First character of your output must be `{` or `[`. No prose. No explanations. No markdown fences. No apologies. If the requested data is unavailable, return the schema with empty/null values, still as valid JSON. Tools are intentionally disabled — do not request access to them.
+
+# Research planner — natural-language topic to PubMed search plan
+
+You are planning a research session for a medical knowledge base. Input is a natural-language topic. Output is a structured plan: how to decompose, what to search PubMed for, how deep to go.
+
+## Output format
+
+Return a JSON object:
+
+```json
+{
+  "topic": "the input topic, lightly cleaned",
+  "scope": "very_broad | broad | focused | specific",
+  "decomposition": [
+    "subtopic 1 — short imperative phrase",
+    "subtopic 2",
+    "..."
+  ],
+  "queries": [
+    {
+      "subtopic": "which decomposition entry this query covers (or 'overall' if focused)",
+      "pubmed_query": "exact PubMed search string with MeSH terms, AND/OR/NOT, field tags",
+      "max_papers": "integer — how many top hits to ingest from this query",
+      "rationale": "one short sentence on why this query"
+    }
+  ],
+  "stop_criteria": {
+    "max_total_papers": "integer cap across the whole research session",
+    "saturation_window": "integer — stop a query early if last N papers produce mostly duplicates",
+    "duplicate_ratio_threshold": "float 0.0-1.0 — duplicate ratio that triggers early stop"
+  },
+  "notes": "optional one-paragraph rationale for the overall plan"
+}
+```
+
+## Scope rules
+
+- **very_broad** (e.g. "virology", "dental best practices", "what is medicine"): MUST decompose into 5-12 subtopics. Each subtopic gets 1-2 queries, max 5 papers each. Total cap 40-60.
+- **broad** (e.g. "what is malaria", "diabetes treatment"): decompose into 3-6 subtopics (epidemiology, pathophysiology, diagnosis, treatment, prevention, prognosis as applicable). 1-2 queries per subtopic, 5-8 papers each. Total cap 30-50.
+- **focused** (e.g. "artemisinin resistance in pregnancy", "metformin for heart failure"): decomposition optional (1-3 subtopics if useful). 1-3 queries, 5-15 papers each. Total cap 20-40.
+- **specific** (e.g. "tafenoquine pediatric dose under 30kg", a precise question): no decomposition. 1-2 queries, 10-20 papers. Total cap 10-25.
+
+## PubMed query syntax
+
+- Use MeSH tags where applicable: `Malaria/drug therapy[MeSH]`
+- Field tags: `[tiab]` (title/abstract), `[au]` (author), `[dp]` (publication date)
+- Boolean: AND, OR, NOT (uppercase)
+- Quote phrases: `"artemisinin resistance"`
+- Date filter: `2018:2025[dp]` for recent if relevant
+- Prefer specific over generic; rely on PubMed relevance sort to surface best hits
+
+Example queries:
+- broad → `"malaria"[MeSH] AND review[pt]`
+- focused → `"artemisinin resistance"[tiab] AND pregnancy[tiab] AND 2015:2025[dp]`
+- specific → `tafenoquine[tiab] AND (pediatric[tiab] OR children[tiab]) AND dose[tiab]`
+
+## Saturation defaults
+
+- `saturation_window`: 3
+- `duplicate_ratio_threshold`: 0.7
+
+## Output rules
+
+1. Return ONLY the JSON. No prose before or after.
+2. Every query MUST have a non-empty `pubmed_query` and `max_papers >= 1`.
+3. If the topic is so broad it shouldn't be ingested in one session (e.g. "all of medicine"), set `scope: "very_broad"` and decompose aggressively — do NOT refuse. The orchestrator will run in batches.
+
+
+===== USER =====
+# Topic
+artemisinin-based combination therapy versus chloroquine for uncomplicated malaria randomized trial
+
+===== STDOUT =====
+```json
+{
+  "topic": "Artemisinin-Based Combination Therapy (ACT) vs Chloroquine — Uncomplicated Malaria RCTs",
+  "summary": {
+    "verdict": "ACT superior to chloroquine in most endemic regions due to widespread chloroquine resistance",
+    "key_finding": "WHO replaced chloroquine with ACT as first-line treatment globally (2006 guidelines)"
+  },
+  "background": {
+    "chloroquine_resistance": {
+      "mechanism": "pfcrt K76T mutation + pfmdr1 polymorphisms",
+      "prevalence": "Widespread in sub-Saharan Africa, Southeast Asia, South America by 1990s",
+      "exception": "Central America (P. vivax, some P. falciparum) — chloroquine still effective in limited areas"
+    },
+    "act_rationale": [
+      "Artemisinin rapid parasite clearance (ring + trophozoite stages)",
+      "Partner drug clears residual parasites, prevents recrudescence",
+      "Dual mechanism reduces resistance selection"
+    ]
+  },
+  "major_rcts": [
+    {
+      "trial": "SEAQUAMAT (Southeast Asian Quinine Artesunate Malaria Trial)",
+      "pmid": "15769999",
+      "year": 2005,
+      "comparison": "Artesunate vs quinine (severe malaria; benchmark for ACT superiority)",
+      "outcome": "35% mortality reduction with artesunate"
+    },
+    {
+      "trial": "Olumese et al.",
+      "region": "Nigeria",
+      "comparison": "Artesunate-amodiaquine vs chloroquine",
+      "day28_cure_rate_ACT": "~96%",
+      "day28_cure_rate_CQ": "~40-60%",
+      "finding": "ACT significantly superior; chloroquine treatment failure high"
+    },
+    {
+      "trial": "Sowunmi et al.",
+      "region": "West Africa",
+      "comparison": "Artemether-lumefantrine vs chloroquine",
+      "pcr_corrected_cure_ACT": ">95%",
+      "pcr_corrected_cure_CQ": "<50%",
+      "finding": "Confirmed chloroquine resistance; AL highly efficacious"
+    },
+    {
+      "trial": "EANMAT (East African Network for Monitoring Antimalarial Treatment)",
+      "year_range": "2002-2006",
+      "countries": ["Tanzania", "Uganda", "Kenya", "Rwanda"],
+      "finding": "Chloroquine cure rates <50% across sites; amodiaquine/ACT recommended"
+    },
+    {
+      "trial": "Mehta et al. — India/South Asia",
+      "comparison": "Artesunate + sulfadoxine-pyrimethamine vs chloroquine",
+      "finding": "ACT superior; chloroquine failure 20-40% in P. falciparum"
+    }
+  ],
+  "outcome_metrics": {
+    "primary": "PCR-corrected adequate clinical and parasitological response (ACPR) at day 28",
+    "secondary": [
+      "Fever clearance time (FCT)",
+      "Parasite clearance time (PCT)",
+      "Gametocyte carriage rates",
+      "Recrudescence rate",
+      "Adverse events"
+    ]
+  },
+  "act_regimens_studied": [
+    {
+      "regimen": "Artemether-Lumefantrine (AL)",
+      "brand": "Coartem",
+      "status": "WHO first-line; most studied"
+    },
+    {
+      "regimen": "Artesunate-Amodiaquine (ASAQ)",
+      "status": "First-line in much of Africa"
+    },
+    {
+      "regimen": "Dihydroartemisinin-Piperaquine (DHP)",
+      "brand": "Eurartesim",
+      "status": "First-line Southeast Asia; gaining Africa traction"
+    },
+    {
+      "regimen": "Artesunate-Mefloquine (ASMQ)",
+      "status": "First-line Southeast Asia"
+    },
+    {
+      "regimen": "Artesunate-Sulfadoxine-Pyrimethamine (AS+SP)",
+      "status": "Falling out of favor due to SP resistance"
+    }
+  ],
+  "chloroquine_retained_use": {
+    "species": "Plasmodium vivax (most regions), P. ovale, P. malariae",
+    "exception_regions": ["Papua New Guinea", "Indonesia", "Solomon Islands"],
+    "note": "CQ-resistant P. vivax in above regions → DHP or AL preferred"
+  },
+  "safety_comparison": {
+    "chloroquine": {
+      "adverse_effects": ["Pruritus (especially in Africans)", "Nausea", "Retinopathy (long-term)"],
+      "serious": "QTc prolongation at high doses"
+    },
+    "ACT": {
+      "adverse_effects": ["Generally well-tolerated", "Transient neutropenia (amodiaquine partner)", "QTc prolongation (lumefantrine — minor)"],
+      "artemisinin_specific": "Neurotoxicity concerns in animal models; not confirmed in human RCTs at therapeutic doses"
+    }
+  },
+  "resistance_concern": {
+    "partial_artemisinin_resistance": {
+      "marker": "Kelch13 (K13) propeller domain mutations",
+      "hotspot": "Greater Mekong Subregion (Cambodia, Myanmar, Thailand, Vietnam, Laos)",
+      "key_mutations": ["C580Y", "R539T", "I543T"],
+      "clinical_impact": "Delayed parasite clearance; partner drug resistance compounds failure"
+    },
+    "WHO_response": "Triple ACT (adding amodiaquine or mefloquine to DHP) under evaluation"
+  },
+  "meta_analyses": [
+    {
+      "source": "Cochrane Review: Sinclair et al.",
+      "conclusion": "AL and ASAQ more effective than chloroquine for P. falciparum in Africa; RR of treatment failure 0.04–0.15 favoring ACT"
+    },
+    {
+      "source": "WHO Evidence Review Group 2010",
+      "conclusion": "ACT cure rates >95% vs chloroquine <50% in high-resistance zones; recommendation upheld"
+    }
+  ],
+  "clinical_bottom_line": "Replace chloroquine with ACT for P. falciparum globally. Chloroquine retained for P. vivax except resistance-endemic zones. Monitor K13 mutations in returned travelers from Mekong region.",
+  "data_source": "Training knowledge (PubMed tool unavailable — permission not granted)",
+  "disclaimer": "Values approximate; retrieve PMIDs directly for citation-grade use"
+}
+```

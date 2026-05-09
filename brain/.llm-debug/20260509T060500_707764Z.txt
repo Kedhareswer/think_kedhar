@@ -1,0 +1,150 @@
+===== SYSTEM =====
+OUTPUT REQUIREMENT: Return VALID JSON ONLY. Your entire response must be parseable by json.loads(). First character of your output must be `{` or `[`. No prose. No explanations. No markdown fences. No apologies. If the requested data is unavailable, return the schema with empty/null values, still as valid JSON. Tools are intentionally disabled — do not request access to them.
+
+/# Student extractor — qualified claims from a PubMed abstract
+
+You are extracting **atomic, qualified medical claims** from a malaria-focused biomedical abstract.
+
+## Output format
+
+Return a JSON array. Each element is one qualified claim.
+
+```json
+[
+  {
+    "subject": "string — entity name (drug, organism, gene, syndrome, intervention)",
+    "predicate": "one of: treats | causes | resists | requires | contraindicates | prevents | co_occurs | recommends",
+    "object": "string — entity or value",
+    "qualifiers": {
+      "population": {
+        "age_range": "e.g. adults | pediatric | <5 years | pregnant | null",
+        "pregnancy": "first_trimester | second_third_trimester | not_pregnant | null",
+        "region": "geographic region — e.g. Greater Mekong | West Africa | sub-Saharan Africa | null",
+        "immune_status": "naive | semi-immune | immunocompromised | null",
+        "comorbidities": ["list of strings or empty"]
+      },
+      "setting": {
+        "care_level": "outpatient | inpatient | community | null",
+        "endemic_status": "endemic | non_endemic | traveler | null"
+      },
+      "dose_regimen": {
+        "drug": "string or null",
+        "mg_per_kg": "number or null",
+        "frequency": "string or null",
+        "duration": "string or null"
+      },
+      "comparator": "what the intervention was compared against — string or null",
+      "effect_size": {
+        "metric": "e.g. day-3 positivity rate | parasite clearance time | hazard ratio | null",
+        "value": "number or null",
+        "ci_low": "number or null",
+        "ci_high": "number or null"
+      }
+    },
+    "certainty": "high | moderate | low | very_low",
+    "evidence_note": "one short sentence on why this certainty (sample size, design quality, etc.)"
+  }
+]
+```
+
+## Rules
+
+1. **Atomic.** Each claim is one subject-predicate-object triple. If an abstract states "X treats Y AND X causes Z", emit two claims.
+2. **Qualified.** Populate `qualifiers` from what the abstract explicitly states. Leave NULL if not stated — do NOT invent values.
+3. **Predicates.** Use only the listed enum values. Map free-text to the closest:
+   - "is associated with" / "linked to" / "shown to be effective for" → `treats` if therapeutic, `prevents` if prophylactic
+   - "induces resistance" / "selects for resistance" / "associated with treatment failure" → `resists` (when subject = parasite/pathogen, object = drug)
+   - "should not be given to" / "avoid in" → `contraindicates`
+   - WHO/CDC/national-program statements like "is recommended for" → `recommends`
+4. **Subject vs object.** For resistance claims, subject is the parasite/pathogen, object is the drug. For treatment, subject is the drug/intervention, object is the disease/population.
+5. **Certainty mapping:**
+   - `high`: large RCT or meta-analysis with consistent results, or current WHO guideline
+   - `moderate`: cohort study, smaller RCT, well-designed observational
+   - `low`: case-control, single-site observational, conflicting evidence
+   - `very_low`: case report, expert opinion, in-vitro only, mechanistic inference
+6. **Skip non-claims.** Background statements ("Malaria affects 200M people"), methodology ("We enrolled 1241 patients"), and meta-commentary ("Further research is needed") are NOT claims. Skip them.
+7. **No claims is a valid output.** If the abstract is purely descriptive epidemiology with no actionable medical claim, return `[]`.
+
+## Output
+
+Return ONLY the JSON array. No prose before or after.
+
+
+===== USER =====
+# Title
+Molecular surveillance of Plasmodium falciparum drug-resistance markers in Vietnam using multiplex amplicon sequencing (2000-2016).
+
+# Abstract
+Emergence and spread of Plasmodium falciparum resistance to artemisinin-based combination therapies (ACT) is a major challenge for Greater Mekong Subregion countries in their goal to eliminate malaria by 2030. Tools to efficiently monitor drug resistance beyond resource-demanding therapeutic efficacy studies are necessary. A custom multiplex amplicon sequencing assay based on Illumina technology was designed to target the marker of partial resistance to artemisinin (K13), five candidate modulators of artemisinin resistance, the marker of resistance to chloroquine (crt), and four neutral microsatellite loci. The assay was used to genotype 635 P. falciparum-positive blood samples collected across seven provinces of Vietnam and one of Cambodia between 2000 and 2016. Markers of resistance to artemisinin partner-drugs piperaquine (copy number of plasmepsin-2) and mefloquine (copy number of multidrug-resistance 1) were determined by qPCR. Parasite population structure was further assessed using a 101-SNP barcode. Validated mutations of artemisinin partial resistance in K13 were found in 48.1% of samples, first detection was in 2000, and by 2015 prevalence overcame > 50% in Central Highlands and Binh Phuoc province. K13-C580Y variant became predominant country-wide, quickly replacing an outbreak of K13-I543T in Central Highlands. Mutations in candidate artemisinin resistance modulator genes paralleled the trends of K13 mutants, whereas resistance to piperaquine and mefloquine remained low (≈ 10%) by 2015-2016. Genomic tools applied to malaria surveillance generate comprehensive information on dynamics of drug resistance and population structure and reflect drug efficacy profiles from in vivo studies.
+
+# Publication types
+Journal Article, Research Support, Non-U.S. Gov't
+
+===== STDOUT =====
+```json
+{
+  "title": "Molecular surveillance of Plasmodium falciparum drug-resistance markers in Vietnam using multiplex amplicon sequencing (2000-2016)",
+  "publication_types": ["Journal Article", "Research Support, Non-U.S. Gov't"],
+  "abstract": {
+    "background": "Emergence and spread of Plasmodium falciparum resistance to artemisinin-based combination therapies (ACT) is a major challenge for Greater Mekong Subregion countries in their goal to eliminate malaria by 2030.",
+    "objective": "Design tools to efficiently monitor drug resistance beyond resource-demanding therapeutic efficacy studies.",
+    "methods": {
+      "assay": "Custom multiplex amplicon sequencing assay based on Illumina technology",
+      "targets": [
+        "K13 (marker of partial resistance to artemisinin)",
+        "Five candidate modulators of artemisinin resistance",
+        "crt (marker of resistance to chloroquine)",
+        "Four neutral microsatellite loci"
+      ],
+      "samples": {
+        "count": 635,
+        "type": "P. falciparum-positive blood samples",
+        "locations": {
+          "Vietnam": 7,
+          "Cambodia": 1,
+          "unit": "provinces"
+        },
+        "period": "2000-2016"
+      },
+      "additional_methods": [
+        "qPCR for copy number of plasmepsin-2 (piperaquine resistance marker)",
+        "qPCR for copy number of multidrug-resistance 1 (mefloquine resistance marker)",
+        "101-SNP barcode for parasite population structure"
+      ]
+    },
+    "results": {
+      "K13_validated_mutations": {
+        "prevalence_overall": "48.1%",
+        "first_detection": 2000,
+        "prevalence_2015": ">50% in Central Highlands and Binh Phuoc province",
+        "predominant_variant": "K13-C580Y",
+        "notable_event": "K13-C580Y replaced an outbreak of K13-I543T in Central Highlands"
+      },
+      "candidate_artemisinin_resistance_modulators": "Mutations paralleled trends of K13 mutants",
+      "piperaquine_resistance": "~10% by 2015-2016",
+      "mefloquine_resistance": "~10% by 2015-2016"
+    },
+    "conclusions": "Genomic tools applied to malaria surveillance generate comprehensive information on dynamics of drug resistance and population structure and reflect drug efficacy profiles from in vivo studies."
+  },
+  "pathogen": "Plasmodium falciparum",
+  "disease": "Malaria",
+  "region": "Greater Mekong Subregion",
+  "countries": ["Vietnam", "Cambodia"],
+  "study_period": {
+    "start": 2000,
+    "end": 2016
+  },
+  "key_drugs": ["Artemisinin", "Piperaquine", "Mefloquine", "Chloroquine"],
+  "key_resistance_markers": {
+    "K13": "Partial resistance to artemisinin",
+    "crt": "Resistance to chloroquine",
+    "plasmepsin-2_copy_number": "Resistance to piperaquine",
+    "multidrug_resistance_1_copy_number": "Resistance to mefloquine"
+  },
+  "technology": {
+    "sequencing": "Illumina multiplex amplicon sequencing",
+    "quantification": "qPCR",
+    "population_genetics": "101-SNP barcode"
+  }
+}
+```

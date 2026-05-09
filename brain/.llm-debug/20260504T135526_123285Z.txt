@@ -1,0 +1,156 @@
+===== SYSTEM =====
+OUTPUT REQUIREMENT: Return VALID JSON ONLY. Your entire response must be parseable by json.loads(). First character of your output must be `{` or `[`. No prose. No explanations. No markdown fences. No apologies. If the requested data is unavailable, return the schema with empty/null values, still as valid JSON. Tools are intentionally disabled — do not request access to them.
+
+# Student extractor — qualified claims from a PubMed abstract
+
+You are extracting **atomic, qualified medical claims** from a malaria-focused biomedical abstract.
+
+## Output format
+
+Return a JSON array. Each element is one qualified claim.
+
+```json
+[
+  {
+    "subject": "string — entity name (drug, organism, gene, syndrome, intervention)",
+    "predicate": "one of: treats | causes | resists | requires | contraindicates | prevents | co_occurs | recommends",
+    "object": "string — entity or value",
+    "qualifiers": {
+      "population": {
+        "age_range": "e.g. adults | pediatric | <5 years | pregnant | null",
+        "pregnancy": "first_trimester | second_third_trimester | not_pregnant | null",
+        "region": "geographic region — e.g. Greater Mekong | West Africa | sub-Saharan Africa | null",
+        "immune_status": "naive | semi-immune | immunocompromised | null",
+        "comorbidities": ["list of strings or empty"]
+      },
+      "setting": {
+        "care_level": "outpatient | inpatient | community | null",
+        "endemic_status": "endemic | non_endemic | traveler | null"
+      },
+      "dose_regimen": {
+        "drug": "string or null",
+        "mg_per_kg": "number or null",
+        "frequency": "string or null",
+        "duration": "string or null"
+      },
+      "comparator": "what the intervention was compared against — string or null",
+      "effect_size": {
+        "metric": "e.g. day-3 positivity rate | parasite clearance time | hazard ratio | null",
+        "value": "number or null",
+        "ci_low": "number or null",
+        "ci_high": "number or null"
+      }
+    },
+    "certainty": "high | moderate | low | very_low",
+    "evidence_note": "one short sentence on why this certainty (sample size, design quality, etc.)"
+  }
+]
+```
+
+## Rules
+
+1. **Atomic.** Each claim is one subject-predicate-object triple. If an abstract states "X treats Y AND X causes Z", emit two claims.
+2. **Qualified.** Populate `qualifiers` from what the abstract explicitly states. Leave NULL if not stated — do NOT invent values.
+3. **Predicates.** Use only the listed enum values. Map free-text to the closest:
+   - "is associated with" / "linked to" / "shown to be effective for" → `treats` if therapeutic, `prevents` if prophylactic
+   - "induces resistance" / "selects for resistance" / "associated with treatment failure" → `resists` (when subject = parasite/pathogen, object = drug)
+   - "should not be given to" / "avoid in" → `contraindicates`
+   - WHO/CDC/national-program statements like "is recommended for" → `recommends`
+4. **Subject vs object.** For resistance claims, subject is the parasite/pathogen, object is the drug. For treatment, subject is the drug/intervention, object is the disease/population.
+5. **Certainty mapping:**
+   - `high`: large RCT or meta-analysis with consistent results, or current WHO guideline
+   - `moderate`: cohort study, smaller RCT, well-designed observational
+   - `low`: case-control, single-site observational, conflicting evidence
+   - `very_low`: case report, expert opinion, in-vitro only, mechanistic inference
+6. **Skip non-claims.** Background statements ("Malaria affects 200M people"), methodology ("We enrolled 1241 patients"), and meta-commentary ("Further research is needed") are NOT claims. Skip them.
+7. **No claims is a valid output.** If the abstract is purely descriptive epidemiology with no actionable medical claim, return `[]`.
+
+## Output
+
+Return ONLY the JSON array. No prose before or after.
+
+
+===== USER =====
+# Title
+Assessment of the efficacy of antimalarial drugs recommended by the National Malaria Control Programme in Madagascar: up-dated baseline data from randomized and multi-site clinical trials.
+
+# Abstract
+BACKGROUND: In order to improve the monitoring of the antimalarial drug resistance in Madagascar, a new national network based on eight sentinel sites was set up. In 2006/2007, a multi-site randomized clinical trial was designed to assess the therapeutic efficacy of chloroquine (CQ), sulphadoxine-pyrimethamine (SP), amodiaquine (AQ) and artesunate plus amodiaquine combination (ASAQ), the antimalarial therapies recommended by the National Malaria Control Programme (NMCP).
+
+METHODS: Children between six months and 15 years of age, with uncomplicated falciparum malaria, were enrolled. Primary endpoints were the day-14 and day-28 risks of parasitological failure, either unadjusted or adjusted by genotyping. Risks of clinical and parasitological treatment failure after adjustment by genotyping were estimated using Kaplan-Meier survival analysis. Secondary outcomes included fever clearance, parasite clearance, change in haemoglobin levels between Day 0 and the last day of follow-up, and the incidence of adverse events.
+
+RESULTS: A total of 1,347 of 1,434 patients (93.9%) completed treatment and follow-up to day 28. All treatment regimens, except for the chloroquine (CQ) treatment group, resulted in clinical cure rates above 97.6% by day-14 and 96.7% by day-28 (adjusted by genotyping). Parasite and fever clearance was more rapid with artesunate plus amodiaquine, but the extent of haematological recovery on day-28 did not differ significantly between the four groups. No severe side-effects were observed during the follow-up period.
+
+CONCLUSION: These findings (i) constitute an up-dated baseline data on the efficacy of antimalarial drugs recommended by the NMCP, (ii) show that antimalarial drug resistance remains low in Madagascar, except for CQ, compared to the bordering countries in the Indian Ocean region such as the Comoros Archipelago and (iii) support the current policy of ASAQ as the first-line treatment in uncomplicated falciparum malaria.
+
+# Publication types
+Journal Article, Multicenter Study, Randomized Controlled Trial, Research Support, Non-U.S. Gov't
+
+===== STDOUT =====
+```json
+{
+  "title": "Assessment of the efficacy of antimalarial drugs recommended by the National Malaria Control Programme in Madagascar: up-dated baseline data from randomized and multi-site clinical trials",
+  "publication_types": [
+    "Journal Article",
+    "Multicenter Study",
+    "Randomized Controlled Trial",
+    "Research Support, Non-U.S. Gov't"
+  ],
+  "study": {
+    "design": "Multi-site randomized clinical trial",
+    "year": "2006/2007",
+    "location": "Madagascar",
+    "sites": 8,
+    "network": "National sentinel site network"
+  },
+  "population": {
+    "age_range": "6 months to 15 years",
+    "condition": "Uncomplicated falciparum malaria",
+    "enrolled": 1434,
+    "completed": 1347,
+    "completion_rate_pct": 93.9
+  },
+  "interventions": [
+    "Chloroquine (CQ)",
+    "Sulphadoxine-pyrimethamine (SP)",
+    "Amodiaquine (AQ)",
+    "Artesunate plus Amodiaquine (ASAQ)"
+  ],
+  "endpoints": {
+    "primary": [
+      "Day-14 risk of parasitological failure (unadjusted and genotyping-adjusted)",
+      "Day-28 risk of parasitological failure (unadjusted and genotyping-adjusted)",
+      "Kaplan-Meier survival analysis for clinical and parasitological treatment failure"
+    ],
+    "secondary": [
+      "Fever clearance",
+      "Parasite clearance",
+      "Change in haemoglobin levels (Day 0 to last follow-up day)",
+      "Incidence of adverse events"
+    ]
+  },
+  "results": {
+    "follow_up_days": 28,
+    "clinical_cure_rates": {
+      "day_14_pct": 97.6,
+      "day_28_adjusted_pct": 96.7,
+      "note": "All regimens except CQ exceeded these thresholds"
+    },
+    "chloroquine": {
+      "efficacy": "Below threshold; exception among treatment groups"
+    },
+    "ASAQ": {
+      "parasite_clearance": "Most rapid",
+      "fever_clearance": "Most rapid"
+    },
+    "haematological_recovery_day_28": "No significant difference between four groups",
+    "severe_side_effects": false
+  },
+  "conclusions": [
+    "Updated baseline data on NMCP-recommended antimalarial drug efficacy established",
+    "Antimalarial drug resistance remains low in Madagascar except for chloroquine",
+    "CQ resistance higher than neighboring Indian Ocean region countries (e.g., Comoros Archipelago)",
+    "Findings support ASAQ as first-line treatment for uncomplicated falciparum malaria"
+  ]
+}
+```

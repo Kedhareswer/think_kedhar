@@ -1,0 +1,197 @@
+===== SYSTEM =====
+# Topic note synthesizer
+
+You are writing a single Markdown note that summarizes everything the medical knowledge base currently knows about ONE topic — a slice of clinical knowledge, e.g. `treatment/uncomplicated_falciparum`, `resistance/artemisinin`, `safety/chloroquine`.
+
+You are given:
+- The topic path.
+- A list of qualified claims that contribute to this topic, each with subject, predicate, object, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused topic note. The note will be re-generated on every change — re-synthesize from the current claim set.
+
+## Output structure (Markdown)
+
+```
+# <Topic title in human form>
+
+> One-paragraph framing: what this topic covers, who it matters for. ≤ 60 words.
+
+## Current understanding
+
+Synthesize the current state. Group related claims. Cite inline as `[c:<short_id>]`.
+Include effect sizes, populations, and settings where they materially differ.
+
+## Population-specific notes
+
+If recommendations or findings differ by pregnancy, pediatric, geographic region, immune status:
+break out the differences. Otherwise skip.
+
+## Strength of evidence
+
+Where is the evidence strong (RCT/MA/guideline)? Where is it weak (case report / expert opinion)?
+Note explicitly.
+
+## Recent changes / supersession
+
+If any included claims supersede older ones, list the chain. Skip if none.
+
+## Gaps and contradictions
+
+Bullet list. Mirror what Brain may pick up as questions.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>.*
+```
+
+## Rules
+
+1. **No hallucination.** Every statement traces to a claim in the input.
+2. **Cite inline** with `[c:<short_id>]` (first 8 chars).
+3. **Concise.** ≤ 800 words for typical topics.
+4. **Surface contradictions.** If two claims with similar scope conflict, name both.
+5. **Status awareness.** Tag `(pending review)` for unconfirmed claims. Treat superseded claims as historical context only.
+6. **Output ONLY the Markdown.**
+
+
+===== USER =====
+# Topic
+etiology/altered-p-falciparum-susceptibility-to-heme-binding-antimalarials
+
+# Claims (count=2)
+```json
+[
+  {
+    "claim_id": "790f5e7b-4458-441f-9e7b-e8d19d1f7740",
+    "short_id": "790f5e7b",
+    "subject": "PfMDR1 mutations",
+    "predicate": "causes",
+    "object": "altered P. falciparum susceptibility to heme-binding antimalarials",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "wild-type PfMDR1",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:32905757",
+      "title": "Molecular Mechanisms of Drug Resistance in Plasmodium falciparum Malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/32905757/"
+    }
+  },
+  {
+    "claim_id": "b7ab5701-a07b-420d-9951-1df40da5a05a",
+    "short_id": "b7ab5701",
+    "subject": "PfMDR1 overexpression",
+    "predicate": "causes",
+    "object": "altered P. falciparum susceptibility to heme-binding antimalarials",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "baseline PfMDR1 expression",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:32905757",
+      "title": "Molecular Mechanisms of Drug Resistance in Plasmodium falciparum Malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/32905757/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-09T07:35:46.393051+00:00
+
+
+===== STDOUT =====
+## Etiology: Altered *P. falciparum* Susceptibility to Heme-Binding Antimalarials
+
+**Source:** PMID:32905757 | Certainty: Moderate | Grade: Expert Opinion
+
+---
+
+### Mechanism Class
+Heme-binding antimalarials (chloroquine, quinine, mefloquine, lumefantrine, amodiaquine) act in the parasite digestive vacuole — bind free heme, block hemozoin crystallization → toxic heme accumulation → parasite death.
+
+Resistance alters drug access to or concentration within that vacuole.
+
+---
+
+### Two PfMDR1-Mediated Mechanisms
+
+| Mechanism | Effect | Comparator |
+|---|---|---|
+| **Point mutations** (e.g., N86Y, Y184F, D1246Y) | Alter substrate specificity of vacuolar transporter → change drug import/export balance | Wild-type PfMDR1 |
+| **Gene amplification → overexpression** | Increased pump copies → enhanced drug efflux from vacuole → reduced intra-vacuolar drug concentration | Baseline copy number |
+
+**PfMDR1** = P-glycoprotein homolog on digestive vacuole membrane. Pumps substrates *into* vacuole (e.g., chloroquine) or *out* depending on isoform/mutation context.
+
+---
+
+### Key Nuances
+
+- Mutation effects are **drug-specific and directional**: N86Y → reduced CQ susceptibility but *increased* mefloquine/lumefantrine susceptibility (trade-off).
+- Overexpression → mefloquine/lumefantrine resistance (reduced vacuolar accumulation); less consistent effect on CQ.
+- Both mechanisms **co-occur** in field isolates, complicating attribution.
+- Evidence grade = expert opinion; direct mechanistic studies (transfection lines) support the model but effect sizes under clinical dosing remain poorly quantified.
+
+---
+
+### Evidence Gaps
+- No IC₅₀ shifts with CIs reported in these claims
+- Region-specific mutation prevalence not captured
+- Interaction with *pfcrt* mutations (major CQ resistance driver) not addressed here

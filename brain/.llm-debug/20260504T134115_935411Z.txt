@@ -1,0 +1,155 @@
+===== SYSTEM =====
+OUTPUT REQUIREMENT: Return VALID JSON ONLY. Your entire response must be parseable by json.loads(). First character of your output must be `{` or `[`. No prose. No explanations. No markdown fences. No apologies. If the requested data is unavailable, return the schema with empty/null values, still as valid JSON. Tools are intentionally disabled — do not request access to them.
+
+# Student extractor — qualified claims from a PubMed abstract
+
+You are extracting **atomic, qualified medical claims** from a malaria-focused biomedical abstract.
+
+## Output format
+
+Return a JSON array. Each element is one qualified claim.
+
+```json
+[
+  {
+    "subject": "string — entity name (drug, organism, gene, syndrome, intervention)",
+    "predicate": "one of: treats | causes | resists | requires | contraindicates | prevents | co_occurs | recommends",
+    "object": "string — entity or value",
+    "qualifiers": {
+      "population": {
+        "age_range": "e.g. adults | pediatric | <5 years | pregnant | null",
+        "pregnancy": "first_trimester | second_third_trimester | not_pregnant | null",
+        "region": "geographic region — e.g. Greater Mekong | West Africa | sub-Saharan Africa | null",
+        "immune_status": "naive | semi-immune | immunocompromised | null",
+        "comorbidities": ["list of strings or empty"]
+      },
+      "setting": {
+        "care_level": "outpatient | inpatient | community | null",
+        "endemic_status": "endemic | non_endemic | traveler | null"
+      },
+      "dose_regimen": {
+        "drug": "string or null",
+        "mg_per_kg": "number or null",
+        "frequency": "string or null",
+        "duration": "string or null"
+      },
+      "comparator": "what the intervention was compared against — string or null",
+      "effect_size": {
+        "metric": "e.g. day-3 positivity rate | parasite clearance time | hazard ratio | null",
+        "value": "number or null",
+        "ci_low": "number or null",
+        "ci_high": "number or null"
+      }
+    },
+    "certainty": "high | moderate | low | very_low",
+    "evidence_note": "one short sentence on why this certainty (sample size, design quality, etc.)"
+  }
+]
+```
+
+## Rules
+
+1. **Atomic.** Each claim is one subject-predicate-object triple. If an abstract states "X treats Y AND X causes Z", emit two claims.
+2. **Qualified.** Populate `qualifiers` from what the abstract explicitly states. Leave NULL if not stated — do NOT invent values.
+3. **Predicates.** Use only the listed enum values. Map free-text to the closest:
+   - "is associated with" / "linked to" / "shown to be effective for" → `treats` if therapeutic, `prevents` if prophylactic
+   - "induces resistance" / "selects for resistance" / "associated with treatment failure" → `resists` (when subject = parasite/pathogen, object = drug)
+   - "should not be given to" / "avoid in" → `contraindicates`
+   - WHO/CDC/national-program statements like "is recommended for" → `recommends`
+4. **Subject vs object.** For resistance claims, subject is the parasite/pathogen, object is the drug. For treatment, subject is the drug/intervention, object is the disease/population.
+5. **Certainty mapping:**
+   - `high`: large RCT or meta-analysis with consistent results, or current WHO guideline
+   - `moderate`: cohort study, smaller RCT, well-designed observational
+   - `low`: case-control, single-site observational, conflicting evidence
+   - `very_low`: case report, expert opinion, in-vitro only, mechanistic inference
+6. **Skip non-claims.** Background statements ("Malaria affects 200M people"), methodology ("We enrolled 1241 patients"), and meta-commentary ("Further research is needed") are NOT claims. Skip them.
+7. **No claims is a valid output.** If the abstract is purely descriptive epidemiology with no actionable medical claim, return `[]`.
+
+## Output
+
+Return ONLY the JSON array. No prose before or after.
+
+
+===== USER =====
+# Title
+Comparison of artemether and chloroquine for severe malaria in Gambian children.
+
+# Abstract
+Artemether is an oil-soluble methyl ether of artemesinin (qinghaosu). It has been studied extensively in China, where it has been shown to be rapidly effective in severe falciparum malaria. Nearly all the patients studied previously were adults. We have investigated the efficacy of artemether in children with moderate or severe falciparum malaria. In the preliminary study of moderately severe malaria, 30 Gambian children were randomised in pairs to receive either intramuscular artemether (4 mg/kg loading dose followed by 2 mg/kg daily) or intramuscular chloroquine ('Nivaquine') 3.5 mg base/kg every 6 h. Both drugs were well tolerated and rapidly effective. The times to parasite clearance were significantly shorter in the artemether recipients (mean 36.7 [SD 11.3] vs 48.4 [16.8] h, p less than 0.05). 43 children with severe malaria were then randomised to receive intramuscular treatment with the same regimens of artemether (n = 21) or chloroquine (n = 22) as used in the preliminary study. 8 children (19%) died. There were no significant differences between the two groups in the clinical, haematological, biochemical, or parasitological measures of therapeutic response in survivors and there was no evidence of local or systemic toxicity. Despite similar parasite counts on admission, clearance times overall were longer in severe malaria than in moderate malaria. Artemether is a well tolerated and rapidly effective parenteral treatment for severe malaria in children, and would be especially valuable in areas with chloroquine-resistant P falciparum.
+
+# Publication types
+Clinical Trial, Comparative Study, Journal Article, Randomized Controlled Trial, Research Support, Non-U.S. Gov't
+
+===== STDOUT =====
+```json
+{
+  "title": "Comparison of artemether and chloroquine for severe malaria in Gambian children",
+  "study_type": ["Clinical Trial", "Comparative Study", "Randomized Controlled Trial"],
+  "funding": "Non-U.S. Gov't",
+  "population": {
+    "species": "human",
+    "age_group": "children",
+    "location": "Gambia",
+    "condition": "falciparum malaria"
+  },
+  "interventions": [
+    {
+      "drug": "artemether",
+      "route": "intramuscular",
+      "loading_dose_mg_per_kg": 4,
+      "maintenance_dose_mg_per_kg": 2,
+      "frequency": "daily",
+      "description": "oil-soluble methyl ether of artemisinin (qinghaosu)"
+    },
+    {
+      "drug": "chloroquine",
+      "brand": "Nivaquine",
+      "route": "intramuscular",
+      "dose_mg_base_per_kg": 3.5,
+      "frequency": "every 6 hours"
+    }
+  ],
+  "phases": [
+    {
+      "phase": "preliminary",
+      "severity": "moderate",
+      "n_total": 30,
+      "randomization": "pairs",
+      "result": {
+        "parasite_clearance_artemether_h_mean": 36.7,
+        "parasite_clearance_artemether_h_sd": 11.3,
+        "parasite_clearance_chloroquine_h_mean": 48.4,
+        "parasite_clearance_chloroquine_h_sd": 16.8,
+        "p_value": "<0.05",
+        "significant": true
+      }
+    },
+    {
+      "phase": "main",
+      "severity": "severe",
+      "n_total": 43,
+      "n_artemether": 21,
+      "n_chloroquine": 22,
+      "mortality": {
+        "deaths": 8,
+        "percent": 19
+      },
+      "result": {
+        "significant_difference_clinical": false,
+        "significant_difference_haematological": false,
+        "significant_difference_biochemical": false,
+        "significant_difference_parasitological": false,
+        "toxicity_local": false,
+        "toxicity_systemic": false,
+        "parasite_clearance_longer_vs_moderate": true
+      }
+    }
+  ],
+  "conclusions": {
+    "artemether_tolerated": true,
+    "artemether_rapidly_effective": true,
+    "especially_valuable_for": "chloroquine-resistant P. falciparum areas",
+    "prior_evidence_gap": "most prior artemether studies were adults; this study covers children"
+  }
+}
+```
