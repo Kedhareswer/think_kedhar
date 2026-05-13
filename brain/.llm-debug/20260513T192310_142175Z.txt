@@ -1,0 +1,862 @@
+===== SYSTEM =====
+# Concept note — Medication (Master-sheet Medications aligned)
+
+You are writing a single Markdown note about ONE medication (drug, biologic, or therapeutic agent). The headings match the Master-sheet "Medications" columns so an exporter can lift each section into the corresponding cell.
+
+You are given:
+- The drug name (generic).
+- A list of qualified claims about this drug, with predicate, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused medication note. Re-synthesize from the current claim set on every regeneration.
+
+## Output structure
+
+```
+---
+type: medication
+drug_class: <e.g. artemisinin-combination-therapy>
+tags: [<area/sub-area>, ...]            # e.g. malaria/treatment, malaria/severe
+evidence_grade_max: <meta_analysis|RCT|guideline|cohort|case_control|case_report|expert_opinion>
+claim_count: <int>
+last_regen: <ISO-8601 timestamp>
+---
+
+# <Generic name>
+
+**Therapeutic category:** <e.g. Antimalarial>
+**Drug group:** <e.g. Artemisinin combination therapy>
+**Drug class:** <e.g. Sesquiterpene endoperoxide>
+**Controlled substance:** <Yes — Schedule X · No>
+
+## Overview
+
+≤ 80 words plain-language description.
+
+## Indication (Why is this medication prescribed?)
+
+Bullet list of conditions/uses. Cite inline.
+
+## Mechanism of Action (How does it work?)
+
+Short paragraph. Cite mechanism claims explicitly.
+
+## Dosage and Administration
+
+Table or bullet list, organised by indication and population (adult / pediatric / pregnancy / renal-adjusted). Include dose, route, frequency, duration. Only state what claims support — never invent a dose.
+
+## Contraindications (When not to use it)
+
+Bullet list. Distinguish absolute from relative.
+
+## Warnings and Precautions
+
+Bullet list of black-box warnings, severe precautions, monitoring requirements.
+
+## Side Effects
+
+Bullet list grouped by frequency (common / serious / rare). Flag the ones with mortality risk.
+
+## Drug Interactions
+
+Bullet list. For each interaction, state effect direction (↑/↓ exposure, additive toxicity, etc.) and severity.
+
+## Storage and Stability
+
+Short paragraph or bullet list.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>. Evidence mix: <e.g. 6 RCT · 4 guideline · 2 cohort>.*
+```
+
+## Rules
+
+1. **Dose safety first.** If no claim supports a dose, write `_No dose claims in current corpus._` rather than guess. This is a hard constraint.
+2. **No hallucination** (fact-checker). Every statement traces to a claim_id; disagreements flagged with both ids.
+3. **Cite inline** (academic-researcher). `[c:<8char-claim-id>]` after each statement. Note evidence_grade when load-bearing.
+4. **Concision** (technical-writer). ≤ 800 words total.
+5. **Population qualifiers are load-bearing.** Always preserve population/setting qualifiers when surfacing dose, contraindication, or warning claims.
+6. **Brand names and prices** are out of scope for this note — they live in the Master sheet's per-country columns and are sourced separately.
+7. **Status awareness.** `(pending review)` inline for non-promoted; supersedence by replacement.
+8. **Output ONLY the Markdown.** No code fences, no preamble, no postamble.
+
+## Obsidian-friendly output (required)
+
+1. **YAML frontmatter** at the very top per the schema in the Output structure block. `type: medication` is fixed for this prompt.
+2. **Wikilink cross-references** for indications (conditions), partner/interacting drugs, target organisms, resistance genes on first mention per section. Kebab-case slugs (e.g. `[[uncomplicated-falciparum-malaria]]`, `[[lumefantrine]]`, `[[kelch13-c580y-mutation]]`). Never wikilink doses or generic verbs.
+3. **Mermaid diagrams** allowed for mechanism of action cascades (target → downstream → clinical effect) when the claim set supports 3+ mechanistic steps. Fenced ```mermaid``` block. Cite load-bearing claim with `[c:<id>]` adjacent.
+4. **Citations are sacred.** Every claim_id supporting a dose, contraindication, interaction, or efficacy statement must appear as `[c:<8char>]`. Never fabricate. Dropping a dose-supporting citation is a hard reject.
+
+
+===== USER =====
+# Entity
+plasmodium falciparum infection
+
+# Surface variants
+Plasmodium falciparum infection, Plasmodium falciparum infection in pregnancy
+
+# Entity type (classifier hint)
+medication
+
+# Claims (count=15)
+```json
+[
+  {
+    "claim_id": "1bb9d163-1c16-4338-b843-935bec57b8a2",
+    "short_id": "1bb9d163",
+    "subject": "dihydroartemisinin-piperaquine",
+    "predicate": "prevents",
+    "object": "Plasmodium falciparum infection in pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": null,
+        "immune_status": null,
+        "comorbidities": [
+          "HIV-uninfected"
+        ]
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "piperaquine",
+        "mg_per_kg": null,
+        "frequency": "every 4 weeks or every 8 weeks",
+        "duration": "12-20 weeks gestation through delivery"
+      },
+      "comparator": "sulfadoxine-pyrimethamine every 8 weeks",
+      "effect_size": {
+        "metric": "PQ target venous plasma concentration for 99% protection (ng/mL)",
+        "value": 13.9,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "RCT",
+    "status": "auto_promoted",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:29547881",
+      "title": "Intermittent Preventive Treatment for Malaria in Pregnancy: Optimization of Target Concentrations of Dihydroartemisinin-Piperaquine.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/29547881/"
+    }
+  },
+  {
+    "claim_id": "168ee29d-16f9-482a-8236-0732912c0137",
+    "short_id": "168ee29d",
+    "subject": "Plasmodium falciparum infection in pregnancy",
+    "predicate": "causes",
+    "object": "maternal, fetal, and infant morbidity and mortality",
+    "qualifiers": {
+      "population": {
+        "age_range": "reproductive age",
+        "pregnancy": "second_third_trimester",
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:28213434",
+      "title": "Malaria during Pregnancy.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/28213434/"
+    }
+  },
+  {
+    "claim_id": "b9d44edb-0663-409d-983f-d532b8e72bb5",
+    "short_id": "b9d44edb",
+    "subject": "proteostasis perturbation",
+    "predicate": "treats",
+    "object": "Plasmodium falciparum infection",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37292709",
+      "title": "Parasite proteostasis and artemisinin resistance.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37292709/"
+    }
+  },
+  {
+    "claim_id": "d9fa18f9-d246-4f07-bcb8-456f804f7961",
+    "short_id": "d9fa18f9",
+    "subject": "dihydroartemisinin-piperaquine IPTp",
+    "predicate": "prevents",
+    "object": "Plasmodium falciparum infection in pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "dihydroartemisinin-piperaquine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "sulfadoxine-pyrimethamine IPTp",
+      "effect_size": {
+        "metric": "antimalarial efficacy",
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:35916532",
+      "title": "Pregnancy and malaria: the perfect storm.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35916532/"
+    }
+  },
+  {
+    "claim_id": "b49180c2-4454-4cd2-a619-83fed474d703",
+    "short_id": "b49180c2",
+    "subject": "aptamer 2008s APTEC assay",
+    "predicate": "diagnoses",
+    "object": "Plasmodium falciparum infection",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "HRP2 immunoassay",
+      "effect_size": {
+        "metric": "species specificity (P. falciparum vs P. vivax)",
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:29080831",
+      "title": "Aptamer-mediated Plasmodium-specific diagnosis of malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/29080831/"
+    }
+  },
+  {
+    "claim_id": "fd03b82e-1057-4190-8322-01b93d117654",
+    "short_id": "fd03b82e",
+    "subject": "Plasmodium falciparum infection",
+    "predicate": "co_occurs",
+    "object": "bacterial coinfection",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:30509313",
+      "title": "Interpreting rapid diagnostic test (RDT) for Plasmodium falciparum.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/30509313/"
+    }
+  },
+  {
+    "claim_id": "552da9fe-4cd4-4690-b915-322ac0c8e30b",
+    "short_id": "552da9fe",
+    "subject": "HRP2-based mRDT",
+    "predicate": "diagnoses",
+    "object": "Plasmodium falciparum infection",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "alternative antigen-based RDTs",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:31848119",
+      "title": "HRP2: Transforming Malaria Diagnosis, but with Caveats.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/31848119/"
+    }
+  },
+  {
+    "claim_id": "6c7c29a6-4467-4418-8388-bcf2509b3bae",
+    "short_id": "6c7c29a6",
+    "subject": "Plasmodium ovale spp.",
+    "predicate": "co_occurs",
+    "object": "Plasmodium falciparum infection",
+    "qualifiers": {
+      "population": {
+        "age_range": "school-age children",
+        "pregnancy": null,
+        "region": "Kinshasa, Democratic Republic of Congo",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37857597",
+      "title": "Epidemiology of Plasmodium malariae and Plasmodium ovale spp. in Kinshasa Province, Democratic Republic of Congo.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37857597/"
+    }
+  },
+  {
+    "claim_id": "ddde60c2-18f4-4ab9-9cf9-e77425f5a64a",
+    "short_id": "ddde60c2",
+    "subject": "Plasmodium malariae",
+    "predicate": "co_occurs",
+    "object": "Plasmodium falciparum infection",
+    "qualifiers": {
+      "population": {
+        "age_range": "school-age children",
+        "pregnancy": null,
+        "region": "Kinshasa, Democratic Republic of Congo",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37857597",
+      "title": "Epidemiology of Plasmodium malariae and Plasmodium ovale spp. in Kinshasa Province, Democratic Republic of Congo.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37857597/"
+    }
+  },
+  {
+    "claim_id": "3493cee0-dd48-4462-ae1d-e4c5bfc37302",
+    "short_id": "3493cee0",
+    "subject": "blood group B+",
+    "predicate": "co_occurs",
+    "object": "Plasmodium falciparum infection",
+    "qualifiers": {
+      "population": {
+        "age_range": "mixed (mean 9.83 years)",
+        "pregnancy": null,
+        "region": "Kenya",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "blood group O+",
+      "effect_size": {
+        "metric": "increased likelihood of infection (proportion)",
+        "value": 14.0,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:36050680",
+      "title": "Burden of malaria infection among individuals of varied blood groups in Kenya.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/36050680/"
+    }
+  },
+  {
+    "claim_id": "2f203d2f-9a79-4102-9812-55179d249e47",
+    "short_id": "2f203d2f",
+    "subject": "Plasmodium falciparum infection",
+    "predicate": "causes",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:33193447",
+      "title": "Naturally Acquired Humoral Immunity Against Plasmodium falciparum Malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/33193447/"
+    }
+  },
+  {
+    "claim_id": "1f1bb6a8-620c-43a6-aa7c-e4f59918c3ea",
+    "short_id": "1f1bb6a8",
+    "subject": "non-falciparum Plasmodium species",
+    "predicate": "co_occurs",
+    "object": "Plasmodium falciparum infection",
+    "qualifiers": {
+      "population": {
+        "age_range": "school-age children",
+        "pregnancy": null,
+        "region": "Kinshasa, Democratic Republic of Congo",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37857597",
+      "title": "Epidemiology of Plasmodium malariae and Plasmodium ovale spp. in Kinshasa Province, Democratic Republic of Congo.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37857597/"
+    }
+  },
+  {
+    "claim_id": "9212880f-05e2-428a-a3be-98b8d2e57dbb",
+    "short_id": "9212880f",
+    "subject": "dihydroartemisinin-piperaquine IPTp",
+    "predicate": "treats",
+    "object": "Plasmodium falciparum infection in pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "pregnant",
+        "pregnancy": null,
+        "region": "Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "dihydroartemisinin-piperaquine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "sulfadoxine-pyrimethamine IPTp",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:35916532",
+      "title": "Pregnancy and malaria: the perfect storm.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35916532/"
+    }
+  },
+  {
+    "claim_id": "e3dd6f37-3e61-4362-ab09-b89e17d382a5",
+    "short_id": "e3dd6f37",
+    "subject": "Azadirachta indica",
+    "predicate": "treats",
+    "object": "Plasmodium falciparum infection",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "Azadirachta indica",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:38358164",
+      "title": "Alternative first-line malaria treatment.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38358164/"
+    }
+  },
+  {
+    "claim_id": "cf76677d-01ba-47a2-a04d-c2e97b711159",
+    "short_id": "cf76677d",
+    "subject": "Plasmodium falciparum infection",
+    "predicate": "causes",
+    "object": "jaundice",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:40504905",
+      "title": "A metabolite-based resistance mechanism against malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/40504905/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-13T19:22:32.978784+00:00
+
+
+===== STDOUT =====
+---
+type: medication
+drug_class: artemisinin-combination-therapy
+tags: [malaria/prevention, malaria/pregnancy, malaria/treatment]
+evidence_grade_max: RCT
+claim_count: 3
+last_regen: 2026-05-13T19:22:32Z
+---
+
+# Dihydroartemisinin-piperaquine
+
+**Therapeutic category:** Antimalarial
+**Drug group:** Artemisinin-based combination therapy (ACT)
+**Drug class:** Sesquiterpene endoperoxide (dihydroartemisinin) + bisquinoline (piperaquine)
+**Controlled substance:** No
+
+> Note: source corpus indexed under entity `[[plasmodium-falciparum-infection]]`. This note surfaces the medication-class claims (DHA-PPQ) in that corpus. Disease-level claims (epidemiology, diagnostics, sequelae) summarised under *Indication* only.
+
+## Overview
+
+Fixed-dose ACT combining short-acting dihydroartemisinin with long-acting piperaquine. Used as intermittent preventive treatment in pregnancy (IPTp) for [[plasmodium-falciparum-infection]] in endemic regions, where it shows antimalarial efficacy versus standard [[sulfadoxine-pyrimethamine]] IPTp [c:d9fa18f9] (pending review).
+
+## Indication (Why is this medication prescribed?)
+
+- Prevention of [[plasmodium-falciparum-infection-in-pregnancy]] (IPTp), 2nd/3rd trimester, HIV-uninfected adults, endemic outpatient setting [c:1bb9d163] (RCT).
+- Treatment of [[plasmodium-falciparum-infection-in-pregnancy]] in African endemic settings, pregnant population [c:9212880f] (pending review).
+- Indirect rationale: Pf infection causes [[malaria]] [c:2f203d2f], maternal/fetal/infant morbidity-mortality [c:168ee29d], and [[jaundice]] [c:cf76677d] — prevention in pregnancy reduces this burden. Co-infection with [[plasmodium-ovale]], [[plasmodium-malariae]], and bacterial pathogens reported in endemic settings [c:6c7c29a6][c:ddde60c2][c:1f1bb6a8][c:fd03b82e] (all pending review).
+
+## Mechanism of Action (How does it work?)
+
+Dihydroartemisinin = active artemisinin metabolite; endoperoxide bridge cleaved by parasite heme-iron → reactive radicals → parasite protein/lipid alkylation. Piperaquine = long-acting blood schizonticide accumulating in parasite food vacuole, blocking heme detoxification. Parasite [[proteostasis]] perturbation tied to artemisinin action and resistance [c:b9d44edb] (low certainty, pending review).
+
+```mermaid
+flowchart LR
+  A[DHA endoperoxide] -->|heme-Fe cleavage| B[Free radicals]
+  B --> C[Parasite protein alkylation]
+  C --> D[Proteostasis collapse]
+  D --> E[Schizont death]
+  F[Piperaquine] -->|food vacuole accumulation| G[Heme detox block]
+  G --> E
+```
+Proteostasis step [c:b9d44edb].
+
+## Dosage and Administration
+
+| Indication | Population | Regimen | Source |
+|---|---|---|---|
+| IPTp prevention | Pregnant adult, 2nd/3rd trimester, HIV-uninfected | Every 4 wk **or** every 8 wk, from 12–20 wk gestation through delivery; target piperaquine venous plasma conc **13.9 ng/mL** for 99% protection | [c:1bb9d163] RCT |
+| IPTp prevention | Pregnant adult, sub-Saharan Africa | DHA-PPQ IPTp vs SP IPTp comparator; mg/kg not specified in corpus | [c:d9fa18f9] (pending review) |
+| Treatment in pregnancy | Pregnant, Africa | DHA-PPQ IPTp; mg/kg not specified in corpus | [c:9212880f] (pending review) |
+
+_No mg/kg dose claims in current corpus — consult WHO ACT guidelines before prescribing._
+
+## Contraindications (When not to use it)
+
+_No contraindication claims in current corpus._
+
+## Warnings and Precautions
+
+_No warning/precaution claims in current corpus._ Standard ACT cautions (QT prolongation with piperaquine, 1st-trimester pregnancy) not supported by current claim set — verify externally.
+
+## Side Effects
+
+_No adverse-event claims in current corpus._
+
+## Drug Interactions
+
+_No interaction claims in current corpus._ Comparator-only mention: [[sulfadoxine-pyrimethamine]] IPTp every 8 wk [c:1bb9d163].
+
+## Storage and Stability
+
+_No storage/stability claims in current corpus._
+
+---
+*Last regenerated: 2026-05-13T19:22:32Z. Source claims: 3 of 15 (DHA-PPQ-specific). Evidence mix: 1 RCT · 2 expert_opinion (pending review). Disease-context claims cited inline under Indication.*

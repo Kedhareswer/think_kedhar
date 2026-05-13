@@ -14,6 +14,7 @@ dependencies = [
     "uvicorn>=0.30",
     "lxml>=5.0",
     "networkx>=3.2",
+    "openpyxl>=3.1",
 ]
 # LLM backend: Claude Code CLI (`claude` on PATH). Uses Claude Max subscription.
 # No anthropic SDK dep — see medbrain/llm.py.

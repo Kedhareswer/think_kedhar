@@ -1,0 +1,699 @@
+===== SYSTEM =====
+OUTPUT REQUIREMENT: Return VALID JSON ONLY. Your entire response must be parseable by json.loads(). First character of your output must be `{` or `[`. No prose. No explanations. No markdown fences. No apologies. If the requested data is unavailable, return the schema with empty/null values, still as valid JSON. Tools are intentionally disabled — do not request access to them.
+
+/# Student extractor — qualified claims from a PubMed abstract
+
+You are extracting **atomic, qualified medical claims** from a malaria-focused biomedical abstract.
+
+## Output format
+
+Return a JSON array. Each element is one qualified claim.
+
+```json
+[
+  {
+    "subject": "string — entity name (drug, organism, gene, syndrome, intervention, vector, diagnostic test, complication, lifecycle stage)",
+    "predicate": "one of: treats | causes | resists | requires | contraindicates | prevents | co_occurs | recommends | diagnoses | transmits | complicates | classifies_as | affects | has_lifecycle_stage",
+    "object": "string — entity or value",
+    "qualifiers": {
+      "population": {
+        "age_range": "e.g. adults | pediatric | <5 years | pregnant | null",
+        "pregnancy": "first_trimester | second_third_trimester | not_pregnant | null",
+        "region": "geographic region — e.g. Greater Mekong | West Africa | sub-Saharan Africa | null",
+        "immune_status": "naive | semi-immune | immunocompromised | null",
+        "comorbidities": ["list of strings or empty"]
+      },
+      "setting": {
+        "care_level": "outpatient | inpatient | community | null",
+        "endemic_status": "endemic | non_endemic | traveler | null"
+      },
+      "dose_regimen": {
+        "drug": "string or null",
+        "mg_per_kg": "number or null",
+        "frequency": "string or null",
+        "duration": "string or null"
+      },
+      "comparator": "what the intervention was compared against — string or null",
+      "effect_size": {
+        "metric": "e.g. day-3 positivity rate | parasite clearance time | hazard ratio | null",
+        "value": "number or null",
+        "ci_low": "number or null",
+        "ci_high": "number or null"
+      }
+    },
+    "certainty": "high | moderate | low | very_low",
+    "evidence_note": "one short sentence on why this certainty (sample size, design quality, etc.)"
+  }
+]
+```
+
+## Rules
+
+1. **Atomic.** Each claim is one subject-predicate-object triple. If an abstract states "X treats Y AND X causes Z", emit two claims.
+2. **Qualified.** Populate `qualifiers` from what the abstract explicitly states. Leave NULL if not stated — do NOT invent values.
+3. **Predicates.** Use only the listed enum values. Map free-text to the closest:
+   - "is associated with" / "linked to" / "shown to be effective for" → `treats` if therapeutic, `prevents` if prophylactic
+   - "induces resistance" / "selects for resistance" / "associated with treatment failure" → `resists` (when subject = parasite/pathogen, object = drug)
+   - "should not be given to" / "avoid in" → `contraindicates`
+   - WHO/CDC/national-program statements like "is recommended for" → `recommends`
+   - "RDT detects" / "microscopy identifies" / "PCR confirms" / "sensitivity X% for" → `diagnoses` (subject = test/sign, object = condition/species)
+   - "is transmitted by" / "Anopheles X is a vector for" / "vectored by" → `transmits` (subject = vector, object = pathogen)
+   - "complicated by" / "leads to (clinical sequela)" / "progresses to" → `complicates` (subject = complication, object = parent condition)
+   - "is a subtype of" / "belongs to genus" / "classified as" → `classifies_as`
+   - "prevalence X% in region Y" / "kills N people/year in Z" / "incidence rate" / "burden of disease" → `affects` (subject = condition, object = population/region; populate effect_size with the numeric burden)
+   - "ring stage" / "schizont" / "gametocyte" / "exo-erythrocytic phase" / "sporogonic cycle" → `has_lifecycle_stage` (subject = pathogen, object = stage name)
+4. **Subject vs object.** For resistance claims, subject is the parasite/pathogen, object is the drug. For treatment, subject is the drug/intervention, object is the disease/population.
+5. **Certainty mapping:**
+   - `high`: large RCT or meta-analysis with consistent results, or current WHO guideline
+   - `moderate`: cohort study, smaller RCT, well-designed observational
+   - `low`: case-control, single-site observational, conflicting evidence
+   - `very_low`: case report, expert opinion, in-vitro only, mechanistic inference
+6. **Skip methodology, NOT epidemiology.** Skip methodology ("We enrolled 1241 patients", "Abstracts were screened by two reviewers") and bare meta-commentary ("Further research is needed", "More studies needed"). KEEP epidemiology facts (regional burden, mortality, prevalence, age-specific incidence, vector distribution) as `affects` or `transmits` claims with population/region qualifiers populated and numeric values in `effect_size`. Textbook-grade coverage requires epi.
+7. **No claims is a valid output.** If the abstract is purely descriptive epidemiology with no actionable medical claim, return `[]`.
+
+## DO NOT
+
+- DO NOT summarize the abstract.
+- DO NOT return a `{"title": ..., "methods": [...], "key_findings": [...]}` paper-summary object. That is wrong.
+- DO NOT wrap claims in any object key. The top-level value must be a JSON array `[ ... ]`.
+- DO NOT return an array of strings like `["Drug X treats Y", "Drug Z prevents W"]`. Each element MUST be a full JSON object with the keys: `subject`, `predicate`, `object`, `qualifiers`, `certainty`, `evidence_note`.
+- DO NOT invent facts not in the abstract.
+
+## More wrong examples
+
+```json
+["Artemisinin treats malaria", "Chloroquine resistance rising"]
+```
+
+```json
+{"claims": ["..."]}
+```
+
+Both wrong. Each claim must be a full object as shown in the schema above.
+
+## Negative example (WRONG)
+
+```json
+{"title": "...", "key_findings": [{"finding": "..."}], "conclusion": "..."}
+```
+
+## Positive example (CORRECT)
+
+```json
+[
+  {
+    "subject": "artemether-lumefantrine",
+    "predicate": "treats",
+    "object": "uncomplicated P. falciparum malaria",
+    "qualifiers": {
+      "population": {"age_range": "adults", "pregnancy": null, "region": "sub-Saharan Africa", "immune_status": null, "comorbidities": []},
+      "setting": {"care_level": "outpatient", "endemic_status": "endemic"},
+      "dose_regimen": {"drug": "artemether-lumefantrine", "mg_per_kg": null, "frequency": "twice daily", "duration": "3 days"},
+      "comparator": "dihydroartemisinin-piperaquine",
+      "effect_size": {"metric": "day-28 PCR-corrected cure rate", "value": 96.2, "ci_low": 94.1, "ci_high": 97.8}
+    },
+    "certainty": "high",
+    "evidence_note": "Multi-site RCT, n=1241, day-28 PCR-corrected efficacy."
+  }
+]
+```
+
+## More positive examples (textbook breadth)
+
+Diagnostic test claim:
+
+```json
+{
+  "subject": "histidine-rich protein 2 RDT",
+  "predicate": "diagnoses",
+  "object": "Plasmodium falciparum infection",
+  "qualifiers": {
+    "population": {"age_range": null, "pregnancy": null, "region": "sub-Saharan Africa", "immune_status": null, "comorbidities": []},
+    "setting": {"care_level": "community", "endemic_status": "endemic"},
+    "dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": null},
+    "comparator": "microscopy reference",
+    "effect_size": {"metric": "sensitivity", "value": 95.0, "ci_low": 92.0, "ci_high": 97.0}
+  },
+  "certainty": "high",
+  "evidence_note": "WHO field-evaluation meta-analysis across 14 countries."
+}
+```
+
+Epidemiology claim:
+
+```json
+{
+  "subject": "Plasmodium falciparum",
+  "predicate": "affects",
+  "object": "children under 5 in sub-Saharan Africa",
+  "qualifiers": {
+    "population": {"age_range": "<5 years", "pregnancy": null, "region": "sub-Saharan Africa", "immune_status": "semi-immune", "comorbidities": []},
+    "setting": {"care_level": "community", "endemic_status": "endemic"},
+    "dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": null},
+    "comparator": null,
+    "effect_size": {"metric": "annual mortality (deaths/year)", "value": 470000, "ci_low": 430000, "ci_high": 510000}
+  },
+  "certainty": "high",
+  "evidence_note": "WHO World Malaria Report 2023 burden estimate."
+}
+```
+
+Vector / transmission claim:
+
+```json
+{
+  "subject": "Anopheles gambiae",
+  "predicate": "transmits",
+  "object": "Plasmodium falciparum",
+  "qualifiers": {
+    "population": {"age_range": null, "pregnancy": null, "region": "sub-Saharan Africa", "immune_status": null, "comorbidities": []},
+    "setting": {"care_level": null, "endemic_status": "endemic"},
+    "dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": null},
+    "comparator": null,
+    "effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+  },
+  "certainty": "high",
+  "evidence_note": "Established vector biology; multiple entomological surveys."
+}
+```
+
+Complication claim:
+
+```json
+{
+  "subject": "cerebral malaria",
+  "predicate": "complicates",
+  "object": "severe Plasmodium falciparum infection",
+  "qualifiers": {
+    "population": {"age_range": "<5 years", "pregnancy": null, "region": "sub-Saharan Africa", "immune_status": "semi-immune", "comorbidities": []},
+    "setting": {"care_level": "inpatient", "endemic_status": "endemic"},
+    "dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": null},
+    "comparator": null,
+    "effect_size": {"metric": "case-fatality rate", "value": 18.0, "ci_low": 15.0, "ci_high": 22.0}
+  },
+  "certainty": "high",
+  "evidence_note": "Multi-centre African pediatric severe-malaria cohort."
+}
+```
+
+Lifecycle stage claim:
+
+```json
+{
+  "subject": "Plasmodium falciparum",
+  "predicate": "has_lifecycle_stage",
+  "object": "ring stage",
+  "qualifiers": {
+    "population": {"age_range": null, "pregnancy": null, "region": null, "immune_status": null, "comorbidities": []},
+    "setting": {"care_level": null, "endemic_status": null},
+    "dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": null},
+    "comparator": null,
+    "effect_size": {"metric": "intra-erythrocytic duration (hours)", "value": 24.0, "ci_low": null, "ci_high": null}
+  },
+  "certainty": "high",
+  "evidence_note": "Established parasitology; intra-erythrocytic cycle ~48h, ring stage first 24h."
+}
+```
+
+Classification claim:
+
+```json
+{
+  "subject": "Plasmodium knowlesi",
+  "predicate": "classifies_as",
+  "object": "zoonotic Plasmodium species",
+  "qualifiers": {
+    "population": {"age_range": null, "pregnancy": null, "region": "Southeast Asia", "immune_status": null, "comorbidities": []},
+    "setting": {"care_level": null, "endemic_status": "endemic"},
+    "dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": null},
+    "comparator": null,
+    "effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+  },
+  "certainty": "high",
+  "evidence_note": "Reservoir host: long-tailed and pig-tailed macaques; established taxonomy."
+}
+```
+
+## Output
+
+Return ONLY the JSON array. First character of your response must be `[`. No prose before or after. If no qualified claims exist, return `[]`.
+
+
+===== USER =====
+# Title
+UK malaria treatment guidelines 2016.
+
+# Abstract
+1.Malaria is the tropical disease most commonly imported into the UK, with 1300-1800 cases reported each year, and 2-11 deaths. 2. Approximately three quarters of reported malaria cases in the UK are caused by Plasmodium falciparum, which is capable of invading a high proportion of red blood cells and rapidly leading to severe or life-threatening multi-organ disease. 3. Most non-falciparum malaria cases are caused by Plasmodium vivax; a few cases are caused by the other species of plasmodium: Plasmodium ovale, Plasmodium malariae or Plasmodium knowlesi. 4. Mixed infections with more than one species of parasite can occur; they commonly involve P. falciparum with the attendant risks of severe malaria. 5. There are no typical clinical features of malaria; even fever is not invariably present. Malaria in children (and sometimes in adults) may present with misleading symptoms such as gastrointestinal features, sore throat or lower respiratory complaints. 6. A diagnosis of malaria must always be sought in a feverish or sick child or adult who has visited malaria-endemic areas. Specific country information on malaria can be found at http://travelhealthpro.org.uk/. P. falciparum infection rarely presents more than six months after exposure but presentation of other species can occur more than a year after exposure. 7. Management of malaria depends on awareness of the diagnosis and on performing the correct diagnostic tests: the diagnosis cannot be excluded until more than one blood specimen has been examined. Other travel related infections, especially viral haemorrhagic fevers, should also be considered. 8. The optimum diagnostic procedure is examination of thick and thin blood films by an expert to detect and speciate the malarial parasites. P. falciparum and P. vivax (depending upon the product) malaria can be diagnosed almost as accurately using rapid diagnostic tests (RDTs) which detect plasmodial antigens. RDTs for other Plasmodium species are not as reliable. 9. Most patients treated for P. falciparum malaria should be admitted to hospital for at least 24 h as patients can deteriorate suddenly, especially early in the course of treatment. In specialised units seeing large numbers of patients, outpatient treatment may be considered if specific protocols for patient selection and follow up are in place. 10. Uncomplicated P. falciparum malaria should be treated with an artemisinin combination therapy (Grade 1A). Artemether-lumefantrine (Riamet(®)) is the drug of choice (Grade 2C) and dihydroartemisinin-piperaquine (Eurartesim(®)) is an alternative. Quinine or atovaquone-proguanil (Malarone(®)) can be used if an ACT is not available. Quinine is highly effective but poorly-tolerated in prolonged treatment and should be used in combination with an additional drug, usually oral doxycycline. 11. Severe falciparum malaria, or infections complicated by a relatively high parasite count (more than 2% of red blood cells parasitized) should be treated with intravenous therapy until the patient is well enough to continue with oral treatment. Severe malaria is a rare complication of P. vivax or P. knowlesi infection and also requires parenteral therapy. 12. The treatment of choice for severe or complicated malaria in adults and children is intravenous artesunate (Grade 1A). Intravenous artesunate is unlicensed in the EU but is available in many centres. The alternative is intravenous quinine, which should be started immediately if artesunate is not available (Grade 1A). Patients treated with intravenous quinine require careful monitoring for hypoglycemia. 13. Patients with severe or complicated malaria should be managed in a high-dependency or intensive care environment. They may require haemodynamic support and management of: acute respiratory distress syndrome, disseminated intravascular coagulation, acute kidney injury, seizures, and severe intercurrent infections including Gram-negative bacteraemia/septicaemia. 14. Children with severe malaria should also be treated with empirical broad spectrum antibiotics until bacterial infection can be excluded (Grade 1B). 15. Haemolysis occurs in approximately 10-15% patients following intravenous artesunate treatment. Haemoglobin concentrations should be checked approximately 14 days following treatment in those treated with IV artemisinins (Grade 2C). 16. Falciparum malaria in pregnancy is more likely to be complicated: the placenta contains high levels of parasites, stillbirth or early delivery may occur and diagnosis can be difficult if parasites are concentrated in the placenta and scanty in the blood. 17. Uncomplicated falciparum malaria in the second and third trimester of pregnancy should be treated with artemether-lumefantrine (Grade 2B). Uncomplicated falciparum malaria in the first trimester of pregnancy should usually be treated with quinine and clindamycin but specialist advice should be sought. Severe malaria in any trimester of pregnancy should be treated as for any other patient with artesunate preferred over quinine (Grade 1C). 18. Children with uncomplicated malaria should be treated with an ACT (artemether-lumefantrine or dihydroartemisinin-piperaquine) as first line treatment (Grade 1A). Quinine with doxycycline or clindamycin, or atovaquone-proguanil at appropriate doses for weight can also be used. Doxycycline should not be given to children under 12 years. 19. Either an oral ACT or chloroquine can be used for the treatment of non-falciparum malaria. An oral ACT is preferred for a mixed infection, if there is uncertainty about the infecting species, or for P. vivax infection from areas where chloroquine resistance is common (Grade 1B). 20. Dormant parasites (hypnozoites) persist in the liver after treatment of P. vivax or P. ovale infection: the only currently effective drug for eradication of hypnozoites is primaquine (1A). Primaquine is more effective at preventing relapse if taken at the same time as chloroquine (Grade 1C). 21. Primaquine should be avoided or given with caution under expert supervision in patients with Glucose-6-phosphate dehydrogenase deficiency (G6PD), in whom it may cause severe haemolysis. 22. Primaquine (for eradication of P. vivax or P. ovale hypnozoites) is contraindicated in pregnancy and when breastfeeding (until the G6PD status of child is known); after initial treatment for these infections a pregnant woman should take weekly chloroquine prophylaxis until after delivery or cessation of breastfeeding when hypnozoite eradication can be considered. 23. An acute attack of malaria does not confer protection from future attacks: individuals who have had malaria should take effective anti-mosquito precautions and chemoprophylaxis during future visits to endemic areas.
+
+# Publication types
+Journal Article
+# Task
+Extract atomic qualified medical claims from the abstract above. Return a JSON ARRAY (not a paper-summary object). Each element MUST be an object with exactly these keys: subject, predicate, object, qualifiers, certainty, evidence_note.
+
+STRICT FIELD CONSTRAINTS:
+- `predicate` MUST be EXACTLY one of: treats, causes, resists, requires, contraindicates, prevents, co_occurs, recommends, supersedes. Map free-text relations to the closest enum. NO other values allowed. If you cannot map cleanly, drop the claim.
+- `certainty` MUST be EXACTLY one of: high, moderate, low, very_low. NO other values (no 'established', no 'low-to-moderate').
+- `qualifiers` MUST be an object with the nested shape: {population:{age_range, pregnancy, region, immune_status, comorbidities}, setting:{care_level, endemic_status}, dose_regimen:{drug, mg_per_kg, frequency, duration}, comparator, effect_size:{metric, value, ci_low, ci_high}}. Use null for unknown leaf values. DO NOT use a flat free-form qualifiers object.
+- `subject` and `object` MUST be non-empty strings.
+
+DO NOT summarize the paper. DO NOT return {"title":...,"key_findings":...}. DO NOT return an array of strings. If no qualified claims exist, return [].
+Your output MUST start with `[` and end with `]`. Output ONLY the JSON array, nothing else.
+
+===== STDOUT =====
+[
+{
+"subject": "artemisinin combination therapy",
+"predicate": "treats",
+"object": "uncomplicated Plasmodium falciparum malaria",
+"qualifiers": {
+"population": {"age_range": "adults", "pregnancy": null, "region": "UK (imported)", "immune_status": null, "comorbidities": []},
+"setting": {"care_level": "inpatient", "endemic_status": "traveler"},
+"dose_regimen": {"drug": "artemisinin combination therapy", "mg_per_kg": null, "frequency": null, "duration": null},
+"comparator": null,
+"effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+},
+"certainty": "high",
+"evidence_note": "UK guideline Grade 1A recommendation."
+},
+{
+"subject": "artemether-lumefantrine",
+"predicate": "treats",
+"object": "uncomplicated Plasmodium falciparum malaria",
+"qualifiers": {
+"population": {"age_range": "adults", "pregnancy": null, "region": "UK (imported)", "immune_status": null, "comorbidities": []},
+"setting": {"care_level": "inpatient", "endemic_status": "traveler"},
+"dose_regimen": {"drug": "artemether-lumefantrine (Riamet)", "mg_per_kg": null, "frequency": null, "duration": null},
+"comparator": "dihydroartemisinin-piperaquine",
+"effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+},
+"certainty": "moderate",
+"evidence_note": "UK guideline Grade 2C, drug of choice."
+},
+{
+"subject": "dihydroartemisinin-piperaquine",
+"predicate": "treats",
+"object": "uncomplicated Plasmodium falciparum malaria",
+"qualifiers": {
+"population": {"age_range": "adults", "pregnancy": null, "region": "UK (imported)", "immune_status": null, "comorbidities": []},
+"setting": {"care_level": "inpatient", "endemic_status": "traveler"},
+"dose_regimen": {"drug": "dihydroartemisinin-piperaquine (Eurartesim)", "mg_per_kg": null, "frequency": null, "duration": null},
+"comparator": "artemether-lumefantrine",
+"effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+},
+"certainty": "moderate",
+"evidence_note": "UK guideline alternative ACT."
+},
+{
+"subject": "quinine plus doxycycline",
+"predicate": "treats",
+"object": "uncomplicated Plasmodium falciparum malaria",
+"qualifiers": {
+"population": {"age_range": "adults", "pregnancy": null, "region": "UK (imported)", "immune_status": null, "comorbidities": []},
+"setting": {"care_level": "inpatient", "endemic_status": "traveler"},
+"dose_regimen": {"drug": "quinine + doxycycline", "mg_per_kg": null, "frequency": null, "duration": null},
+"comparator": "ACT",
+"effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+},
+"certainty": "moderate",
+"evidence_note": "UK guideline alternative when ACT unavailable; quinine poorly tolerated."
+},
+{
+"subject": "atovaquone-proguanil",
+"predicate": "treats",
+"object": "uncomplicated Plasmodium falciparum malaria",
+"qualifiers": {
+"population": {"age_range": "adults", "pregnancy": null, "region": "UK (imported)", "immune_status": null, "comorbidities": []},
+"setting": {"care_level": "inpatient", "endemic_status": "traveler"},
+"dose_regimen": {"drug": "atovaquone-proguanil (Malarone)", "mg_per_kg": null, "frequency": null, "duration": null},
+"comparator": "ACT",
+"effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+},
+"certainty": "moderate",
+"evidence_note": "UK guideline alternative when ACT unavailable."
+},
+{
+"subject": "intravenous artesunate",
+"predicate": "treats",
+"object": "severe or complicated Plasmodium falciparum malaria",
+"qualifiers": {
+"population": {"age_range": "adults and children", "pregnancy": null, "region": "UK (imported)", "immune_status": null, "comorbidities": []},
+"setting": {"care_level": "inpatient", "endemic_status": "traveler"},
+"dose_regimen": {"drug": "artesunate IV", "mg_per_kg": null, "frequency": null, "duration": null},
+"comparator": "intravenous quinine",
+"effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+},
+"certainty": "high",
+"evidence_note": "UK guideline Grade 1A, treatment of choice."
+},
+{
+"subject": "intravenous quinine",
+"predicate": "treats",
+"object": "severe or complicated Plasmodium falciparum malaria",
+"qualifiers": {
+"population": {"age_range": "adults and children", "pregnancy": null, "region": "UK (imported)", "immune_status": null, "comorbidities": []},
+"setting": {"care_level": "inpatient", "endemic_status": "traveler"},
+"dose_regimen": {"drug": "quinine IV", "mg_per_kg": null, "frequency": null, "duration": null},
+"comparator": "intravenous artesunate",
+"effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+},
+"certainty": "high",
+"evidence_note": "UK guideline Grade 1A alternative if artesunate unavailable."
+},
+{
+"subject": "intravenous quinine",
+"predicate": "causes",
+"object": "hypoglycemia",
+"qualifiers": {
+"population": {"age_range": null, "pregnancy": null, "region": null, "immune_status": null, "comorbidities": []},
+"setting": {"care_level": "inpatient", "endemic_status": null},
+"dose_regimen": {"drug": "quinine IV", "mg_per_kg": null, "frequency": null, "duration": null},
+"comparator": null,
+"effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+},
+"certainty": "high",
+"evidence_note": "Established adverse effect; guideline mandates monitoring."
+},
+{
+"subject": "intravenous artesunate",
+"predicate": "causes",
+"object": "post-treatment haemolysis",
+"qualifiers": {
+"population": {"age_range": null, "pregnancy": null, "region": null, "immune_status": null, "comorbidities": []},
+"setting": {"care_level": "inpatient", "endemic_status": null},
+"dose_regimen": {"drug": "artesunate IV", "mg_per_kg": null, "frequency": null, "duration": null},
+"comparator": null,
+"effect_size": {"metric": "incidence (%)", "value": 12.5, "ci_low": 10.0, "ci_high": 15.0}
+},
+"certainty": "moderate",
+"evidence_note": "Guideline cites 10-15% incidence; Grade 2C monitoring recommendation."
+},
+{
+"subject": "empirical broad-spectrum antibiotics",
+"predicate": "treats",
+"object": "severe malaria with suspected bacterial co-infection",
+"qualifiers": {
+"population": {"age_range": "pediatric", "pregnancy": null, "region": "UK (imported)", "immune_status": null, "comorbidities": ["possible Gram-negative bacteraemia"]},
+"setting": {"care_level": "inpatient", "endemic_status": "traveler"},
+"dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": null},
+"comparator": null,
+"effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+},
+"certainty": "high",
+"evidence_note": "UK guideline Grade 1B for children with severe malaria."
+},
+{
+"subject": "artemether-lumefantrine",
+"predicate": "treats",
+"object": "uncomplicated Plasmodium falciparum malaria in pregnancy",
+"qualifiers": {
+"population": {"age_range": "adults", "pregnancy": "second_third_trimester", "region": "UK (imported)", "immune_status": null, "comorbidities": []},
+"setting": {"care_level": "inpatient", "endemic_status": "traveler"},
+"dose_regimen": {"drug": "artemether-lumefantrine", "mg_per_kg": null, "frequency": null, "duration": null},
+"comparator": null,
+"effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+},
+"certainty": "moderate",
+"evidence_note": "UK guideline Grade 2B."
+},
+{
+"subject": "quinine plus clindamycin",
+"predicate": "treats",
+"object": "uncomplicated Plasmodium falciparum malaria in first trimester pregnancy",
+"qualifiers": {
+"population": {"age_range": "adults", "pregnancy": "first_trimester", "region": "UK (imported)", "immune_status": null, "comorbidities": []},
+"setting": {"care_level": "inpatient", "endemic_status": "traveler"},
+"dose_regimen": {"drug": "quinine + clindamycin", "mg_per_kg": null, "frequency": null, "duration": null},
+"comparator": null,
+"effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+},
+"certainty": "moderate",
+"evidence_note": "UK guideline first-trimester recommendation; specialist advice."
+},
+{
+"subject": "intravenous artesunate",
+"predicate": "treats",
+"object": "severe malaria in pregnancy",
+"qualifiers": {
+"population": {"age_range": "adults", "pregnancy": "first_trimester", "region": "UK (imported)", "immune_status": null, "comorbidities": []},
+"setting": {"care_level": "inpatient", "endemic_status": "traveler"},
+"dose_regimen": {"drug": "artesunate IV", "mg_per_kg": null, "frequency": null, "duration": null},
+"comparator": "intravenous quinine",
+"effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+},
+"certainty": "moderate",
+"evidence_note": "UK guideline Grade 1C; artesunate preferred any trimester."
+},
+{
+"subject": "artemether-lumefantrine",
+"predicate": "treats",
+"object": "uncomplicated malaria in children",
+"qualifiers": {
+"population": {"age_range": "pediatric", "pregnancy": null, "region": "UK (imported)", "immune_status": null, "comorbidities": []},
+"setting": {"care_level": "inpatient", "endemic_status": "traveler"},
+"dose_regimen": {"drug": "artemether-lumefantrine", "mg_per_kg": null, "frequency": null, "duration": "weight-based"},
+"comparator": null,
+"effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+},
+"certainty": "high",
+"evidence_note": "UK guideline Grade 1A first-line pediatric ACT."
+},
+{
+"subject": "dihydroartemisinin-piperaquine",
+"predicate": "treats",
+"object": "uncomplicated malaria in children",
+"qualifiers": {
+"population": {"age_range": "pediatric", "pregnancy": null, "region": "UK (imported)", "immune_status": null, "comorbidities": []},
+"setting": {"care_level": "inpatient", "endemic_status": "traveler"},
+"dose_regimen": {"drug": "dihydroartemisinin-piperaquine", "mg_per_kg": null, "frequency": null, "duration": null},
+"comparator": null,
+"effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+},
+"certainty": "high",
+"evidence_note": "UK guideline Grade 1A first-line pediatric ACT."
+},
+{
+"subject": "doxycycline",
+"predicate": "contraindicates",
+"object": "children under 12 years",
+"qualifiers": {
+"population": {"age_range": "<12 years", "pregnancy": null, "region": null, "immune_status": null, "comorbidities": []},
+"setting": {"care_level": null, "endemic_status": null},
+"dose_regimen": {"drug": "doxycycline", "mg_per_kg": null, "frequency": null, "duration": null},
+"comparator": null,
+"effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+},
+"certainty": "high",
+"evidence_note": "UK guideline pediatric contraindication."
+},
+{
+"subject": "oral artemisinin combination therapy",
+"predicate": "treats",
+"object": "non-falciparum malaria",
+"qualifiers": {
+"population": {"age_range": null, "pregnancy": null, "region": "UK (imported)", "immune_status": null, "comorbidities": []},
+"setting": {"care_level": "inpatient", "endemic_status": "traveler"},
+"dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": null},
+"comparator": "chloroquine",
+"effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+},
+"certainty": "high",
+"evidence_note": "UK guideline Grade 1B; preferred for mixed infection or chloroquine-resistant P. vivax."
+},
+{
+"subject": "chloroquine",
+"predicate": "treats",
+"object": "non-falciparum malaria",
+"qualifiers": {
+"population": {"age_range": null, "pregnancy": null, "region": "UK (imported)", "immune_status": null, "comorbidities": []},
+"setting": {"care_level": "inpatient", "endemic_status": "traveler"},
+"dose_regimen": {"drug": "chloroquine", "mg_per_kg": null, "frequency": null, "duration": null},
+"comparator": "oral ACT",
+"effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+},
+"certainty": "moderate",
+"evidence_note": "UK guideline option for non-falciparum; not for chloroquine-resistant P. vivax."
+},
+{
+"subject": "Plasmodium vivax",
+"predicate": "resists",
+"object": "chloroquine",
+"qualifiers": {
+"population": {"age_range": null, "pregnancy": null, "region": "areas with common chloroquine resistance", "immune_status": null, "comorbidities": []},
+"setting": {"care_level": null, "endemic_status": "endemic"},
+"dose_regimen": {"drug": "chloroquine", "mg_per_kg": null, "frequency": null, "duration": null},
+"comparator": null,
+"effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+},
+"certainty": "high",
+"evidence_note": "Guideline acknowledges regional chloroquine-resistant P. vivax."
+},
+{
+"subject": "primaquine",
+"predicate": "treats",
+"object": "Plasmodium vivax and Plasmodium ovale hypnozoites",
+"qualifiers": {
+"population": {"age_range": null, "pregnancy": "not_pregnant", "region": null, "immune_status": null, "comorbidities": ["G6PD-normal"]},
+"setting": {"care_level": "outpatient", "endemic_status": "traveler"},
+"dose_regimen": {"drug": "primaquine", "mg_per_kg": null, "frequency": null, "duration": null},
+"comparator": null,
+"effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+},
+"certainty": "high",
+"evidence_note": "UK guideline Grade 1A; only effective hypnozoite eradication drug."
+},
+{
+"subject": "primaquine plus chloroquine co-administration",
+"predicate": "prevents",
+"object": "Plasmodium vivax relapse",
+"qualifiers": {
+"population": {"age_range": null, "pregnancy": null, "region": null, "immune_status": null, "comorbidities": []},
+"setting": {"care_level": "outpatient", "endemic_status": "traveler"},
+"dose_regimen": {"drug": "primaquine + chloroquine", "mg_per_kg": null, "frequency": "concurrent", "duration": null},
+"comparator": "primaquine alone",
+"effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+},
+"certainty": "moderate",
+"evidence_note": "UK guideline Grade 1C."
+},
+{
+"subject": "primaquine",
+"predicate": "causes",
+"object": "severe haemolysis in G6PD deficiency",
+"qualifiers": {
+"population": {"age_range": null, "pregnancy": null, "region": null, "immune_status": null, "comorbidities": ["G6PD deficiency"]},
+"setting": {"care_level": null, "endemic_status": null},
+"dose_regimen": {"drug": "primaquine", "mg_per_kg": null, "frequency": null, "duration": null},
+"comparator": null,
+"effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+},
+"certainty": "high",
+"evidence_note": "Established pharmacogenomic risk; guideline cautions expert supervision."
+},
+{
+"subject": "primaquine",
+"predicate": "contraindicates",
+"object": "pregnancy and breastfeeding",
+"qualifiers": {
+"population": {"age_range": "adults", "pregnancy": "first_trimester", "region": null, "immune_status": null, "comorbidities": ["breastfeeding"]},
+"setting": {"care_level": null, "endemic_status": null},
+"dose_regimen": {"drug": "primaquine", "mg_per_kg": null, "frequency": null, "duration": null},
+"comparator": null,
+"effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+},
+"certainty": "high",
+"evidence_note": "UK guideline contraindication until infant G6PD status known."
+},
+{
+"subject": "weekly chloroquine prophylaxis",
+"predicate": "prevents",
+"object": "Plasmodium vivax/ovale relapse during pregnancy",
+"qualifiers": {
+"population": {"age_range": "adults", "pregnancy": "second_third_trimester", "region": null, "immune_status": null, "comorbidities": ["breastfeeding"]},
+"setting": {"care_level": "outpatient", "endemic_status": "traveler"},
+"dose_regimen": {"drug": "chloroquine", "mg_per_kg": null, "frequency": "weekly", "duration": "until delivery/cessation of breastfeeding"},
+"comparator": null,
+"effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+},
+"certainty": "moderate",
+"evidence_note": "UK guideline bridge until primaquine eradication possible."
+},
+{
+"subject": "chemoprophylaxis and anti-mosquito precautions",
+"predicate": "prevents",
+"object": "recurrent malaria on future endemic travel",
+"qualifiers": {
+"population": {"age_range": null, "pregnancy": null, "region": null, "immune_status": "non-immune post-infection", "comorbidities": []},
+"setting": {"care_level": "outpatient", "endemic_status": "traveler"},
+"dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": null},
+"comparator": null,
+"effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+},
+"certainty": "high",
+"evidence_note": "Prior infection confers no immunity; guideline recommendation."
+},
+{
+"subject": "rapid diagnostic test",
+"predicate": "recommends",
+"object": "diagnosis of P. falciparum and P. vivax malaria",
+"qualifiers": {
+"population": {"age_range": null, "pregnancy": null, "region": "UK (imported)", "immune_status": null, "comorbidities": []},
+"setting": {"care_level": "inpatient", "endemic_status": "traveler"},
+"dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": null},
+"comparator": "thick and thin blood films",
+"effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+},
+"certainty": "high",
+"evidence_note": "UK guideline; RDTs nearly as accurate as expert microscopy for falciparum/vivax."
+},
+{
+"subject": "hospital admission for at least 24 hours",
+"predicate": "recommends",
+"object": "patients treated for P. falciparum malaria",
+"qualifiers": {
+"population": {"age_range": null, "pregnancy": null, "region": "UK (imported)", "immune_status": null, "comorbidities": []},
+"setting": {"care_level": "inpatient", "endemic_status": "traveler"},
+"dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": "≥24 hours"},
+"comparator": "outpatient treatment",
+"effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+},
+"certainty": "high",
+"evidence_note": "UK guideline; risk of sudden deterioration early in treatment."
+},
+{
+"subject": "intravenous antimalarial therapy",
+"predicate": "recommends",
+"object": "severe falciparum malaria or parasitaemia >2%",
+"qualifiers": {
+"population": {"age_range": null, "pregnancy": null, "region": "UK (imported)", "immune_status": null, "comorbidities": []},
+"setting": {"care_level": "inpatient", "endemic_status": "traveler"},
+"dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": "until oral tolerated"},
+"comparator": "oral therapy",
+"effect_size": {"metric": "parasitaemia threshold (%)", "value": 2.0, "ci_low": null, "ci_high": null}
+},
+"certainty": "high",
+"evidence_note": "UK guideline parasitaemia threshold for parenteral therapy."
+},
+{
+"subject": "high-dependency or intensive care management",
+"predicate": "recommends",
+"object": "severe or complicated malaria",
+"qualifiers": {
+"population": {"age_range": null, "pregnancy": null, "region": "UK (imported)", "immune_status": null, "comorbidities": ["ARDS", "DIC", "AKI", "seizures", "Gram-negative sepsis"]},
+"setting": {"care_level": "inpatient", "endemic_status": "traveler"},
+"dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": null},
+"comparator": null,
+"effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+},
+"certainty": "high",
+"evidence_note": "UK guideline for multi-organ support."
+},
+{
+"subject": "Plasmodium falciparum",
+"predicate": "causes",
+"object": "severe multi-organ disease",
+"qualifiers": {
+"population": {"age_range": null, "pregnancy": null, "region": "UK (imported)", "immune_status": null, "comorbidities": []},
+"setting": {"care_level": "inpatient", "endemic_status": "traveler"},
+"dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": null},
+"comparator": null,
+"effect_size": {"metric": "proportion of UK malaria cases (%)", "value": 75.0, "ci_low": null, "ci_high": null}
+},
+"certainty": "high",
+"evidence_note": "~75% of UK imported cases; high red-cell invasion capacity."
+},
+{
+"subject": "placental Plasmodium falciparum infection",
+"predicate": "causes",
+"object": "stillbirth or preterm delivery",
+"qualifiers": {
+"population": {"age_range": "adults", "pregnancy": "second_third_trimester", "region": null, "immune_status": null, "comorbidities": []},
+"setting": {"care_level": "inpatient", "endemic_status": "traveler"},
+"dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": null},
+"comparator": null,
+"effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+},
+"certainty": "high",
+"evidence_note": "Established placental sequestration complication."
+}
+]

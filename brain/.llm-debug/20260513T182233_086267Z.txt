@@ -1,0 +1,264 @@
+===== SYSTEM =====
+OUTPUT REQUIREMENT: Return VALID JSON ONLY. Your entire response must be parseable by json.loads(). First character of your output must be `{` or `[`. No prose. No explanations. No markdown fences. No apologies. If the requested data is unavailable, return the schema with empty/null values, still as valid JSON. Tools are intentionally disabled — do not request access to them.
+
+/# Student extractor — qualified claims from a PubMed abstract
+
+You are extracting **atomic, qualified medical claims** from a malaria-focused biomedical abstract.
+
+## Output format
+
+Return a JSON array. Each element is one qualified claim.
+
+```json
+[
+  {
+    "subject": "string — entity name (drug, organism, gene, syndrome, intervention, vector, diagnostic test, complication, lifecycle stage)",
+    "predicate": "one of: treats | causes | resists | requires | contraindicates | prevents | co_occurs | recommends | diagnoses | transmits | complicates | classifies_as | affects | has_lifecycle_stage",
+    "object": "string — entity or value",
+    "qualifiers": {
+      "population": {
+        "age_range": "e.g. adults | pediatric | <5 years | pregnant | null",
+        "pregnancy": "first_trimester | second_third_trimester | not_pregnant | null",
+        "region": "geographic region — e.g. Greater Mekong | West Africa | sub-Saharan Africa | null",
+        "immune_status": "naive | semi-immune | immunocompromised | null",
+        "comorbidities": ["list of strings or empty"]
+      },
+      "setting": {
+        "care_level": "outpatient | inpatient | community | null",
+        "endemic_status": "endemic | non_endemic | traveler | null"
+      },
+      "dose_regimen": {
+        "drug": "string or null",
+        "mg_per_kg": "number or null",
+        "frequency": "string or null",
+        "duration": "string or null"
+      },
+      "comparator": "what the intervention was compared against — string or null",
+      "effect_size": {
+        "metric": "e.g. day-3 positivity rate | parasite clearance time | hazard ratio | null",
+        "value": "number or null",
+        "ci_low": "number or null",
+        "ci_high": "number or null"
+      }
+    },
+    "certainty": "high | moderate | low | very_low",
+    "evidence_note": "one short sentence on why this certainty (sample size, design quality, etc.)"
+  }
+]
+```
+
+## Rules
+
+1. **Atomic.** Each claim is one subject-predicate-object triple. If an abstract states "X treats Y AND X causes Z", emit two claims.
+2. **Qualified.** Populate `qualifiers` from what the abstract explicitly states. Leave NULL if not stated — do NOT invent values.
+3. **Predicates.** Use only the listed enum values. Map free-text to the closest:
+   - "is associated with" / "linked to" / "shown to be effective for" → `treats` if therapeutic, `prevents` if prophylactic
+   - "induces resistance" / "selects for resistance" / "associated with treatment failure" → `resists` (when subject = parasite/pathogen, object = drug)
+   - "should not be given to" / "avoid in" → `contraindicates`
+   - WHO/CDC/national-program statements like "is recommended for" → `recommends`
+   - "RDT detects" / "microscopy identifies" / "PCR confirms" / "sensitivity X% for" → `diagnoses` (subject = test/sign, object = condition/species)
+   - "is transmitted by" / "Anopheles X is a vector for" / "vectored by" → `transmits` (subject = vector, object = pathogen)
+   - "complicated by" / "leads to (clinical sequela)" / "progresses to" → `complicates` (subject = complication, object = parent condition)
+   - "is a subtype of" / "belongs to genus" / "classified as" → `classifies_as`
+   - "prevalence X% in region Y" / "kills N people/year in Z" / "incidence rate" / "burden of disease" → `affects` (subject = condition, object = population/region; populate effect_size with the numeric burden)
+   - "ring stage" / "schizont" / "gametocyte" / "exo-erythrocytic phase" / "sporogonic cycle" → `has_lifecycle_stage` (subject = pathogen, object = stage name)
+4. **Subject vs object.** For resistance claims, subject is the parasite/pathogen, object is the drug. For treatment, subject is the drug/intervention, object is the disease/population.
+5. **Certainty mapping:**
+   - `high`: large RCT or meta-analysis with consistent results, or current WHO guideline
+   - `moderate`: cohort study, smaller RCT, well-designed observational
+   - `low`: case-control, single-site observational, conflicting evidence
+   - `very_low`: case report, expert opinion, in-vitro only, mechanistic inference
+6. **Skip methodology, NOT epidemiology.** Skip methodology ("We enrolled 1241 patients", "Abstracts were screened by two reviewers") and bare meta-commentary ("Further research is needed", "More studies needed"). KEEP epidemiology facts (regional burden, mortality, prevalence, age-specific incidence, vector distribution) as `affects` or `transmits` claims with population/region qualifiers populated and numeric values in `effect_size`. Textbook-grade coverage requires epi.
+7. **No claims is a valid output.** If the abstract is purely descriptive epidemiology with no actionable medical claim, return `[]`.
+
+## DO NOT
+
+- DO NOT summarize the abstract.
+- DO NOT return a `{"title": ..., "methods": [...], "key_findings": [...]}` paper-summary object. That is wrong.
+- DO NOT wrap claims in any object key. The top-level value must be a JSON array `[ ... ]`.
+- DO NOT return an array of strings like `["Drug X treats Y", "Drug Z prevents W"]`. Each element MUST be a full JSON object with the keys: `subject`, `predicate`, `object`, `qualifiers`, `certainty`, `evidence_note`.
+- DO NOT invent facts not in the abstract.
+
+## More wrong examples
+
+```json
+["Artemisinin treats malaria", "Chloroquine resistance rising"]
+```
+
+```json
+{"claims": ["..."]}
+```
+
+Both wrong. Each claim must be a full object as shown in the schema above.
+
+## Negative example (WRONG)
+
+```json
+{"title": "...", "key_findings": [{"finding": "..."}], "conclusion": "..."}
+```
+
+## Positive example (CORRECT)
+
+```json
+[
+  {
+    "subject": "artemether-lumefantrine",
+    "predicate": "treats",
+    "object": "uncomplicated P. falciparum malaria",
+    "qualifiers": {
+      "population": {"age_range": "adults", "pregnancy": null, "region": "sub-Saharan Africa", "immune_status": null, "comorbidities": []},
+      "setting": {"care_level": "outpatient", "endemic_status": "endemic"},
+      "dose_regimen": {"drug": "artemether-lumefantrine", "mg_per_kg": null, "frequency": "twice daily", "duration": "3 days"},
+      "comparator": "dihydroartemisinin-piperaquine",
+      "effect_size": {"metric": "day-28 PCR-corrected cure rate", "value": 96.2, "ci_low": 94.1, "ci_high": 97.8}
+    },
+    "certainty": "high",
+    "evidence_note": "Multi-site RCT, n=1241, day-28 PCR-corrected efficacy."
+  }
+]
+```
+
+## More positive examples (textbook breadth)
+
+Diagnostic test claim:
+
+```json
+{
+  "subject": "histidine-rich protein 2 RDT",
+  "predicate": "diagnoses",
+  "object": "Plasmodium falciparum infection",
+  "qualifiers": {
+    "population": {"age_range": null, "pregnancy": null, "region": "sub-Saharan Africa", "immune_status": null, "comorbidities": []},
+    "setting": {"care_level": "community", "endemic_status": "endemic"},
+    "dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": null},
+    "comparator": "microscopy reference",
+    "effect_size": {"metric": "sensitivity", "value": 95.0, "ci_low": 92.0, "ci_high": 97.0}
+  },
+  "certainty": "high",
+  "evidence_note": "WHO field-evaluation meta-analysis across 14 countries."
+}
+```
+
+Epidemiology claim:
+
+```json
+{
+  "subject": "Plasmodium falciparum",
+  "predicate": "affects",
+  "object": "children under 5 in sub-Saharan Africa",
+  "qualifiers": {
+    "population": {"age_range": "<5 years", "pregnancy": null, "region": "sub-Saharan Africa", "immune_status": "semi-immune", "comorbidities": []},
+    "setting": {"care_level": "community", "endemic_status": "endemic"},
+    "dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": null},
+    "comparator": null,
+    "effect_size": {"metric": "annual mortality (deaths/year)", "value": 470000, "ci_low": 430000, "ci_high": 510000}
+  },
+  "certainty": "high",
+  "evidence_note": "WHO World Malaria Report 2023 burden estimate."
+}
+```
+
+Vector / transmission claim:
+
+```json
+{
+  "subject": "Anopheles gambiae",
+  "predicate": "transmits",
+  "object": "Plasmodium falciparum",
+  "qualifiers": {
+    "population": {"age_range": null, "pregnancy": null, "region": "sub-Saharan Africa", "immune_status": null, "comorbidities": []},
+    "setting": {"care_level": null, "endemic_status": "endemic"},
+    "dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": null},
+    "comparator": null,
+    "effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+  },
+  "certainty": "high",
+  "evidence_note": "Established vector biology; multiple entomological surveys."
+}
+```
+
+Complication claim:
+
+```json
+{
+  "subject": "cerebral malaria",
+  "predicate": "complicates",
+  "object": "severe Plasmodium falciparum infection",
+  "qualifiers": {
+    "population": {"age_range": "<5 years", "pregnancy": null, "region": "sub-Saharan Africa", "immune_status": "semi-immune", "comorbidities": []},
+    "setting": {"care_level": "inpatient", "endemic_status": "endemic"},
+    "dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": null},
+    "comparator": null,
+    "effect_size": {"metric": "case-fatality rate", "value": 18.0, "ci_low": 15.0, "ci_high": 22.0}
+  },
+  "certainty": "high",
+  "evidence_note": "Multi-centre African pediatric severe-malaria cohort."
+}
+```
+
+Lifecycle stage claim:
+
+```json
+{
+  "subject": "Plasmodium falciparum",
+  "predicate": "has_lifecycle_stage",
+  "object": "ring stage",
+  "qualifiers": {
+    "population": {"age_range": null, "pregnancy": null, "region": null, "immune_status": null, "comorbidities": []},
+    "setting": {"care_level": null, "endemic_status": null},
+    "dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": null},
+    "comparator": null,
+    "effect_size": {"metric": "intra-erythrocytic duration (hours)", "value": 24.0, "ci_low": null, "ci_high": null}
+  },
+  "certainty": "high",
+  "evidence_note": "Established parasitology; intra-erythrocytic cycle ~48h, ring stage first 24h."
+}
+```
+
+Classification claim:
+
+```json
+{
+  "subject": "Plasmodium knowlesi",
+  "predicate": "classifies_as",
+  "object": "zoonotic Plasmodium species",
+  "qualifiers": {
+    "population": {"age_range": null, "pregnancy": null, "region": "Southeast Asia", "immune_status": null, "comorbidities": []},
+    "setting": {"care_level": null, "endemic_status": "endemic"},
+    "dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": null},
+    "comparator": null,
+    "effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+  },
+  "certainty": "high",
+  "evidence_note": "Reservoir host: long-tailed and pig-tailed macaques; established taxonomy."
+}
+```
+
+## Output
+
+Return ONLY the JSON array. First character of your response must be `[`. No prose before or after. If no qualified claims exist, return `[]`.
+
+
+===== USER =====
+# Title
+Cerebral malaria--clinical manifestations and pathogenesis.
+
+# Abstract
+One of the most common central nervous system diseases in tropical countries is cerebral malaria (CM). Malaria is a common protozoan infection that is responsible for enormous worldwide mortality and economic burden on the society. Episodes of Plasmodium falciparum (Pf) caused CM may be lethal, while survivors are likely to suffer from persistent debilitating neurological deficits, especially common in children. In this review article, we have summarized the various symptoms and manifestations of CM in children and adults, and entailed the molecular basis of the disease. We have also emphasized how pathogenesis of the disease is effected by the parasite and host responses including blood brain barrier (BBB) disruption, endothelial cell activation and apoptosis, nitric oxide bioavailability, platelet activation and apoptosis, and neuroinflammation. Based on a few recent studies carried out in experimental mouse malaria models, we propose a basis for the neurological deficits and sequelae observed in human cerebral malaria, and summarize how existing drugs may improve prognosis in affected individuals.
+
+# Publication types
+Journal Article, Research Support, Non-U.S. Gov't, Review
+# Task
+Extract atomic qualified medical claims from the abstract above. Return a JSON ARRAY (not a paper-summary object). Each element MUST be an object with exactly these keys: subject, predicate, object, qualifiers, certainty, evidence_note.
+
+STRICT FIELD CONSTRAINTS:
+- `predicate` MUST be EXACTLY one of: treats, causes, resists, requires, contraindicates, prevents, co_occurs, recommends, supersedes. Map free-text relations to the closest enum. NO other values allowed. If you cannot map cleanly, drop the claim.
+- `certainty` MUST be EXACTLY one of: high, moderate, low, very_low. NO other values (no 'established', no 'low-to-moderate').
+- `qualifiers` MUST be an object with the nested shape: {population:{age_range, pregnancy, region, immune_status, comorbidities}, setting:{care_level, endemic_status}, dose_regimen:{drug, mg_per_kg, frequency, duration}, comparator, effect_size:{metric, value, ci_low, ci_high}}. Use null for unknown leaf values. DO NOT use a flat free-form qualifiers object.
+- `subject` and `object` MUST be non-empty strings.
+
+DO NOT summarize the paper. DO NOT return {"title":...,"key_findings":...}. DO NOT return an array of strings. If no qualified claims exist, return [].
+Your output MUST start with `[` and end with `]`. Output ONLY the JSON array, nothing else.
+
+===== STDOUT =====
+[{"subject":"Plasmodium falciparum","predicate":"causes","object":"cerebral malaria","qualifiers":{"population":{"age_range":null,"pregnancy":null,"region":null,"immune_status":null,"comorbidities":[]},"setting":{"care_level":"inpatient","endemic_status":"endemic"},"dose_regimen":{"drug":null,"mg_per_kg":null,"frequency":null,"duration":null},"comparator":null,"effect_size":{"metric":null,"value":null,"ci_low":null,"ci_high":null}},"certainty":"high","evidence_note":"Established etiology stated in review."},{"subject":"cerebral malaria","predicate":"causes","object":"persistent neurological deficits","qualifiers":{"population":{"age_range":"pediatric","pregnancy":null,"region":null,"immune_status":null,"comorbidities":[]},"setting":{"care_level":"inpatient","endemic_status":"endemic"},"dose_regimen":{"drug":null,"mg_per_kg":null,"frequency":null,"duration":null},"comparator":null,"effect_size":{"metric":null,"value":null,"ci_low":null,"ci_high":null}},"certainty":"moderate","evidence_note":"Review notes sequelae especially common in child survivors."},{"subject":"cerebral malaria","predicate":"causes","object":"blood brain barrier disruption","qualifiers":{"population":{"age_range":null,"pregnancy":null,"region":null,"immune_status":null,"comorbidities":[]},"setting":{"care_level":null,"endemic_status":null},"dose_regimen":{"drug":null,"mg_per_kg":null,"frequency":null,"duration":null},"comparator":null,"effect_size":{"metric":null,"value":null,"ci_low":null,"ci_high":null}},"certainty":"moderate","evidence_note":"Pathogenesis mechanism described in review."},{"subject":"cerebral malaria","predicate":"causes","object":"endothelial cell activation and apoptosis","qualifiers":{"population":{"age_range":null,"pregnancy":null,"region":null,"immune_status":null,"comorbidities":[]},"setting":{"care_level":null,"endemic_status":null},"dose_regimen":{"drug":null,"mg_per_kg":null,"frequency":null,"duration":null},"comparator":null,"effect_size":{"metric":null,"value":null,"ci_low":null,"ci_high":null}},"certainty":"moderate","evidence_note":"Mechanism cited in pathogenesis summary."},{"subject":"cerebral malaria","predicate":"causes","object":"reduced nitric oxide bioavailability","qualifiers":{"population":{"age_range":null,"pregnancy":null,"region":null,"immune_status":null,"comorbidities":[]},"setting":{"care_level":null,"endemic_status":null},"dose_regimen":{"drug":null,"mg_per_kg":null,"frequency":null,"duration":null},"comparator":null,"effect_size":{"metric":null,"value":null,"ci_low":null,"ci_high":null}},"certainty":"low","evidence_note":"Mechanistic claim from review, based partly on mouse models."},{"subject":"cerebral malaria","predicate":"causes","object":"platelet activation and apoptosis","qualifiers":{"population":{"age_range":null,"pregnancy":null,"region":null,"immune_status":null,"comorbidities":[]},"setting":{"care_level":null,"endemic_status":null},"dose_regimen":{"drug":null,"mg_per_kg":null,"frequency":null,"duration":null},"comparator":null,"effect_size":{"metric":null,"value":null,"ci_low":null,"ci_high":null}},"certainty":"low","evidence_note":"Mechanistic claim cited in review."},{"subject":"cerebral malaria","predicate":"causes","object":"neuroinflammation","qualifiers":{"population":{"age_range":null,"pregnancy":null,"region":null,"immune_status":null,"comorbidities":[]},"setting":{"care_level":null,"endemic_status":null},"dose_regimen":{"drug":null,"mg_per_kg":null,"frequency":null,"duration":null},"comparator":null,"effect_size":{"metric":null,"value":null,"ci_low":null,"ci_high":null}},"certainty":"moderate","evidence_note":"Pathogenesis mechanism summarized in review."}]

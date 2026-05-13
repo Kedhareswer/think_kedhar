@@ -1,0 +1,149 @@
+===== SYSTEM =====
+OUTPUT REQUIREMENT: Return VALID JSON ONLY. Your entire response must be parseable by json.loads(). First character of your output must be `{` or `[`. No prose. No explanations. No markdown fences. No apologies. If the requested data is unavailable, return the schema with empty/null values, still as valid JSON. Tools are intentionally disabled — do not request access to them.
+
+# Research planner — natural-language topic to PubMed search plan
+
+You are NOT being asked to do medical research. You are NOT being asked to summarize or analyze. You are a SEARCH-PLAN generator.
+
+Input: one natural-language medical topic.
+Output: ONE JSON object describing how to query PubMed for that topic. Nothing more.
+
+## STRICT output schema
+
+The JSON object you return MUST have EXACTLY these top-level keys, in this order, with these exact spellings. No extra keys. No missing keys.
+
+- `topic` (string)
+- `scope` (string, one of: `very_broad`, `broad`, `focused`, `specific`)
+- `decomposition` (array of strings; may be empty for `focused`/`specific`)
+- `queries` (array of objects; each object MUST have `subtopic`, `pubmed_query`, `max_papers`, `rationale`)
+- `stop_criteria` (object with EXACTLY: `max_total_papers`, `saturation_window`, `duplicate_ratio_threshold`)
+- `notes` (string; may be empty)
+
+DO NOT invent additional keys. DO NOT include keys like `summary`, `background`, `major_rcts`, `outcome_metrics`, `verdict`, `key_finding`, etc. If you do, you have FAILED the task — the only acceptable output is the schema above.
+
+## Canonical example
+
+```json
+{
+  "topic": "artemisinin resistance in pregnancy",
+  "scope": "focused",
+  "decomposition": [],
+  "queries": [
+    {
+      "subtopic": "overall",
+      "pubmed_query": "\"artemisinin resistance\"[tiab] AND pregnancy[tiab] AND 2015:2025[dp]",
+      "max_papers": 12,
+      "rationale": "Recent literature on resistance markers and IPTp outcomes in pregnant patients."
+    }
+  ],
+  "stop_criteria": {
+    "max_total_papers": 25,
+    "saturation_window": 3,
+    "duplicate_ratio_threshold": 0.7
+  },
+  "notes": ""
+}
+```
+
+## Scope rules
+
+- **very_broad** (e.g. "virology", "dental best practices", "what is medicine"): MUST decompose into 5-12 subtopics. Each subtopic gets 1-2 queries, max 5 papers each. Total cap 40-60.
+- **broad** (e.g. "what is malaria", "diabetes treatment"): decompose into 3-6 subtopics (epidemiology, pathophysiology, diagnosis, treatment, prevention, prognosis as applicable). 1-2 queries per subtopic, 5-8 papers each. Total cap 30-50.
+- **focused** (e.g. "artemisinin resistance in pregnancy", "metformin for heart failure"): decomposition optional (1-3 subtopics if useful). 1-3 queries, 5-15 papers each. Total cap 20-40.
+- **specific** (e.g. "tafenoquine pediatric dose under 30kg", a precise question): no decomposition. 1-2 queries, 10-20 papers. Total cap 10-25.
+
+## Domain template — malaria / plasmodium
+
+If the topic matches `malaria` or `plasmodium` and the chosen scope is `broad`
+or `very_broad`, you MUST emit a two-axis decomposition. Each surviving
+(species × clinical-axis) cell becomes one subtopic. This produces textbook-
+grade breadth instead of collapsing onto one sub-domain (e.g. resistance only).
+
+Species axis: P. falciparum, P. vivax, P. ovale, P. malariae, P. knowlesi, mixed-species.
+
+Clinical axes:
+- epidemiology & global burden (regional prevalence, mortality, age distribution)
+- lifecycle & vector biology (Anopheles spp., sporogonic + erythrocytic cycles)
+- diagnosis: microscopy / RDT (HRP2, pLDH) / PCR / serology
+- uncomplicated treatment: ACT regimens, partner-drug choice, dosing
+- severe / complicated treatment: IV artesunate, supportive care, post-artesunate haemolysis
+- chemoprevention: IPTp, IPTi, SMC, PMC, post-discharge prophylaxis
+- vaccines: RTS,S/AS01, R21/Matrix-M (efficacy, schedules, age windows)
+- resistance landscape: artemisinin partial resistance, partner-drug resistance, chloroquine, SP
+- special populations: pregnancy, <5y children, HIV co-infection, non-immune travelers, splenectomised, G6PD-deficient
+- prevention & vector control: ITN, IRS, larviciding, source reduction, environmental management
+- clinical complications: cerebral malaria, AKI, ARDS, hypoglycemia, blackwater fever, severe anemia
+- elimination & eradication strategy: surveillance, case management, importation, public health
+
+Cell-pruning rules:
+- Drop species×axis cells where literature is genuinely empty (e.g. P. ovale × vaccines).
+- Cells with shared evidence between species (e.g. ovale + malariae lifecycle) MAY merge into one subtopic.
+- Aim for 12–18 final subtopics when the malaria template fires.
+
+When the malaria template fires, override broad-scope defaults:
+- `max_papers` per subtopic: 8–12
+- `max_total_papers`: 120–180
+- `saturation_window`: 5
+- `duplicate_ratio_threshold`: 0.85
+
+Use MeSH where available: `"Malaria, Falciparum"[MeSH]`, `"Malaria, Vivax"[MeSH]`,
+`"Plasmodium knowlesi"[MeSH]`, `"Antimalarials"[MeSH]`, `"Insecticide-Treated Bednets"[MeSH]`.
+
+## PubMed query syntax
+
+- Use MeSH tags where applicable: `Malaria/drug therapy[MeSH]`
+- Field tags: `[tiab]` (title/abstract), `[au]` (author), `[dp]` (publication date)
+- Boolean: AND, OR, NOT (uppercase)
+- Quote phrases: `"artemisinin resistance"`
+- Date filter: `2018:2025[dp]` for recent if relevant
+- Prefer specific over generic; rely on PubMed relevance sort to surface best hits
+
+Example queries:
+- broad → `"malaria"[MeSH] AND review[pt]`
+- focused → `"artemisinin resistance"[tiab] AND pregnancy[tiab] AND 2015:2025[dp]`
+- specific → `tafenoquine[tiab] AND (pediatric[tiab] OR children[tiab]) AND dose[tiab]`
+
+## Saturation defaults
+
+- `saturation_window`: 5
+- `duplicate_ratio_threshold`: 0.85
+
+Loosened from prior 3/0.7. Broad multi-subtopic plans share retrieval overlap
+across adjacent subtopics (same review papers surface in many cells); the old
+defaults early-tripped before the long tail of subtopics finished.
+
+## Output rules
+
+1. Return ONLY the JSON. No prose before or after. No markdown fences.
+2. Every query MUST have a non-empty `pubmed_query` and `max_papers >= 1`.
+3. If the topic is so broad it shouldn't be ingested in one session (e.g. "all of medicine"), set `scope: "very_broad"` and decompose aggressively — do NOT refuse. The orchestrator will run in batches.
+4. The five top-level keys `topic`, `scope`, `decomposition`, `queries`, `stop_criteria` are REQUIRED on every response. If you skip any of them, the orchestrator will reject your output.
+5. DO NOT analyze the topic. DO NOT list trials. DO NOT produce a verdict. The downstream agent does that. You only produce the search plan.
+
+## Search-quality heuristics (academic-researcher discipline)
+
+When picking queries, prefer plans that future-you would defend in a methods section:
+
+- Tier the evidence: include at least one query biased toward **systematic reviews / meta-analyses** (e.g. `AND (systematic[sb] OR meta-analysis[pt])`) and one toward **primary RCTs** (`AND randomized[tiab]`) when the topic supports it.
+- Use **MeSH where it exists** (`"Malaria, Falciparum"[MeSH]`) before falling back to text-word queries — MeSH gives controlled-vocabulary recall.
+- Constrain by date when the field moves fast (resistance, oncology, infectious disease): `2018:2026[dp]`.
+- Avoid single-author or single-institution queries unless the topic is "what did X publish on Y" — those collapse recall.
+
+## Active-learning bias (deep-research discipline)
+
+When the topic comes from `questions.md` (Brain's research backlog rather than a fresh CLI prompt), bias toward queries that *resolve the open question*, not queries that re-confirm existing strong claims. Prefer:
+- Population/setting qualifiers that the existing corpus is *thin* on.
+- Geographic regions not yet covered.
+- Newer date windows than what's already ingested.
+
+
+===== USER =====
+ultrathink
+
+Required top-level keys (all five MUST appear): topic, scope, decomposition, queries, stop_criteria. Optional: notes. Do not invent other keys (no `summary`, no `background`, no `key_rct_findings`, no `landmark_references`, no `clinical_bottom_line`, etc.). Each entry of `queries` MUST be an object with EXACTLY these keys: `subtopic` (string), `pubmed_query` (string — DO NOT abbreviate to `q`), `max_papers` (integer >= 1), `rationale` (string). Do NOT use alternate field names like `q`, `query`, `search`, `source`. Output the JSON object only, no analysis, no fenced prose.
+
+# Topic
+malaria
+
+===== STDOUT =====
+{"topic":"malaria","scope":"Synthesize current evidence (2018-2026) on Plasmodium falciparum and P. vivax malaria covering: epidemiology and burden, emerging antimalarial drug resistance (artemisinin partial resistance, partner drug resistance), RTS,S/AS01 and R21/Matrix-M vaccine efficacy and rollout, vector control (ITNs, IRS, dual-AI nets, Anopheles stephensi invasion in Africa), chemoprevention strategies (SMC, PMC, IPTp), diagnostics including HRP2/3 gene deletions, severe malaria management, and elimination strategies. Focus on randomized trials, large cohort studies, WHO guidance, and systematic reviews relevant to clinical and public health decision-making.","decomposition":["Global epidemiology, burden, and mortality trends","Antimalarial drug resistance: artemisinin partial resistance and partner drugs","Malaria vaccines: RTS,S/AS01 and R21/Matrix-M efficacy and implementation","Vector control innovations and insecticide resistance","Chemoprevention: SMC, PMC, IPTp, and mass drug administration","Diagnostics and HRP2/HRP3 gene deletions","Severe malaria treatment and supportive care","Plasmodium vivax: radical cure with tafenoquine/primaquine and G6PD testing","Elimination strategies and Anopheles stephensi in Africa"],"queries":[{"subtopic":"Global epidemiology and burden","pubmed_query":"(malaria[MeSH] AND (epidemiology[MeSH] OR \"global burden\"[tiab] OR incidence[tiab] OR mortality[tiab])) AND (\"2020\"[dp]:\"2026\"[dp]) AND (English[lang])","max_papers":6,"rationale":"Establish current burden, regional trends, post-COVID disruptions, and WHO World Malaria Report data underpinning all downstream policy discussion."},{"subtopic":"Artemisinin partial resistance and partner drug resistance","pubmed_query":"(\"artemisinin resistance\"[tiab] OR \"kelch13\"[tiab] OR \"pfkelch13\"[tiab] OR \"partial resistance\"[tiab]) AND (Plasmodium falciparum[tiab] OR malaria[tiab]) AND (Africa[tiab] OR Rwanda[tiab] OR Uganda[tiab] OR Eritrea[tiab] OR \"Greater Mekong\"[tiab]) AND (\"2019\"[dp]:\"2026\"[dp])","max_papers":7,"rationale":"Track emergence and spread of K13 mutations in East Africa and persistence in Southeast Asia; critical for treatment guideline evolution including triple ACTs."},{"subtopic":"RTS,S/AS01 vaccine efficacy and implementation","pubmed_query":"(\"RTS,S\"[tiab] OR \"Mosquirix\"[tiab]) AND (vaccine[tiab] OR efficacy[tiab] OR effectiveness[tiab] OR implementation[tiab]) AND (\"2019\"[dp]:\"2026\"[dp])","max_papers":5,"rationale":"Capture pilot implementation data from Ghana/Kenya/Malawi, phase 3 follow-up, and seasonal vaccination plus SMC trials."},{"subtopic":"R21/Matrix-M vaccine","pubmed_query":"(\"R21\"[tiab] OR \"Matrix-M\"[tiab]) AND (malaria[tiab] OR vaccine[tiab]) AND (\"2021\"[dp]:\"2026\"[dp])","max_papers":4,"rationale":"R21/Matrix-M phase 3 results and WHO prequalification (2023) reshape vaccine strategy; needed for current recommendations."},{"subtopic":"Vector control: dual-AI nets and pyrethroid resistance","pubmed_query":"(\"insecticide-treated nets\"[tiab] OR ITN[tiab] OR LLIN[tiab] OR \"indoor residual spraying\"[tiab] OR IRS[tiab] OR \"dual active ingredient\"[tiab] OR chlorfenapyr[tiab] OR pyriproxyfen[tiab]) AND malaria[tiab] AND (\"2019\"[dp]:\"2026\"[dp]) AND (randomized[tiab] OR cluster[tiab] OR trial[tiab])","max_papers":5,"rationale":"Cluster-randomized trials of next-generation nets (Interceptor G2, Royal Guard) demonstrate superiority over pyrethroid-only nets where resistance is widespread."},{"subtopic":"Anopheles stephensi invasion in Africa","pubmed_query":"(\"Anopheles stephensi\"[tiab]) AND (Africa[tiab] OR Ethiopia[tiab] OR Sudan[tiab] OR Djibouti[tiab] OR Somalia[tiab] OR \"urban malaria\"[tiab]) AND (\"2019\"[dp]:\"2026\"[dp])","max_papers":4,"rationale":"Urban-adapted invasive vector threatens elimination gains in Horn of Africa; key to understanding shifting epidemiology."},{"subtopic":"Seasonal malaria chemoprevention and PMC","pubmed_query":"(\"seasonal malaria chemoprevention\"[tiab] OR SMC[tiab] OR \"perennial malaria chemoprevention\"[tiab] OR \"intermittent preventive treatment\"[tiab] OR IPTi[tiab] OR IPTp[tiab]) AND (\"2019\"[dp]:\"2026\"[dp])","max_papers":5,"rationale":"SMC expansion beyond Sahel, combination with RTS,S, and IPTp with DHA-piperaquine vs SP studies inform current WHO chemoprevention guidance."},{"subtopic":"HRP2/HRP3 gene deletions and RDT failure","pubmed_query":"(\"hrp2\"[tiab] OR \"hrp3\"[tiab] OR \"histidine-rich protein\"[tiab]) AND (deletion[tiab] OR \"rapid diagnostic test\"[tiab] OR RDT[tiab]) AND malaria[tiab] AND (\"2019\"[dp]:\"2026\"[dp])","max_papers":4,"rationale":"Rising HRP2/3 deletions in Horn of Africa threaten RDT-based case management; drives alternative diagnostic strategies."},{"subtopic":"Severe malaria management","pubmed_query":"(\"severe malaria\"[tiab] OR \"cerebral malaria\"[tiab]) AND (artesunate[tiab] OR treatment[tiab] OR management[tiab] OR mortality[tiab]) AND (\"2019\"[dp]:\"2026\"[dp])","max_papers":4,"rationale":"IV artesunate remains standard; ongoing work on adjunctive therapies, post-artesunate delayed hemolysis, and pediatric management."},{"subtopic":"P. vivax radical cure and tafenoquine","pubmed_query":"(\"Plasmodium vivax\"[tiab] OR \"vivax malaria\"[tiab]) AND (tafenoquine[tiab] OR primaquine[tiab] OR \"radical cure\"[tiab] OR \"G6PD\"[tiab]) AND (\"2019\"[dp]:\"2026\"[dp])","max_papers":4,"rationale":"Single-dose tafenoquine plus G6PD point-of-care testing reshapes vivax relapse prevention; key trials (IMPROV, GATHER, INSPECTOR)."},{"subtopic":"Triple artemisinin combination therapies","pubmed_query":"(\"triple artemisinin\"[tiab] OR \"TACT\"[tiab] OR \"triple combination therapy\"[tiab]) AND malaria[tiab] AND (\"2019\"[dp]:\"2026\"[dp])","max_papers":3,"rationale":"DeLIVER and TRACII trials of artemether-lumefantrine-amodiaquine and DHA-piperaquine-mefloquine inform response to multidrug resistance."}],"stop_criteria":"Stop when: (1) all nine decomposition subtopics have at least one high-quality recent reference (RCT, large cohort, systematic review, or WHO guidance); (2) total retrieved papers reach ~50 unique items; (3) marginal queries return predominantly duplicates or papers older than 2018 with no new mechanistic or policy insight; or (4) saturation reached on landmark trials (RTS,S phase 3, R21 phase 3, TRACII, IMPROV, LLIN cluster RCTs).","notes":"Caveman mode active per session hook but JSON output requirement overrides prose style. Date filters bounded by today 2026-05-13. English-language filter applied where helpful; PMC-only filters avoided to maximize recall. If P. knowlesi or congenital/imported malaria needed later, add targeted follow-up queries."}

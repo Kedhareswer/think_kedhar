@@ -1,0 +1,490 @@
+===== SYSTEM =====
+# Concept note — Medication (Master-sheet Medications aligned)
+
+You are writing a single Markdown note about ONE medication (drug, biologic, or therapeutic agent). The headings match the Master-sheet "Medications" columns so an exporter can lift each section into the corresponding cell.
+
+You are given:
+- The drug name (generic).
+- A list of qualified claims about this drug, with predicate, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused medication note. Re-synthesize from the current claim set on every regeneration.
+
+## Output structure
+
+```
+---
+type: medication
+drug_class: <e.g. artemisinin-combination-therapy>
+tags: [<area/sub-area>, ...]            # e.g. malaria/treatment, malaria/severe
+evidence_grade_max: <meta_analysis|RCT|guideline|cohort|case_control|case_report|expert_opinion>
+claim_count: <int>
+last_regen: <ISO-8601 timestamp>
+---
+
+# <Generic name>
+
+**Therapeutic category:** <e.g. Antimalarial>
+**Drug group:** <e.g. Artemisinin combination therapy>
+**Drug class:** <e.g. Sesquiterpene endoperoxide>
+**Controlled substance:** <Yes — Schedule X · No>
+
+## Overview
+
+≤ 80 words plain-language description.
+
+## Indication (Why is this medication prescribed?)
+
+Bullet list of conditions/uses. Cite inline.
+
+## Mechanism of Action (How does it work?)
+
+Short paragraph. Cite mechanism claims explicitly.
+
+## Dosage and Administration
+
+Table or bullet list, organised by indication and population (adult / pediatric / pregnancy / renal-adjusted). Include dose, route, frequency, duration. Only state what claims support — never invent a dose.
+
+## Contraindications (When not to use it)
+
+Bullet list. Distinguish absolute from relative.
+
+## Warnings and Precautions
+
+Bullet list of black-box warnings, severe precautions, monitoring requirements.
+
+## Side Effects
+
+Bullet list grouped by frequency (common / serious / rare). Flag the ones with mortality risk.
+
+## Drug Interactions
+
+Bullet list. For each interaction, state effect direction (↑/↓ exposure, additive toxicity, etc.) and severity.
+
+## Storage and Stability
+
+Short paragraph or bullet list.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>. Evidence mix: <e.g. 6 RCT · 4 guideline · 2 cohort>.*
+```
+
+## Rules
+
+1. **Dose safety first.** If no claim supports a dose, write `_No dose claims in current corpus._` rather than guess. This is a hard constraint.
+2. **No hallucination** (fact-checker). Every statement traces to a claim_id; disagreements flagged with both ids.
+3. **Cite inline** (academic-researcher). `[c:<8char-claim-id>]` after each statement. Note evidence_grade when load-bearing.
+4. **Concision** (technical-writer). ≤ 800 words total.
+5. **Population qualifiers are load-bearing.** Always preserve population/setting qualifiers when surfacing dose, contraindication, or warning claims.
+6. **Brand names and prices** are out of scope for this note — they live in the Master sheet's per-country columns and are sourced separately.
+7. **Status awareness.** `(pending review)` inline for non-promoted; supersedence by replacement.
+8. **Output ONLY the Markdown.** No code fences, no preamble, no postamble.
+
+## Obsidian-friendly output (required)
+
+1. **YAML frontmatter** at the very top per the schema in the Output structure block. `type: medication` is fixed for this prompt.
+2. **Wikilink cross-references** for indications (conditions), partner/interacting drugs, target organisms, resistance genes on first mention per section. Kebab-case slugs (e.g. `[[uncomplicated-falciparum-malaria]]`, `[[lumefantrine]]`, `[[kelch13-c580y-mutation]]`). Never wikilink doses or generic verbs.
+3. **Mermaid diagrams** allowed for mechanism of action cascades (target → downstream → clinical effect) when the claim set supports 3+ mechanistic steps. Fenced ```mermaid``` block. Cite load-bearing claim with `[c:<id>]` adjacent.
+4. **Citations are sacred.** Every claim_id supporting a dose, contraindication, interaction, or efficacy statement must appear as `[c:<8char>]`. Never fabricate. Dropping a dose-supporting citation is a hard reject.
+
+
+===== USER =====
+# Entity
+chemoprophylaxis
+
+# Surface variants
+chemoprophylaxis
+
+# Entity type (classifier hint)
+medication
+
+# Claims (count=7)
+```json
+[
+  {
+    "claim_id": "861aa3a8-7e3b-4896-9a7b-0112e6bec408",
+    "short_id": "861aa3a8",
+    "subject": "chemoprophylaxis",
+    "predicate": "prevents",
+    "object": "malaria in returning travelers",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "traveler"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  },
+  {
+    "claim_id": "4d896193-2907-46ac-a89c-3e1623a3e5e0",
+    "short_id": "4d896193",
+    "subject": "chemoprophylaxis",
+    "predicate": "prevents",
+    "object": "malaria in pregnant travelers",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": null,
+        "immune_status": "naive",
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "traveler"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37769318",
+      "title": "Malaria and Pregnancy.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37769318/"
+    }
+  },
+  {
+    "claim_id": "49a620e1-ed67-4179-89ec-35269d3a19c3",
+    "short_id": "49a620e1",
+    "subject": "chemoprophylaxis",
+    "predicate": "prevents",
+    "object": "malaria in military personnel",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": null,
+        "region": null,
+        "immune_status": "naive",
+        "comorbidities": [
+          "military personnel"
+        ]
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "traveler"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:24109136",
+      "title": "Malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/24109136/"
+    }
+  },
+  {
+    "claim_id": "8c9e86d9-aef5-4ba1-adca-eebb3528cc47",
+    "short_id": "8c9e86d9",
+    "subject": "chemoprophylaxis",
+    "predicate": "prevents",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": "naive",
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "traveler"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:36126008",
+      "title": "Malaria: Prevention, Diagnosis, and Treatment.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/36126008/"
+    }
+  },
+  {
+    "claim_id": "bddeb72d-8f3f-4253-9bc9-a14062cb859c",
+    "short_id": "bddeb72d",
+    "subject": "chemoprophylaxis",
+    "predicate": "prevents",
+    "object": "malaria in travelers",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": "naive",
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "traveler"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "% US malaria cases not taking chemoprophylaxis",
+        "value": 71.7,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:35916842",
+      "title": "Diagnosis, Treatment, and Prevention of Malaria in the US: A Review.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35916842/"
+    }
+  },
+  {
+    "claim_id": "e42614fb-dedd-4728-b7a1-da9d1737a557",
+    "short_id": "e42614fb",
+    "subject": "chemoprophylaxis",
+    "predicate": "prevents",
+    "object": "malaria in returning travelers",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "UK",
+        "immune_status": "naive",
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "traveler"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  },
+  {
+    "claim_id": "15aa34e8-dfe6-435d-822f-dcc2e5c78cab",
+    "short_id": "15aa34e8",
+    "subject": "chemoprophylaxis",
+    "predicate": "prevents",
+    "object": "malaria in travelers to endemic areas",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": "naive",
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "traveler"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-13T18:38:03.776133+00:00
+
+
+===== STDOUT =====
+---
+type: medication
+drug_class: antimalarial-prophylaxis-strategy
+tags: [malaria/prevention, travel-medicine]
+evidence_grade_max: expert_opinion
+claim_count: 7
+last_regen: 2026-05-13T18:38:03.776133+00:00
+---
+
+# Chemoprophylaxis
+
+**Therapeutic category:** Antimalarial prevention strategy
+**Drug group:** Class — not single agent (umbrella term for prophylactic regimens)
+**Drug class:** N/A — strategy, not molecular entity
+**Controlled substance:** N/A — agent-dependent
+
+## Overview
+
+Chemoprophylaxis = scheduled antimalarial dosing before, during, after travel to endemic zone. Prevents [[malaria]] in non-immune travelers. Not single drug — covers atovaquone-proguanil, doxycycline, mefloquine, chloroquine, primaquine, tafenoquine. Specific agent picked by destination resistance pattern, traveler comorbidities, pregnancy status. Note: this corpus describes the strategy generically; agent-specific dosing lives on individual drug notes.
+
+## Indication (Why is this medication prescribed?)
+
+- Prevention of [[malaria]] in naive travelers to endemic areas (pending review) [c:15aa34e8]
+- Prevention of [[malaria]] in returning travelers from endemic zones (pending review) [c:861aa3a8] [c:e42614fb]
+- Prevention of [[malaria]] in pregnant travelers, 2nd/3rd trimester, naive (pending review) [c:4d896193]
+- Prevention of [[malaria]] in deployed military personnel, naive adults (pending review, moderate certainty) [c:49a620e1]
+- Outpatient prophylaxis for naive travelers generally (pending review) [c:8c9e86d9] [c:bddeb72d]
+
+Epidemiologic signal: 71.7% of US malaria cases occurred in travelers **not** taking chemoprophylaxis — non-adherence drives disease burden (pending review) [c:bddeb72d].
+
+## Mechanism of Action (How does it work?)
+
+Agent-dependent. Schizonticidal agents (atovaquone-proguanil, doxycycline, mefloquine, chloroquine) suppress erythrocytic stage of [[plasmodium-falciparum]] and other species. Hypnozoiticidal agents (primaquine, tafenoquine) kill liver-stage hypnozoites of [[plasmodium-vivax]] / [[plasmodium-ovale]] — true causal prophylaxis. _No mechanism claims in current corpus — see individual drug notes._
+
+## Dosage and Administration
+
+_No dose claims in current corpus._ Regimen depends on selected agent, destination, traveler population. Refer to drug-specific notes: [[atovaquone-proguanil]], [[doxycycline]], [[mefloquine]], [[chloroquine]], [[primaquine]], [[tafenoquine]].
+
+## Contraindications (When not to use it)
+
+_No contraindication claims in current corpus._ Agent-specific — see individual drug notes.
+
+## Warnings and Precautions
+
+- Adherence critical — most US travel-acquired malaria occurs in non-users [c:bddeb72d]
+- Pregnancy: agent choice restricted; guidance applies to 2nd/3rd trimester naive travelers [c:4d896193]
+- Military deployment context: moderate certainty only; operational adherence factors [c:49a620e1]
+- Returning travelers: prophylaxis does not eliminate post-travel malaria risk — fever workup still required [c:861aa3a8] [c:e42614fb]
+
+## Side Effects
+
+_No side-effect claims in current corpus._ Agent-specific — see individual drug notes.
+
+## Drug Interactions
+
+_No interaction claims in current corpus._ Agent-specific — see individual drug notes.
+
+## Storage and Stability
+
+_No storage claims in current corpus._ Agent-specific.
+
+---
+*Last regenerated: 2026-05-13T18:38:03.776133+00:00. Source claims: 7. Evidence mix: 7 expert_opinion (all pending review).*

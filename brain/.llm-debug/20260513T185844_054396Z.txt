@@ -1,0 +1,912 @@
+===== SYSTEM =====
+# Concept note — Medication (Master-sheet Medications aligned)
+
+You are writing a single Markdown note about ONE medication (drug, biologic, or therapeutic agent). The headings match the Master-sheet "Medications" columns so an exporter can lift each section into the corresponding cell.
+
+You are given:
+- The drug name (generic).
+- A list of qualified claims about this drug, with predicate, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused medication note. Re-synthesize from the current claim set on every regeneration.
+
+## Output structure
+
+```
+---
+type: medication
+drug_class: <e.g. artemisinin-combination-therapy>
+tags: [<area/sub-area>, ...]            # e.g. malaria/treatment, malaria/severe
+evidence_grade_max: <meta_analysis|RCT|guideline|cohort|case_control|case_report|expert_opinion>
+claim_count: <int>
+last_regen: <ISO-8601 timestamp>
+---
+
+# <Generic name>
+
+**Therapeutic category:** <e.g. Antimalarial>
+**Drug group:** <e.g. Artemisinin combination therapy>
+**Drug class:** <e.g. Sesquiterpene endoperoxide>
+**Controlled substance:** <Yes — Schedule X · No>
+
+## Overview
+
+≤ 80 words plain-language description.
+
+## Indication (Why is this medication prescribed?)
+
+Bullet list of conditions/uses. Cite inline.
+
+## Mechanism of Action (How does it work?)
+
+Short paragraph. Cite mechanism claims explicitly.
+
+## Dosage and Administration
+
+Table or bullet list, organised by indication and population (adult / pediatric / pregnancy / renal-adjusted). Include dose, route, frequency, duration. Only state what claims support — never invent a dose.
+
+## Contraindications (When not to use it)
+
+Bullet list. Distinguish absolute from relative.
+
+## Warnings and Precautions
+
+Bullet list of black-box warnings, severe precautions, monitoring requirements.
+
+## Side Effects
+
+Bullet list grouped by frequency (common / serious / rare). Flag the ones with mortality risk.
+
+## Drug Interactions
+
+Bullet list. For each interaction, state effect direction (↑/↓ exposure, additive toxicity, etc.) and severity.
+
+## Storage and Stability
+
+Short paragraph or bullet list.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>. Evidence mix: <e.g. 6 RCT · 4 guideline · 2 cohort>.*
+```
+
+## Rules
+
+1. **Dose safety first.** If no claim supports a dose, write `_No dose claims in current corpus._` rather than guess. This is a hard constraint.
+2. **No hallucination** (fact-checker). Every statement traces to a claim_id; disagreements flagged with both ids.
+3. **Cite inline** (academic-researcher). `[c:<8char-claim-id>]` after each statement. Note evidence_grade when load-bearing.
+4. **Concision** (technical-writer). ≤ 800 words total.
+5. **Population qualifiers are load-bearing.** Always preserve population/setting qualifiers when surfacing dose, contraindication, or warning claims.
+6. **Brand names and prices** are out of scope for this note — they live in the Master sheet's per-country columns and are sourced separately.
+7. **Status awareness.** `(pending review)` inline for non-promoted; supersedence by replacement.
+8. **Output ONLY the Markdown.** No code fences, no preamble, no postamble.
+
+## Obsidian-friendly output (required)
+
+1. **YAML frontmatter** at the very top per the schema in the Output structure block. `type: medication` is fixed for this prompt.
+2. **Wikilink cross-references** for indications (conditions), partner/interacting drugs, target organisms, resistance genes on first mention per section. Kebab-case slugs (e.g. `[[uncomplicated-falciparum-malaria]]`, `[[lumefantrine]]`, `[[kelch13-c580y-mutation]]`). Never wikilink doses or generic verbs.
+3. **Mermaid diagrams** allowed for mechanism of action cascades (target → downstream → clinical effect) when the claim set supports 3+ mechanistic steps. Fenced ```mermaid``` block. Cite load-bearing claim with `[c:<id>]` adjacent.
+4. **Citations are sacred.** Every claim_id supporting a dose, contraindication, interaction, or efficacy statement must appear as `[c:<8char>]`. Never fabricate. Dropping a dose-supporting citation is a hard reject.
+
+
+===== USER =====
+# Entity
+indoor residual spraying
+
+# Surface variants
+indoor residual spraying, indoor residual spraying with non-pyrethroid-like insecticide, indoor residual spraying with non-pyrethroid-like insecticides, indoor residual spraying with pirimiphos-methyl, indoor residual spraying with pyrethroid-like insecticide, indoor residual spraying with pyrethroid-like insecticides
+
+# Entity type (classifier hint)
+medication
+
+# Claims (count=16)
+```json
+[
+  {
+    "claim_id": "781b1a95-2214-4ec6-979e-edc40a3bd71c",
+    "short_id": "781b1a95",
+    "subject": "indoor residual spraying",
+    "predicate": "prevents",
+    "object": "malaria transmission",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Jimma Zone Southwestern Ethiopia",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "LLINs alone",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:32437715",
+      "title": "Insecticide resistance and malaria control: A genetics-epidemiology modeling approach.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/32437715/"
+    }
+  },
+  {
+    "claim_id": "c0de6166-d40f-4202-bed8-c0e091a6abf6",
+    "short_id": "c0de6166",
+    "subject": "indoor residual spraying with pyrethroid-like insecticide",
+    "predicate": "prevents",
+    "object": "anaemia",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "DDT or deltamethrin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "ITNs alone",
+      "effect_size": {
+        "metric": "risk ratio for anaemia prevalence",
+        "value": 1.12,
+        "ci_low": 0.89,
+        "ci_high": 1.4
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "meta_analysis",
+    "status": "auto_promoted",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:31120132",
+      "title": "Indoor residual spraying for preventing malaria in communities using insecticide-treated nets.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/31120132/"
+    }
+  },
+  {
+    "claim_id": "2bb1e5de-bb2f-44f7-8bc9-6e31e80c6df5",
+    "short_id": "2bb1e5de",
+    "subject": "indoor residual spraying with pyrethroid-like insecticide",
+    "predicate": "prevents",
+    "object": "malaria parasitaemia",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "DDT or deltamethrin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "ITNs alone",
+      "effect_size": {
+        "metric": "risk ratio for parasite prevalence",
+        "value": 1.11,
+        "ci_low": 0.86,
+        "ci_high": 1.44
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "meta_analysis",
+    "status": "auto_promoted",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:31120132",
+      "title": "Indoor residual spraying for preventing malaria in communities using insecticide-treated nets.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/31120132/"
+    }
+  },
+  {
+    "claim_id": "bc57bd82-04b7-4795-94eb-141106ce23bf",
+    "short_id": "bc57bd82",
+    "subject": "indoor residual spraying with pyrethroid-like insecticide",
+    "predicate": "prevents",
+    "object": "malaria incidence",
+    "qualifiers": {
+      "population": {
+        "age_range": "pediatric",
+        "pregnancy": null,
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "DDT or deltamethrin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "ITNs alone",
+      "effect_size": {
+        "metric": "rate ratio for malaria incidence",
+        "value": 1.07,
+        "ci_low": 0.8,
+        "ci_high": 1.43
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "meta_analysis",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:31120132",
+      "title": "Indoor residual spraying for preventing malaria in communities using insecticide-treated nets.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/31120132/"
+    }
+  },
+  {
+    "claim_id": "037f304e-cb43-4951-9ff4-264f8a8e0b4a",
+    "short_id": "037f304e",
+    "subject": "indoor residual spraying with non-pyrethroid-like insecticide",
+    "predicate": "prevents",
+    "object": "malaria incidence",
+    "qualifiers": {
+      "population": {
+        "age_range": "pediatric",
+        "pregnancy": null,
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "bendiocarb or pirimiphos-methyl",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "ITNs alone",
+      "effect_size": {
+        "metric": "rate ratio for malaria incidence",
+        "value": 0.93,
+        "ci_low": 0.46,
+        "ci_high": 1.86
+      }
+    },
+    "certainty": "very_low",
+    "evidence_grade": "meta_analysis",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:31120132",
+      "title": "Indoor residual spraying for preventing malaria in communities using insecticide-treated nets.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/31120132/"
+    }
+  },
+  {
+    "claim_id": "f098b7ec-df2e-4037-9ced-8483593ef879",
+    "short_id": "f098b7ec",
+    "subject": "indoor residual spraying with non-pyrethroid-like insecticide",
+    "predicate": "prevents",
+    "object": "anaemia",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "bendiocarb or pirimiphos-methyl",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "ITNs alone",
+      "effect_size": {
+        "metric": "risk ratio for anaemia prevalence",
+        "value": 0.46,
+        "ci_low": 0.18,
+        "ci_high": 1.2
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "meta_analysis",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:31120132",
+      "title": "Indoor residual spraying for preventing malaria in communities using insecticide-treated nets.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/31120132/"
+    }
+  },
+  {
+    "claim_id": "1f74c617-bbfc-48f2-8150-b888c93fafd7",
+    "short_id": "1f74c617",
+    "subject": "indoor residual spraying with non-pyrethroid-like insecticide",
+    "predicate": "prevents",
+    "object": "malaria parasitaemia",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "bendiocarb or pirimiphos-methyl",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "ITNs alone",
+      "effect_size": {
+        "metric": "risk ratio for parasite prevalence",
+        "value": 0.67,
+        "ci_low": 0.35,
+        "ci_high": 1.28
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "meta_analysis",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:31120132",
+      "title": "Indoor residual spraying for preventing malaria in communities using insecticide-treated nets.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/31120132/"
+    }
+  },
+  {
+    "claim_id": "d61b7e6d-0333-4af6-9f53-0edddea97b22",
+    "short_id": "d61b7e6d",
+    "subject": "indoor residual spraying with pyrethroid-like insecticides",
+    "predicate": "prevents",
+    "object": "anaemia in communities using ITNs",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "DDT or deltamethrin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "ITNs alone",
+      "effect_size": {
+        "metric": "risk ratio for anaemia prevalence",
+        "value": 1.12,
+        "ci_low": 0.89,
+        "ci_high": 1.4
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "meta_analysis",
+    "status": "auto_promoted",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:35038163",
+      "title": "Indoor residual spraying for preventing malaria in communities using insecticide-treated nets.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35038163/"
+    }
+  },
+  {
+    "claim_id": "dcd2688e-9c6e-4518-9e60-007943afb60f",
+    "short_id": "dcd2688e",
+    "subject": "indoor residual spraying with pyrethroid-like insecticides",
+    "predicate": "prevents",
+    "object": "Plasmodium parasite prevalence in communities using ITNs",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "DDT or deltamethrin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "ITNs alone",
+      "effect_size": {
+        "metric": "risk ratio for parasite prevalence",
+        "value": 1.11,
+        "ci_low": 0.86,
+        "ci_high": 1.44
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "meta_analysis",
+    "status": "auto_promoted",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:35038163",
+      "title": "Indoor residual spraying for preventing malaria in communities using insecticide-treated nets.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35038163/"
+    }
+  },
+  {
+    "claim_id": "befd58d4-af24-4e5c-a8c9-666787fc23ee",
+    "short_id": "befd58d4",
+    "subject": "indoor residual spraying with pyrethroid-like insecticides",
+    "predicate": "prevents",
+    "object": "malaria incidence in communities using ITNs",
+    "qualifiers": {
+      "population": {
+        "age_range": "pediatric",
+        "pregnancy": null,
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "DDT or deltamethrin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "ITNs alone",
+      "effect_size": {
+        "metric": "rate ratio for malaria incidence",
+        "value": 1.07,
+        "ci_low": 0.8,
+        "ci_high": 1.43
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "meta_analysis",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:35038163",
+      "title": "Indoor residual spraying for preventing malaria in communities using insecticide-treated nets.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35038163/"
+    }
+  },
+  {
+    "claim_id": "320e8c41-a2ac-4351-b7eb-63fa43f57c19",
+    "short_id": "320e8c41",
+    "subject": "indoor residual spraying with non-pyrethroid-like insecticides",
+    "predicate": "prevents",
+    "object": "anaemia in communities using ITNs",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "bendiocarb, pirimiphos-methyl, or propoxur",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "ITNs alone",
+      "effect_size": {
+        "metric": "risk ratio for anaemia prevalence",
+        "value": 0.71,
+        "ci_low": 0.38,
+        "ci_high": 1.31
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "meta_analysis",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:35038163",
+      "title": "Indoor residual spraying for preventing malaria in communities using insecticide-treated nets.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35038163/"
+    }
+  },
+  {
+    "claim_id": "f6af45c4-2ca7-4c8c-b64e-5c3a5db3318c",
+    "short_id": "f6af45c4",
+    "subject": "indoor residual spraying with non-pyrethroid-like insecticides",
+    "predicate": "prevents",
+    "object": "malaria incidence in communities using ITNs",
+    "qualifiers": {
+      "population": {
+        "age_range": "pediatric",
+        "pregnancy": null,
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "bendiocarb, pirimiphos-methyl, or propoxur",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "ITNs alone",
+      "effect_size": {
+        "metric": "rate ratio for malaria incidence",
+        "value": 0.86,
+        "ci_low": 0.61,
+        "ci_high": 1.23
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "meta_analysis",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:35038163",
+      "title": "Indoor residual spraying for preventing malaria in communities using insecticide-treated nets.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35038163/"
+    }
+  },
+  {
+    "claim_id": "b8dc9e27-b6d7-493e-a368-c7b755fbe1a0",
+    "short_id": "b8dc9e27",
+    "subject": "indoor residual spraying with non-pyrethroid-like insecticides",
+    "predicate": "prevents",
+    "object": "Plasmodium parasite prevalence in communities using ITNs",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "bendiocarb, pirimiphos-methyl, or propoxur",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "ITNs alone",
+      "effect_size": {
+        "metric": "risk ratio for parasite prevalence",
+        "value": 0.61,
+        "ci_low": 0.42,
+        "ci_high": 0.88
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "meta_analysis",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:35038163",
+      "title": "Indoor residual spraying for preventing malaria in communities using insecticide-treated nets.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35038163/"
+    }
+  },
+  {
+    "claim_id": "0496d512-faa4-4b84-963f-a6c486298d5d",
+    "short_id": "0496d512",
+    "subject": "indoor residual spraying",
+    "predicate": "prevents",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:29368633",
+      "title": "Implementing a larviciding efficacy or effectiveness control intervention against malaria vectors: key parameters for success.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/29368633/"
+    }
+  },
+  {
+    "claim_id": "fdda9571-c7e9-4631-b971-dbcf5b484b64",
+    "short_id": "fdda9571",
+    "subject": "indoor residual spraying with pirimiphos-methyl",
+    "predicate": "prevents",
+    "object": "Plasmodium falciparum transmission near index cases",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Namibia",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "pirimiphos-methyl IRS",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "no reactive focal intervention",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "RCT",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:38965434",
+      "title": "Extension of efficacy range for targeted malaria-elimination interventions due to spillover effects.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38965434/"
+    }
+  },
+  {
+    "claim_id": "016dcd00-3d3f-4a7b-8a52-eddefc690e8e",
+    "short_id": "016dcd00",
+    "subject": "indoor residual spraying",
+    "predicate": "prevents",
+    "object": "Plasmodium falciparum malaria infection",
+    "qualifiers": {
+      "population": {
+        "age_range": "2-10 years",
+        "pregnancy": null,
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:40056919",
+      "title": "Mapping the global prevalence, incidence, and mortality of Plasmodium falciparum and Plasmodium vivax malaria, 2000-22: a spatial and temporal modelling study.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/40056919/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-13T18:58:08.762592+00:00
+
+
+===== STDOUT =====
+---
+type: medication
+drug_class: vector-control-insecticide
+tags: [malaria/prevention, malaria/vector-control, public-health/intervention]
+evidence_grade_max: meta_analysis
+claim_count: 16
+last_regen: 2026-05-13T18:58:08Z
+---
+
+# Indoor Residual Spraying (IRS)
+
+**Therapeutic category:** Malaria vector-control intervention
+**Drug group:** Residual insecticide (applied to interior wall surfaces)
+**Drug class:** Pyrethroid-like (DDT, deltamethrin) or non-pyrethroid-like (bendiocarb, pirimiphos-methyl, propoxur)
+**Controlled substance:** No — programmatic public-health use under WHO PQ-listed insecticides
+
+## Overview
+
+IRS is application of long-acting insecticide to interior walls and ceilings of dwellings to kill resting endophilic *Anopheles* vectors. Deployed at community scale in [[malaria]]-endemic settings, alone or layered with [[insecticide-treated-nets]]. Effect depends on chemical class, vector resistance, and net coverage [c:0496d512] [c:016dcd00].
+
+## Indication (Why is this medication prescribed?)
+
+- Community-level prevention of [[malaria]] transmission in endemic [[sub-saharan-africa]] settings [c:0496d512] [c:016dcd00].
+- Prevention of [[plasmodium-falciparum]] infection, 2–10 y children, sub-Saharan Africa [c:016dcd00].
+- Reactive focal spraying near index cases for [[plasmodium-falciparum]] elimination, Namibia (pirimiphos-methyl) [c:fdda9571].
+- Adjunct to LLINs in Jimma Zone, Ethiopia [c:781b1a95] (pending review).
+- Reduce [[plasmodium]] parasite prevalence in ITN-using communities — non-pyrethroid IRS RR 0.61 (0.42–0.88), high-certainty meta-analysis [c:b8dc9e27].
+
+## Mechanism of Action (How does it work?)
+
+Residual insecticide deposited on wall surfaces contacts endophilic [[anopheles]] mosquitoes resting indoors after blood-feeding. Contact toxicity kills vector before sporogonic cycle completes, breaking human-mosquito-human transmission chain.
+
+```mermaid
+flowchart LR
+    A[IRS deposit on wall] --> B[Resting Anopheles tarsal contact]
+    B --> C[Insecticide uptake]
+    C --> D[Vector mortality pre-sporogony]
+    D --> E[Reduced entomological inoculation rate]
+    E --> F[Lower parasite prevalence / incidence]
+```
+
+Mechanism inferred from population-level effect on parasite prevalence [c:b8dc9e27] and falciparum infection [c:016dcd00].
+
+## Dosage and Administration
+
+_No per-kg dose claims — IRS is environmental application, not patient dosing._ Chemical class and target structure from claims:
+
+| Class | Agents (claim-supported) | Target | Setting |
+|---|---|---|---|
+| Pyrethroid-like | DDT, deltamethrin | Interior walls of dwellings | Community, sub-Saharan Africa [c:c0de6166] [c:2bb1e5de] [c:bc57bd82] |
+| Non-pyrethroid-like (carbamate/OP) | bendiocarb, pirimiphos-methyl, propoxur | Interior walls of dwellings | Community, sub-Saharan Africa [c:037f304e] [c:f098b7ec] [c:1f74c617] [c:320e8c41] [c:f6af45c4] [c:b8dc9e27] |
+| Organophosphate (focal/reactive) | pirimiphos-methyl | Index-case household + neighbours | Namibia, elimination phase [c:fdda9571] |
+
+Spray frequency, dose per m², residual duration not in current claim corpus.
+
+## Contraindications (When not to use it)
+
+_No explicit contraindication claims in current corpus._ Programmatic exclusions (housing type, pyrethroid resistance) not represented.
+
+## Warnings and Precautions
+
+- Pyrethroid-like IRS layered on ITNs shows **no benefit** over ITNs alone — RR parasitaemia 1.11 (0.86–1.44) [c:2bb1e5de] [c:dcd2688e]; RR anaemia 1.12 (0.89–1.40) [c:c0de6166] [c:d61b7e6d]; rate ratio incidence 1.07 (0.80–1.43), pediatric [c:bc57bd82] [c:befd58d4]. Implies cross-resistance with pyrethroid-treated nets — choose non-pyrethroid class where ITNs already deployed.
+- Insecticide resistance is decision driver; class rotation needed [c:781b1a95] (pending review).
+- Non-pyrethroid IRS + ITN: parasite prevalence RR 0.61 (0.42–0.88), high certainty [c:b8dc9e27] — preferred chemistry in ITN-saturated areas.
+
+## Side Effects
+
+_No human safety/AE claims in current corpus._ Environmental and occupational toxicity profiles per chemical class not surfaced from these sources.
+
+## Drug Interactions
+
+Intervention-level interactions only (no pharmacologic DDIs):
+
+- **[[insecticide-treated-nets]] (ITNs):** layering pyrethroid IRS adds no measurable benefit over ITNs alone across anaemia, parasitaemia, incidence [c:c0de6166] [c:2bb1e5de] [c:bc57bd82] [c:d61b7e6d] [c:dcd2688e] [c:befd58d4]. Non-pyrethroid IRS + ITN → ↓ parasite prevalence (RR 0.61) [c:b8dc9e27], trend ↓ anaemia (RR 0.71, 0.38–1.31) [c:320e8c41], ↓ incidence (rate ratio 0.86, 0.61–1.23) [c:f6af45c4], ↓ parasitaemia non-ITN-stratified (RR 0.67, 0.35–1.28) [c:1f74c617], ↓ anaemia non-ITN-stratified (RR 0.46, 0.18–1.20) [c:f098b7ec], pediatric incidence rate ratio 0.93 (0.46–1.86) [c:037f304e].
+- **Reactive focal IRS + index-case response:** pirimiphos-methyl IRS near index cases reduces *P. falciparum* transmission vs no reactive intervention, Namibia, RCT [c:fdda9571].
+
+## Storage and Stability
+
+_No storage/stability claims in current corpus._ Residual duration on sprayed surfaces (typically 3–12 months by chemical class) not represented in source set.
+
+---
+*Last regenerated: 2026-05-13T18:58:08Z. Source claims: 16. Evidence mix: 12 meta_analysis · 3 expert_opinion · 1 RCT.*

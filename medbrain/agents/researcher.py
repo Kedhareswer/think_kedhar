@@ -26,6 +26,7 @@ class QueryRunResult:
     pmids_failed: int
     saturation_stop: bool
     per_pmid: list[StudentResult] = field(default_factory=list)
+    search_error: str | None = None
 
 
 @dataclass
@@ -60,7 +61,24 @@ def _run_query(
     duplicate_ratio_threshold: float,
     remaining_global_cap: int,
 ) -> QueryRunResult:
-    pmids = search(item.pubmed_query, retmax=item.max_papers)
+    try:
+        pmids = search(item.pubmed_query, retmax=item.max_papers)
+    except Exception as e:
+        # PubMed esearch failure (network, rate limit, malformed query) must
+        # not kill the whole ingest_topic call — other subtopics should still
+        # get a chance. Log and return an empty result for this query.
+        print(f"[researcher] search failed for '{item.subtopic}': {e}")
+        return QueryRunResult(
+            subtopic=item.subtopic,
+            pubmed_query=item.pubmed_query,
+            pmids_found=0,
+            pmids_attempted=0,
+            pmids_succeeded=0,
+            pmids_failed=0,
+            saturation_stop=False,
+            search_error=str(e),
+        )
+
     qrr = QueryRunResult(
         subtopic=item.subtopic,
         pubmed_query=item.pubmed_query,

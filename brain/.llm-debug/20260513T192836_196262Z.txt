@@ -1,0 +1,457 @@
+===== SYSTEM =====
+# Concept note — Medication (Master-sheet Medications aligned)
+
+You are writing a single Markdown note about ONE medication (drug, biologic, or therapeutic agent). The headings match the Master-sheet "Medications" columns so an exporter can lift each section into the corresponding cell.
+
+You are given:
+- The drug name (generic).
+- A list of qualified claims about this drug, with predicate, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused medication note. Re-synthesize from the current claim set on every regeneration.
+
+## Output structure
+
+```
+---
+type: medication
+drug_class: <e.g. artemisinin-combination-therapy>
+tags: [<area/sub-area>, ...]            # e.g. malaria/treatment, malaria/severe
+evidence_grade_max: <meta_analysis|RCT|guideline|cohort|case_control|case_report|expert_opinion>
+claim_count: <int>
+last_regen: <ISO-8601 timestamp>
+---
+
+# <Generic name>
+
+**Therapeutic category:** <e.g. Antimalarial>
+**Drug group:** <e.g. Artemisinin combination therapy>
+**Drug class:** <e.g. Sesquiterpene endoperoxide>
+**Controlled substance:** <Yes — Schedule X · No>
+
+## Overview
+
+≤ 80 words plain-language description.
+
+## Indication (Why is this medication prescribed?)
+
+Bullet list of conditions/uses. Cite inline.
+
+## Mechanism of Action (How does it work?)
+
+Short paragraph. Cite mechanism claims explicitly.
+
+## Dosage and Administration
+
+Table or bullet list, organised by indication and population (adult / pediatric / pregnancy / renal-adjusted). Include dose, route, frequency, duration. Only state what claims support — never invent a dose.
+
+## Contraindications (When not to use it)
+
+Bullet list. Distinguish absolute from relative.
+
+## Warnings and Precautions
+
+Bullet list of black-box warnings, severe precautions, monitoring requirements.
+
+## Side Effects
+
+Bullet list grouped by frequency (common / serious / rare). Flag the ones with mortality risk.
+
+## Drug Interactions
+
+Bullet list. For each interaction, state effect direction (↑/↓ exposure, additive toxicity, etc.) and severity.
+
+## Storage and Stability
+
+Short paragraph or bullet list.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>. Evidence mix: <e.g. 6 RCT · 4 guideline · 2 cohort>.*
+```
+
+## Rules
+
+1. **Dose safety first.** If no claim supports a dose, write `_No dose claims in current corpus._` rather than guess. This is a hard constraint.
+2. **No hallucination** (fact-checker). Every statement traces to a claim_id; disagreements flagged with both ids.
+3. **Cite inline** (academic-researcher). `[c:<8char-claim-id>]` after each statement. Note evidence_grade when load-bearing.
+4. **Concision** (technical-writer). ≤ 800 words total.
+5. **Population qualifiers are load-bearing.** Always preserve population/setting qualifiers when surfacing dose, contraindication, or warning claims.
+6. **Brand names and prices** are out of scope for this note — they live in the Master sheet's per-country columns and are sourced separately.
+7. **Status awareness.** `(pending review)` inline for non-promoted; supersedence by replacement.
+8. **Output ONLY the Markdown.** No code fences, no preamble, no postamble.
+
+## Obsidian-friendly output (required)
+
+1. **YAML frontmatter** at the very top per the schema in the Output structure block. `type: medication` is fixed for this prompt.
+2. **Wikilink cross-references** for indications (conditions), partner/interacting drugs, target organisms, resistance genes on first mention per section. Kebab-case slugs (e.g. `[[uncomplicated-falciparum-malaria]]`, `[[lumefantrine]]`, `[[kelch13-c580y-mutation]]`). Never wikilink doses or generic verbs.
+3. **Mermaid diagrams** allowed for mechanism of action cascades (target → downstream → clinical effect) when the claim set supports 3+ mechanistic steps. Fenced ```mermaid``` block. Cite load-bearing claim with `[c:<id>]` adjacent.
+4. **Citations are sacred.** Every claim_id supporting a dose, contraindication, interaction, or efficacy statement must appear as `[c:<8char>]`. Never fabricate. Dropping a dose-supporting citation is a hard reject.
+
+
+===== USER =====
+# Entity
+plasmodium ovale spp
+
+# Surface variants
+Plasmodium ovale spp.
+
+# Entity type (classifier hint)
+medication
+
+# Claims (count=6)
+```json
+[
+  {
+    "claim_id": "b8bb34f8-2e59-4c8d-bdbc-8681dfc04d5c",
+    "short_id": "b8bb34f8",
+    "subject": "Plasmodium ovale spp.",
+    "predicate": "co_occurs",
+    "object": "Plasmodium falciparum",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Democratic Republic of Congo",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37790376",
+      "title": "Epidemiology of Plasmodium malariae and Plasmodium ovale spp. in a highly malaria-endemic country: a longitudinal cohort study in Kinshasa Province, Democratic Republic of Congo.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37790376/"
+    }
+  },
+  {
+    "claim_id": "6fb55f81-5433-40f0-a424-c0c06beb2eea",
+    "short_id": "6fb55f81",
+    "subject": "Plasmodium ovale spp.",
+    "predicate": "causes",
+    "object": "asymptomatic malaria infection at household survey",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Democratic Republic of Congo",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "household prevalence (%)",
+        "value": 1.0,
+        "ci_low": 1.0,
+        "ci_high": 2.0
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37790376",
+      "title": "Epidemiology of Plasmodium malariae and Plasmodium ovale spp. in a highly malaria-endemic country: a longitudinal cohort study in Kinshasa Province, Democratic Republic of Congo.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37790376/"
+    }
+  },
+  {
+    "claim_id": "b540f86a-a2ea-4b3c-bd00-1bf3f53d97e5",
+    "short_id": "b540f86a",
+    "subject": "Plasmodium ovale spp.",
+    "predicate": "causes",
+    "object": "malaria infection in school-age children",
+    "qualifiers": {
+      "population": {
+        "age_range": "5-14 years",
+        "pregnancy": null,
+        "region": "Democratic Republic of Congo",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "two-year cumulative incidence (%)",
+        "value": 15.0,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37790376",
+      "title": "Epidemiology of Plasmodium malariae and Plasmodium ovale spp. in a highly malaria-endemic country: a longitudinal cohort study in Kinshasa Province, Democratic Republic of Congo.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37790376/"
+    }
+  },
+  {
+    "claim_id": "4c59fd80-6d55-43fe-b1fe-f60c8a2256f1",
+    "short_id": "4c59fd80",
+    "subject": "Plasmodium ovale spp.",
+    "predicate": "causes",
+    "object": "malaria infection",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Democratic Republic of Congo",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "one-year cumulative incidence (%)",
+        "value": 7.0,
+        "ci_low": 5.0,
+        "ci_high": 8.0
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37790376",
+      "title": "Epidemiology of Plasmodium malariae and Plasmodium ovale spp. in a highly malaria-endemic country: a longitudinal cohort study in Kinshasa Province, Democratic Republic of Congo.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37790376/"
+    }
+  },
+  {
+    "claim_id": "6c7c29a6-4467-4418-8388-bcf2509b3bae",
+    "short_id": "6c7c29a6",
+    "subject": "Plasmodium ovale spp.",
+    "predicate": "co_occurs",
+    "object": "Plasmodium falciparum infection",
+    "qualifiers": {
+      "population": {
+        "age_range": "school-age children",
+        "pregnancy": null,
+        "region": "Kinshasa, Democratic Republic of Congo",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37857597",
+      "title": "Epidemiology of Plasmodium malariae and Plasmodium ovale spp. in Kinshasa Province, Democratic Republic of Congo.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37857597/"
+    }
+  },
+  {
+    "claim_id": "447cd037-eb31-47ea-a115-4ec9097cb9d2",
+    "short_id": "447cd037",
+    "subject": "Plasmodium ovale spp.",
+    "predicate": "causes",
+    "object": "malaria infection",
+    "qualifiers": {
+      "population": {
+        "age_range": "children and adults",
+        "pregnancy": null,
+        "region": "Kinshasa, Democratic Republic of Congo",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "1-year incidence (%)",
+        "value": 4.8,
+        "ci_low": 3.7,
+        "ci_high": 5.9
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37857597",
+      "title": "Epidemiology of Plasmodium malariae and Plasmodium ovale spp. in Kinshasa Province, Democratic Republic of Congo.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37857597/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-13T19:28:08.510926+00:00
+
+
+===== STDOUT =====
+---
+type: medication
+drug_class: not-applicable-pathogen
+tags: [malaria/epidemiology, plasmodium-ovale, entity-mismatch]
+evidence_grade_max: expert_opinion
+claim_count: 6
+last_regen: 2026-05-13T19:28:08Z
+---
+
+# Plasmodium ovale spp.
+
+**Therapeutic category:** _Not applicable — entity is a malaria parasite, not a medication._
+**Drug group:** _Not applicable._
+**Drug class:** _Not applicable._
+**Controlled substance:** _Not applicable._
+
+## Overview
+
+[[plasmodium-ovale]] spp. is a human malaria parasite, not a therapeutic agent. Classifier flagged it as `medication`; claim set is epidemiological. Co-circulates with [[plasmodium-falciparum]] in [[democratic-republic-of-congo]], causing both asymptomatic and symptomatic infection across age groups [c:4c59fd80] [c:6c7c29a6]. Note below records observed disease burden; no pharmacology applies. Antimalarial management belongs in notes for partner drugs (e.g. [[artemether-lumefantrine]], [[primaquine]]).
+
+## Indication (Why is this medication prescribed?)
+
+_Not applicable — pathogen, not therapy._ Disease attribution from current corpus:
+
+- Causes [[malaria-infection]] in community settings, Kinshasa, DRC — 1-year incidence 4.8% (CI 3.7–5.9) in children and adults [c:447cd037] (pending review).
+- Causes malaria infection broadly in DRC — 1-year cumulative incidence 7% (CI 5–8) [c:4c59fd80] (pending review).
+- Causes [[asymptomatic-malaria-infection]] at household survey in DRC — prevalence 1% (CI 1–2) [c:6fb55f81] (pending review).
+- Causes malaria infection in [[school-age-children]] (5–14 y), DRC — 2-year cumulative incidence 15% [c:b540f86a] (pending review).
+
+## Mechanism of Action (How does it work?)
+
+_Not applicable — no mechanism-of-action claims for a therapeutic agent._ Epidemiological co-occurrence only:
+
+- Co-occurs with [[plasmodium-falciparum]] in DRC community settings [c:b8bb34f8] (pending review).
+- Co-occurs with P. falciparum infection in Kinshasa school-age children [c:6c7c29a6] (pending review).
+
+```mermaid
+flowchart LR
+  Pov[P. ovale spp.] -->|co-infection| Pf[P. falciparum]
+  Pov --> Asym[Asymptomatic carriage 1%]
+  Pov --> Sym[Symptomatic malaria 4.8–7%/yr]
+  Sym --> SAC[School-age children 15%/2yr]
+```
+
+## Dosage and Administration
+
+_No dose claims in current corpus._ Entity is not a drug.
+
+## Contraindications (When not to use it)
+
+_Not applicable — pathogen, not medication._
+
+## Warnings and Precautions
+
+_Not applicable to entity itself._ Clinical relevance signal from corpus:
+
+- High co-infection burden with P. falciparum in DRC — single-species treatment regimens may miss ovale [c:b8bb34f8] [c:6c7c29a6] (pending review).
+- Asymptomatic reservoir documented at household level — passive case detection underestimates true burden [c:6fb55f81] (pending review).
+- School-age children carry disproportionate incidence (15%/2 yr vs 4.8–7%/1 yr population-wide) — surveillance and treatment targeting indicated [c:b540f86a] [c:447cd037] (pending review).
+
+## Side Effects
+
+_Not applicable — pathogen produces disease, not adverse drug effects._ Spectrum from claims: asymptomatic carriage through symptomatic malaria infection [c:6fb55f81] [c:4c59fd80]. No mortality data in current corpus.
+
+## Drug Interactions
+
+_Not applicable — pathogen, not pharmacologic agent._
+
+## Storage and Stability
+
+_Not applicable._
+
+---
+
+**Entity-type warning:** classifier hint `medication` mismatches subject. Recommend reclassifying to `pathogen` / `organism` template. All efficacy, dose, interaction, and contraindication sections are structurally inapplicable. Evidence base is uniformly `expert_opinion` grade, all `pending_review`, all from two DRC cohort/cross-sectional sources (PMID:37790376, PMID:37857597). Do not promote claims without independent corroboration outside Kinshasa.
+
+*Last regenerated: 2026-05-13T19:28:08Z. Source claims: 6. Evidence mix: 6 expert_opinion (all pending review).*

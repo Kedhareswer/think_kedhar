@@ -1,0 +1,276 @@
+===== SYSTEM =====
+OUTPUT REQUIREMENT: Return VALID JSON ONLY. Your entire response must be parseable by json.loads(). First character of your output must be `{` or `[`. No prose. No explanations. No markdown fences. No apologies. If the requested data is unavailable, return the schema with empty/null values, still as valid JSON. Tools are intentionally disabled — do not request access to them.
+
+/# Student extractor — qualified claims from a PubMed abstract
+
+You are extracting **atomic, qualified medical claims** from a malaria-focused biomedical abstract.
+
+## Output format
+
+Return a JSON array. Each element is one qualified claim.
+
+```json
+[
+  {
+    "subject": "string — entity name (drug, organism, gene, syndrome, intervention, vector, diagnostic test, complication, lifecycle stage)",
+    "predicate": "one of: treats | causes | resists | requires | contraindicates | prevents | co_occurs | recommends | diagnoses | transmits | complicates | classifies_as | affects | has_lifecycle_stage",
+    "object": "string — entity or value",
+    "qualifiers": {
+      "population": {
+        "age_range": "e.g. adults | pediatric | <5 years | pregnant | null",
+        "pregnancy": "first_trimester | second_third_trimester | not_pregnant | null",
+        "region": "geographic region — e.g. Greater Mekong | West Africa | sub-Saharan Africa | null",
+        "immune_status": "naive | semi-immune | immunocompromised | null",
+        "comorbidities": ["list of strings or empty"]
+      },
+      "setting": {
+        "care_level": "outpatient | inpatient | community | null",
+        "endemic_status": "endemic | non_endemic | traveler | null"
+      },
+      "dose_regimen": {
+        "drug": "string or null",
+        "mg_per_kg": "number or null",
+        "frequency": "string or null",
+        "duration": "string or null"
+      },
+      "comparator": "what the intervention was compared against — string or null",
+      "effect_size": {
+        "metric": "e.g. day-3 positivity rate | parasite clearance time | hazard ratio | null",
+        "value": "number or null",
+        "ci_low": "number or null",
+        "ci_high": "number or null"
+      }
+    },
+    "certainty": "high | moderate | low | very_low",
+    "evidence_note": "one short sentence on why this certainty (sample size, design quality, etc.)"
+  }
+]
+```
+
+## Rules
+
+1. **Atomic.** Each claim is one subject-predicate-object triple. If an abstract states "X treats Y AND X causes Z", emit two claims.
+2. **Qualified.** Populate `qualifiers` from what the abstract explicitly states. Leave NULL if not stated — do NOT invent values.
+3. **Predicates.** Use only the listed enum values. Map free-text to the closest:
+   - "is associated with" / "linked to" / "shown to be effective for" → `treats` if therapeutic, `prevents` if prophylactic
+   - "induces resistance" / "selects for resistance" / "associated with treatment failure" → `resists` (when subject = parasite/pathogen, object = drug)
+   - "should not be given to" / "avoid in" → `contraindicates`
+   - WHO/CDC/national-program statements like "is recommended for" → `recommends`
+   - "RDT detects" / "microscopy identifies" / "PCR confirms" / "sensitivity X% for" → `diagnoses` (subject = test/sign, object = condition/species)
+   - "is transmitted by" / "Anopheles X is a vector for" / "vectored by" → `transmits` (subject = vector, object = pathogen)
+   - "complicated by" / "leads to (clinical sequela)" / "progresses to" → `complicates` (subject = complication, object = parent condition)
+   - "is a subtype of" / "belongs to genus" / "classified as" → `classifies_as`
+   - "prevalence X% in region Y" / "kills N people/year in Z" / "incidence rate" / "burden of disease" → `affects` (subject = condition, object = population/region; populate effect_size with the numeric burden)
+   - "ring stage" / "schizont" / "gametocyte" / "exo-erythrocytic phase" / "sporogonic cycle" → `has_lifecycle_stage` (subject = pathogen, object = stage name)
+4. **Subject vs object.** For resistance claims, subject is the parasite/pathogen, object is the drug. For treatment, subject is the drug/intervention, object is the disease/population.
+5. **Certainty mapping:**
+   - `high`: large RCT or meta-analysis with consistent results, or current WHO guideline
+   - `moderate`: cohort study, smaller RCT, well-designed observational
+   - `low`: case-control, single-site observational, conflicting evidence
+   - `very_low`: case report, expert opinion, in-vitro only, mechanistic inference
+6. **Skip methodology, NOT epidemiology.** Skip methodology ("We enrolled 1241 patients", "Abstracts were screened by two reviewers") and bare meta-commentary ("Further research is needed", "More studies needed"). KEEP epidemiology facts (regional burden, mortality, prevalence, age-specific incidence, vector distribution) as `affects` or `transmits` claims with population/region qualifiers populated and numeric values in `effect_size`. Textbook-grade coverage requires epi.
+7. **No claims is a valid output.** If the abstract is purely descriptive epidemiology with no actionable medical claim, return `[]`.
+
+## DO NOT
+
+- DO NOT summarize the abstract.
+- DO NOT return a `{"title": ..., "methods": [...], "key_findings": [...]}` paper-summary object. That is wrong.
+- DO NOT wrap claims in any object key. The top-level value must be a JSON array `[ ... ]`.
+- DO NOT return an array of strings like `["Drug X treats Y", "Drug Z prevents W"]`. Each element MUST be a full JSON object with the keys: `subject`, `predicate`, `object`, `qualifiers`, `certainty`, `evidence_note`.
+- DO NOT invent facts not in the abstract.
+
+## More wrong examples
+
+```json
+["Artemisinin treats malaria", "Chloroquine resistance rising"]
+```
+
+```json
+{"claims": ["..."]}
+```
+
+Both wrong. Each claim must be a full object as shown in the schema above.
+
+## Negative example (WRONG)
+
+```json
+{"title": "...", "key_findings": [{"finding": "..."}], "conclusion": "..."}
+```
+
+## Positive example (CORRECT)
+
+```json
+[
+  {
+    "subject": "artemether-lumefantrine",
+    "predicate": "treats",
+    "object": "uncomplicated P. falciparum malaria",
+    "qualifiers": {
+      "population": {"age_range": "adults", "pregnancy": null, "region": "sub-Saharan Africa", "immune_status": null, "comorbidities": []},
+      "setting": {"care_level": "outpatient", "endemic_status": "endemic"},
+      "dose_regimen": {"drug": "artemether-lumefantrine", "mg_per_kg": null, "frequency": "twice daily", "duration": "3 days"},
+      "comparator": "dihydroartemisinin-piperaquine",
+      "effect_size": {"metric": "day-28 PCR-corrected cure rate", "value": 96.2, "ci_low": 94.1, "ci_high": 97.8}
+    },
+    "certainty": "high",
+    "evidence_note": "Multi-site RCT, n=1241, day-28 PCR-corrected efficacy."
+  }
+]
+```
+
+## More positive examples (textbook breadth)
+
+Diagnostic test claim:
+
+```json
+{
+  "subject": "histidine-rich protein 2 RDT",
+  "predicate": "diagnoses",
+  "object": "Plasmodium falciparum infection",
+  "qualifiers": {
+    "population": {"age_range": null, "pregnancy": null, "region": "sub-Saharan Africa", "immune_status": null, "comorbidities": []},
+    "setting": {"care_level": "community", "endemic_status": "endemic"},
+    "dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": null},
+    "comparator": "microscopy reference",
+    "effect_size": {"metric": "sensitivity", "value": 95.0, "ci_low": 92.0, "ci_high": 97.0}
+  },
+  "certainty": "high",
+  "evidence_note": "WHO field-evaluation meta-analysis across 14 countries."
+}
+```
+
+Epidemiology claim:
+
+```json
+{
+  "subject": "Plasmodium falciparum",
+  "predicate": "affects",
+  "object": "children under 5 in sub-Saharan Africa",
+  "qualifiers": {
+    "population": {"age_range": "<5 years", "pregnancy": null, "region": "sub-Saharan Africa", "immune_status": "semi-immune", "comorbidities": []},
+    "setting": {"care_level": "community", "endemic_status": "endemic"},
+    "dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": null},
+    "comparator": null,
+    "effect_size": {"metric": "annual mortality (deaths/year)", "value": 470000, "ci_low": 430000, "ci_high": 510000}
+  },
+  "certainty": "high",
+  "evidence_note": "WHO World Malaria Report 2023 burden estimate."
+}
+```
+
+Vector / transmission claim:
+
+```json
+{
+  "subject": "Anopheles gambiae",
+  "predicate": "transmits",
+  "object": "Plasmodium falciparum",
+  "qualifiers": {
+    "population": {"age_range": null, "pregnancy": null, "region": "sub-Saharan Africa", "immune_status": null, "comorbidities": []},
+    "setting": {"care_level": null, "endemic_status": "endemic"},
+    "dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": null},
+    "comparator": null,
+    "effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+  },
+  "certainty": "high",
+  "evidence_note": "Established vector biology; multiple entomological surveys."
+}
+```
+
+Complication claim:
+
+```json
+{
+  "subject": "cerebral malaria",
+  "predicate": "complicates",
+  "object": "severe Plasmodium falciparum infection",
+  "qualifiers": {
+    "population": {"age_range": "<5 years", "pregnancy": null, "region": "sub-Saharan Africa", "immune_status": "semi-immune", "comorbidities": []},
+    "setting": {"care_level": "inpatient", "endemic_status": "endemic"},
+    "dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": null},
+    "comparator": null,
+    "effect_size": {"metric": "case-fatality rate", "value": 18.0, "ci_low": 15.0, "ci_high": 22.0}
+  },
+  "certainty": "high",
+  "evidence_note": "Multi-centre African pediatric severe-malaria cohort."
+}
+```
+
+Lifecycle stage claim:
+
+```json
+{
+  "subject": "Plasmodium falciparum",
+  "predicate": "has_lifecycle_stage",
+  "object": "ring stage",
+  "qualifiers": {
+    "population": {"age_range": null, "pregnancy": null, "region": null, "immune_status": null, "comorbidities": []},
+    "setting": {"care_level": null, "endemic_status": null},
+    "dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": null},
+    "comparator": null,
+    "effect_size": {"metric": "intra-erythrocytic duration (hours)", "value": 24.0, "ci_low": null, "ci_high": null}
+  },
+  "certainty": "high",
+  "evidence_note": "Established parasitology; intra-erythrocytic cycle ~48h, ring stage first 24h."
+}
+```
+
+Classification claim:
+
+```json
+{
+  "subject": "Plasmodium knowlesi",
+  "predicate": "classifies_as",
+  "object": "zoonotic Plasmodium species",
+  "qualifiers": {
+    "population": {"age_range": null, "pregnancy": null, "region": "Southeast Asia", "immune_status": null, "comorbidities": []},
+    "setting": {"care_level": null, "endemic_status": "endemic"},
+    "dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": null},
+    "comparator": null,
+    "effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+  },
+  "certainty": "high",
+  "evidence_note": "Reservoir host: long-tailed and pig-tailed macaques; established taxonomy."
+}
+```
+
+## Output
+
+Return ONLY the JSON array. First character of your response must be `[`. No prose before or after. If no qualified claims exist, return `[]`.
+
+
+===== USER =====
+# Title
+Artemether for severe malaria.
+
+# Abstract
+BACKGROUND: In 2011 the World Health Organization (WHO) recommended parenteral artesunate in preference to quinine as first-line treatment for people with severe malaria. Prior to this recommendation many countries, particularly in Africa, had begun to use artemether, an alternative artemisinin derivative. This Cochrane Review evaluates intramuscular artemether compared with both quinine and artesunate.
+
+OBJECTIVES: To assess the efficacy and safety of intramuscular artemether versus any other parenteral medication in the treatment of severe malaria in adults and children.
+
+SEARCH METHODS: We searched the Cochrane Infectious Diseases Group Specialized Register, CENTRAL (the Cochrane Library), MEDLINE, Embase, and LILACS, ISI Web of Science, conference proceedings, and reference lists of articles. We also searched the WHO International Clinical Trial Registry Platform, ClinicalTrials.gov, and the metaRegister of Controlled Trials (mRCT) for ongoing trials up to 7 September 2018. We checked the reference lists of all studies identified by the search. We examined references listed in review articles and previously compiled bibliographies to look for eligible studies.
+
+SELECTION CRITERIA: Randomized controlled trials (RCTs) comparing intramuscular artemether with intravenous/intramuscular quinine or artesunate for treating severe malaria.
+
+DATA COLLECTION AND ANALYSIS: The primary outcome was all-cause death. Two review authors independently screened each article by title and abstract, and examined potentially relevant studies for inclusion using an eligibility form. Two review authors independently extracted data and assessed risk of bias of included studies. We summarized dichotomous outcomes using risk ratios (RRs) and continuous outcomes using mean differences (MDs), and have presented both measures with 95% confidence intervals (CIs). Where appropriate, we combined data in meta-analyses and used the GRADE approach to summarize the certainty of the evidence.
+
+MAIN RESULTS: We included 19 RCTs, enrolling 2874 adults and children with severe malaria, carried out in Africa (12 trials) and in Asia (7 trials).Artemether versus quinineFor children, there is probably little or no difference in the risk of death between intramuscular artemether and quinine (RR 0.97, 95% CI 0.77 to 1.21; 13 trials, 1659 participants, moderate-certainty evidence). Coma resolution time may be about five hours shorter with artemether (MD -5.45, 95% CI -7.90 to -3.00; six trials, 358 participants, low-certainty evidence). Artemether may make little difference to neurological sequelae (RR 0.84, 95% CI 0.66 to 1.07; seven trials, 968 participants, low-certainty evidence). Compared to quinine, artemether probably shortens the parasite clearance time by about nine hours (MD -9.03, 95% CI -11.43 to -6.63; seven trials, 420 participants, moderate-certainty evidence), and may shorten the fever clearance time by about three hours (MD -3.73, 95% CI -6.55 to -0.92; eight trials, 457 participants, low-certainty evidence).For adults, treatment with intramuscular artemether probably results in fewer deaths than treatment with quinine (RR 0.59, 95% CI 0.42 to 0.83; four trials, 716 participants, moderate-certainty evidence).Artemether versus artesunateArtemether and artesunate have not been directly compared in randomized trials in children.For adults, mortality is probably higher with intramuscular artemether (RR 1.80, 95% CI 1.09 to 2.97; two trials, 494 participants, moderate-certainty evidence).
+
+AUTHORS' CONCLUSIONS: Artemether appears to be more effective than quinine in children and adults. Artemether compared to artesunate has not been extensively studied, but in adults it appears inferior. These findings are consistent with the WHO recommendations that artesunate is the drug of choice, but artemether is acceptable when artesunate is not available.
+
+# Publication types
+Journal Article, Meta-Analysis, Research Support, Non-U.S. Gov't, Systematic Review
+# Task
+Extract atomic qualified medical claims from the abstract above. Return a JSON ARRAY (not a paper-summary object). Each element MUST be an object with exactly these keys: subject, predicate, object, qualifiers, certainty, evidence_note.
+
+STRICT FIELD CONSTRAINTS:
+- `predicate` MUST be EXACTLY one of: treats, causes, resists, requires, contraindicates, prevents, co_occurs, recommends, supersedes. Map free-text relations to the closest enum. NO other values allowed. If you cannot map cleanly, drop the claim.
+- `certainty` MUST be EXACTLY one of: high, moderate, low, very_low. NO other values (no 'established', no 'low-to-moderate').
+- `qualifiers` MUST be an object with the nested shape: {population:{age_range, pregnancy, region, immune_status, comorbidities}, setting:{care_level, endemic_status}, dose_regimen:{drug, mg_per_kg, frequency, duration}, comparator, effect_size:{metric, value, ci_low, ci_high}}. Use null for unknown leaf values. DO NOT use a flat free-form qualifiers object.
+- `subject` and `object` MUST be non-empty strings.
+
+DO NOT summarize the paper. DO NOT return {"title":...,"key_findings":...}. DO NOT return an array of strings. If no qualified claims exist, return [].
+Your output MUST start with `[` and end with `]`. Output ONLY the JSON array, nothing else.
+
+===== STDOUT =====
+[{"subject":"intramuscular artemether","predicate":"treats","object":"severe malaria in children","qualifiers":{"population":{"age_range":"pediatric","pregnancy":null,"region":null,"immune_status":null,"comorbidities":[]},"setting":{"care_level":"inpatient","endemic_status":"endemic"},"dose_regimen":{"drug":"artemether","mg_per_kg":null,"frequency":null,"duration":null},"comparator":"intravenous/intramuscular quinine","effect_size":{"metric":"risk ratio for all-cause death","value":0.97,"ci_low":0.77,"ci_high":1.21}},"certainty":"moderate","evidence_note":"Cochrane meta-analysis, 13 trials, 1659 participants, moderate-certainty GRADE."},{"subject":"intramuscular artemether","predicate":"treats","object":"severe malaria in adults","qualifiers":{"population":{"age_range":"adults","pregnancy":null,"region":null,"immune_status":null,"comorbidities":[]},"setting":{"care_level":"inpatient","endemic_status":"endemic"},"dose_regimen":{"drug":"artemether","mg_per_kg":null,"frequency":null,"duration":null},"comparator":"intravenous/intramuscular quinine","effect_size":{"metric":"risk ratio for all-cause death","value":0.59,"ci_low":0.42,"ci_high":0.83}},"certainty":"moderate","evidence_note":"Cochrane meta-analysis, 4 trials, 716 adult participants, moderate-certainty GRADE."},{"subject":"intramuscular artemether","predicate":"treats","object":"severe malaria in children (parasite clearance)","qualifiers":{"population":{"age_range":"pediatric","pregnancy":null,"region":null,"immune_status":null,"comorbidities":[]},"setting":{"care_level":"inpatient","endemic_status":"endemic"},"dose_regimen":{"drug":"artemether","mg_per_kg":null,"frequency":null,"duration":null},"comparator":"quinine","effect_size":{"metric":"mean difference in parasite clearance time (hours)","value":-9.03,"ci_low":-11.43,"ci_high":-6.63}},"certainty":"moderate","evidence_note":"7 trials, 420 participants, moderate-certainty GRADE; ~9h faster parasite clearance vs quinine."},{"subject":"intramuscular artemether","predicate":"treats","object":"severe malaria in children (fever clearance)","qualifiers":{"population":{"age_range":"pediatric","pregnancy":null,"region":null,"immune_status":null,"comorbidities":[]},"setting":{"care_level":"inpatient","endemic_status":"endemic"},"dose_regimen":{"drug":"artemether","mg_per_kg":null,"frequency":null,"duration":null},"comparator":"quinine","effect_size":{"metric":"mean difference in fever clearance time (hours)","value":-3.73,"ci_low":-6.55,"ci_high":-0.92}},"certainty":"low","evidence_note":"8 trials, 457 participants, low-certainty GRADE."},{"subject":"intramuscular artemether","predicate":"treats","object":"severe malaria in children (coma resolution)","qualifiers":{"population":{"age_range":"pediatric","pregnancy":null,"region":null,"immune_status":null,"comorbidities":[]},"setting":{"care_level":"inpatient","endemic_status":"endemic"},"dose_regimen":{"drug":"artemether","mg_per_kg":null,"frequency":null,"duration":null},"comparator":"quinine","effect_size":{"metric":"mean difference in coma resolution time (hours)","value":-5.45,"ci_low":-7.90,"ci_high":-3.00}},"certainty":"low","evidence_note":"6 trials, 358 participants, low-certainty GRADE."},{"subject":"intramuscular artesunate","predicate":"treats","object":"severe malaria in adults","qualifiers":{"population":{"age_range":"adults","pregnancy":null,"region":null,"immune_status":null,"comorbidities":[]},"setting":{"care_level":"inpatient","endemic_status":"endemic"},"dose_regimen":{"drug":"artesunate","mg_per_kg":null,"frequency":null,"duration":null},"comparator":"intramuscular artemether","effect_size":{"metric":"risk ratio for mortality (artemether vs artesunate)","value":1.80,"ci_low":1.09,"ci_high":2.97}},"certainty":"moderate","evidence_note":"2 trials, 494 adult participants, moderate-certainty GRADE; artemether inferior to artesunate."},{"subject":"parenteral artesunate","predicate":"recommends","object":"first-line treatment of severe malaria","qualifiers":{"population":{"age_range":null,"pregnancy":null,"region":null,"immune_status":null,"comorbidities":[]},"setting":{"care_level":"inpatient","endemic_status":"endemic"},"dose_regimen":{"drug":"artesunate","mg_per_kg":null,"frequency":null,"duration":null},"comparator":"quinine","effect_size":{"metric":null,"value":null,"ci_low":null,"ci_high":null}},"certainty":"high","evidence_note":"WHO 2011 recommendation cited in review."},{"subject":"intramuscular artemether","predicate":"recommends","object":"severe malaria when artesunate unavailable","qualifiers":{"population":{"age_range":null,"pregnancy":null,"region":null,"immune_status":null,"comorbidities":[]},"setting":{"care_level":"inpatient","endemic_status":"endemic"},"dose_regimen":{"drug":"artemether","mg_per_kg":null,"frequency":null,"duration":null},"comparator":"artesunate","effect_size":{"metric":null,"value":null,"ci_low":null,"ci_high":null}},"certainty":"moderate","evidence_note":"Cochrane authors' conclusion: artemether acceptable when artesunate not available."}]

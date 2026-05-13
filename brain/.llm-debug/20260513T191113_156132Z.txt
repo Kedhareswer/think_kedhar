@@ -1,0 +1,265 @@
+===== SYSTEM =====
+# Concept note — Medication (Master-sheet Medications aligned)
+
+You are writing a single Markdown note about ONE medication (drug, biologic, or therapeutic agent). The headings match the Master-sheet "Medications" columns so an exporter can lift each section into the corresponding cell.
+
+You are given:
+- The drug name (generic).
+- A list of qualified claims about this drug, with predicate, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused medication note. Re-synthesize from the current claim set on every regeneration.
+
+## Output structure
+
+```
+---
+type: medication
+drug_class: <e.g. artemisinin-combination-therapy>
+tags: [<area/sub-area>, ...]            # e.g. malaria/treatment, malaria/severe
+evidence_grade_max: <meta_analysis|RCT|guideline|cohort|case_control|case_report|expert_opinion>
+claim_count: <int>
+last_regen: <ISO-8601 timestamp>
+---
+
+# <Generic name>
+
+**Therapeutic category:** <e.g. Antimalarial>
+**Drug group:** <e.g. Artemisinin combination therapy>
+**Drug class:** <e.g. Sesquiterpene endoperoxide>
+**Controlled substance:** <Yes — Schedule X · No>
+
+## Overview
+
+≤ 80 words plain-language description.
+
+## Indication (Why is this medication prescribed?)
+
+Bullet list of conditions/uses. Cite inline.
+
+## Mechanism of Action (How does it work?)
+
+Short paragraph. Cite mechanism claims explicitly.
+
+## Dosage and Administration
+
+Table or bullet list, organised by indication and population (adult / pediatric / pregnancy / renal-adjusted). Include dose, route, frequency, duration. Only state what claims support — never invent a dose.
+
+## Contraindications (When not to use it)
+
+Bullet list. Distinguish absolute from relative.
+
+## Warnings and Precautions
+
+Bullet list of black-box warnings, severe precautions, monitoring requirements.
+
+## Side Effects
+
+Bullet list grouped by frequency (common / serious / rare). Flag the ones with mortality risk.
+
+## Drug Interactions
+
+Bullet list. For each interaction, state effect direction (↑/↓ exposure, additive toxicity, etc.) and severity.
+
+## Storage and Stability
+
+Short paragraph or bullet list.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>. Evidence mix: <e.g. 6 RCT · 4 guideline · 2 cohort>.*
+```
+
+## Rules
+
+1. **Dose safety first.** If no claim supports a dose, write `_No dose claims in current corpus._` rather than guess. This is a hard constraint.
+2. **No hallucination** (fact-checker). Every statement traces to a claim_id; disagreements flagged with both ids.
+3. **Cite inline** (academic-researcher). `[c:<8char-claim-id>]` after each statement. Note evidence_grade when load-bearing.
+4. **Concision** (technical-writer). ≤ 800 words total.
+5. **Population qualifiers are load-bearing.** Always preserve population/setting qualifiers when surfacing dose, contraindication, or warning claims.
+6. **Brand names and prices** are out of scope for this note — they live in the Master sheet's per-country columns and are sourced separately.
+7. **Status awareness.** `(pending review)` inline for non-promoted; supersedence by replacement.
+8. **Output ONLY the Markdown.** No code fences, no preamble, no postamble.
+
+## Obsidian-friendly output (required)
+
+1. **YAML frontmatter** at the very top per the schema in the Output structure block. `type: medication` is fixed for this prompt.
+2. **Wikilink cross-references** for indications (conditions), partner/interacting drugs, target organisms, resistance genes on first mention per section. Kebab-case slugs (e.g. `[[uncomplicated-falciparum-malaria]]`, `[[lumefantrine]]`, `[[kelch13-c580y-mutation]]`). Never wikilink doses or generic verbs.
+3. **Mermaid diagrams** allowed for mechanism of action cascades (target → downstream → clinical effect) when the claim set supports 3+ mechanistic steps. Fenced ```mermaid``` block. Cite load-bearing claim with `[c:<id>]` adjacent.
+4. **Citations are sacred.** Every claim_id supporting a dose, contraindication, interaction, or efficacy statement must appear as `[c:<8char>]`. Never fabricate. Dropping a dose-supporting citation is a hard reject.
+
+
+===== USER =====
+# Entity
+maternal iptp-dihydroartemisinin-piperaquine every 4 weeks
+
+# Surface variants
+maternal IPTp-dihydroartemisinin-piperaquine every 4 weeks
+
+# Entity type (classifier hint)
+medication
+
+# Claims (count=2)
+```json
+[
+  {
+    "claim_id": "e2b08cd0-bef1-4316-8b0c-43836c741217",
+    "short_id": "e2b08cd0",
+    "subject": "maternal IPTp-dihydroartemisinin-piperaquine every 4 weeks",
+    "predicate": "causes",
+    "object": "increased overall malaria incidence in offspring during infancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "<2 years",
+        "pregnancy": null,
+        "region": "Tororo, Uganda",
+        "immune_status": "naive",
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "dihydroartemisinin-piperaquine",
+        "mg_per_kg": null,
+        "frequency": "every 4 weeks in pregnancy",
+        "duration": null
+      },
+      "comparator": "maternal IPTp-sulfadoxine-pyrimethamine every 8 weeks",
+      "effect_size": {
+        "metric": "adjusted incidence rate ratio",
+        "value": 1.92,
+        "ci_low": 1.0,
+        "ci_high": 3.65
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "RCT",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:30016328",
+      "title": "Dihydroartemisinin-piperaquine for intermittent preventive treatment of malaria during pregnancy and risk of malaria in early childhood: A randomized controlled trial.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/30016328/"
+    }
+  },
+  {
+    "claim_id": "220e6cef-1c9c-43fe-b0fb-2e9adb428d3f",
+    "short_id": "220e6cef",
+    "subject": "maternal IPTp-dihydroartemisinin-piperaquine every 4 weeks",
+    "predicate": "causes",
+    "object": "increased malaria incidence in female offspring during infancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "<2 years",
+        "pregnancy": null,
+        "region": "Tororo, Uganda",
+        "immune_status": "naive",
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "dihydroartemisinin-piperaquine",
+        "mg_per_kg": null,
+        "frequency": "every 4 weeks in pregnancy; infant DP every 12 weeks 8wk-2yr",
+        "duration": null
+      },
+      "comparator": "maternal IPTp-sulfadoxine-pyrimethamine every 8 weeks",
+      "effect_size": {
+        "metric": "adjusted incidence rate ratio (female children)",
+        "value": 4.39,
+        "ci_low": 1.87,
+        "ci_high": 10.3
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "RCT",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:30016328",
+      "title": "Dihydroartemisinin-piperaquine for intermittent preventive treatment of malaria during pregnancy and risk of malaria in early childhood: A randomized controlled trial.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/30016328/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-13T19:10:53.701544+00:00
+
+
+===== STDOUT =====
+---
+type: medication
+drug_class: artemisinin-combination-therapy
+tags: [malaria/prevention, malaria/pregnancy, malaria/iptp]
+evidence_grade_max: RCT
+claim_count: 2
+last_regen: 2026-05-13T19:10:53.701544+00:00
+---
+
+# Dihydroartemisinin-Piperaquine (maternal IPTp, every 4 weeks)
+
+**Therapeutic category:** Antimalarial
+**Drug group:** Artemisinin combination therapy
+**Drug class:** Sesquiterpene endoperoxide + bisquinoline
+**Controlled substance:** No
+
+## Overview
+
+Dihydroartemisinin-piperaquine (DP) given every 4 weeks during pregnancy as intermittent preventive treatment (IPTp) in malaria-endemic settings. Compared with standard IPTp-sulfadoxine-pyrimethamine (SP), the more intensive DP regimen is under evaluation for downstream effects on offspring malaria risk in infancy [c:e2b08cd0] (pending review).
+
+## Indication (Why is this medication prescribed?)
+
+- Intermittent preventive treatment of [[malaria]] in pregnancy (IPTp) in [[endemic-settings]], administered to the mother every 4 weeks [c:e2b08cd0] (pending review).
+
+_No other indication claims in current corpus._
+
+## Mechanism of Action (How does it work?)
+
+[[dihydroartemisinin]] = short-acting artemisinin endoperoxide, rapid parasite kill. [[piperaquine]] = long-acting bisquinoline, sustained post-treatment prophylaxis across 4-week interval. Mechanistic cascade claims not in current corpus — narrative inferred from drug class only.
+
+_No mechanism claims in current corpus._
+
+## Dosage and Administration
+
+| Population | Regimen | Comparator in evidence |
+|---|---|---|
+| Pregnant women, endemic setting ([[tororo-uganda]]) | DP every 4 weeks in pregnancy [c:e2b08cd0] | IPTp-[[sulfadoxine-pyrimethamine]] every 8 weeks |
+| Infant follow-on (one trial arm) | Infant DP every 12 weeks, 8 weeks–2 years [c:220e6cef] | — |
+
+_No mg/kg dose claims in current corpus._ Refer to source RCT (PMID:30016328) for exact dosing.
+
+## Contraindications (When not to use it)
+
+_No contraindication claims in current corpus._
+
+## Warnings and Precautions
+
+- **Offspring malaria risk signal.** Maternal IPTp-DP q4w vs IPTp-SP q8w → ↑ overall malaria incidence in offspring <2 yr; aIRR 1.92 (95% CI 1.00–3.65), [[tororo-uganda]], endemic, malaria-naive infants [c:e2b08cd0], RCT, low certainty (pending review).
+- **Sex-specific signal in female offspring.** aIRR 4.39 (95% CI 1.87–10.3) for female children <2 yr under maternal q4w DP + infant DP q12w regimen [c:220e6cef], RCT, low certainty (pending review).
+- Both signals from single-site RCT, wide CIs, low certainty. Do not generalize beyond [[tororo-uganda]]-like endemic settings without confirmation.
+
+## Side Effects
+
+_No direct maternal side-effect claims in current corpus._ Offspring-level effects covered under Warnings.
+
+## Drug Interactions
+
+_No interaction claims in current corpus._ Comparator drug in evidence: [[sulfadoxine-pyrimethamine]].
+
+## Storage and Stability
+
+_No storage claims in current corpus._
+
+---
+*Last regenerated: 2026-05-13T19:10:53.701544+00:00. Source claims: 2. Evidence mix: 2 RCT (both pending review, low certainty, single site PMID:30016328).*

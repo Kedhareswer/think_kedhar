@@ -1,0 +1,257 @@
+===== SYSTEM =====
+# Concept note — Medication (Master-sheet Medications aligned)
+
+You are writing a single Markdown note about ONE medication (drug, biologic, or therapeutic agent). The headings match the Master-sheet "Medications" columns so an exporter can lift each section into the corresponding cell.
+
+You are given:
+- The drug name (generic).
+- A list of qualified claims about this drug, with predicate, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused medication note. Re-synthesize from the current claim set on every regeneration.
+
+## Output structure
+
+```
+---
+type: medication
+drug_class: <e.g. artemisinin-combination-therapy>
+tags: [<area/sub-area>, ...]            # e.g. malaria/treatment, malaria/severe
+evidence_grade_max: <meta_analysis|RCT|guideline|cohort|case_control|case_report|expert_opinion>
+claim_count: <int>
+last_regen: <ISO-8601 timestamp>
+---
+
+# <Generic name>
+
+**Therapeutic category:** <e.g. Antimalarial>
+**Drug group:** <e.g. Artemisinin combination therapy>
+**Drug class:** <e.g. Sesquiterpene endoperoxide>
+**Controlled substance:** <Yes — Schedule X · No>
+
+## Overview
+
+≤ 80 words plain-language description.
+
+## Indication (Why is this medication prescribed?)
+
+Bullet list of conditions/uses. Cite inline.
+
+## Mechanism of Action (How does it work?)
+
+Short paragraph. Cite mechanism claims explicitly.
+
+## Dosage and Administration
+
+Table or bullet list, organised by indication and population (adult / pediatric / pregnancy / renal-adjusted). Include dose, route, frequency, duration. Only state what claims support — never invent a dose.
+
+## Contraindications (When not to use it)
+
+Bullet list. Distinguish absolute from relative.
+
+## Warnings and Precautions
+
+Bullet list of black-box warnings, severe precautions, monitoring requirements.
+
+## Side Effects
+
+Bullet list grouped by frequency (common / serious / rare). Flag the ones with mortality risk.
+
+## Drug Interactions
+
+Bullet list. For each interaction, state effect direction (↑/↓ exposure, additive toxicity, etc.) and severity.
+
+## Storage and Stability
+
+Short paragraph or bullet list.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>. Evidence mix: <e.g. 6 RCT · 4 guideline · 2 cohort>.*
+```
+
+## Rules
+
+1. **Dose safety first.** If no claim supports a dose, write `_No dose claims in current corpus._` rather than guess. This is a hard constraint.
+2. **No hallucination** (fact-checker). Every statement traces to a claim_id; disagreements flagged with both ids.
+3. **Cite inline** (academic-researcher). `[c:<8char-claim-id>]` after each statement. Note evidence_grade when load-bearing.
+4. **Concision** (technical-writer). ≤ 800 words total.
+5. **Population qualifiers are load-bearing.** Always preserve population/setting qualifiers when surfacing dose, contraindication, or warning claims.
+6. **Brand names and prices** are out of scope for this note — they live in the Master sheet's per-country columns and are sourced separately.
+7. **Status awareness.** `(pending review)` inline for non-promoted; supersedence by replacement.
+8. **Output ONLY the Markdown.** No code fences, no preamble, no postamble.
+
+## Obsidian-friendly output (required)
+
+1. **YAML frontmatter** at the very top per the schema in the Output structure block. `type: medication` is fixed for this prompt.
+2. **Wikilink cross-references** for indications (conditions), partner/interacting drugs, target organisms, resistance genes on first mention per section. Kebab-case slugs (e.g. `[[uncomplicated-falciparum-malaria]]`, `[[lumefantrine]]`, `[[kelch13-c580y-mutation]]`). Never wikilink doses or generic verbs.
+3. **Mermaid diagrams** allowed for mechanism of action cascades (target → downstream → clinical effect) when the claim set supports 3+ mechanistic steps. Fenced ```mermaid``` block. Cite load-bearing claim with `[c:<id>]` adjacent.
+4. **Citations are sacred.** Every claim_id supporting a dose, contraindication, interaction, or efficacy statement must appear as `[c:<8char>]`. Never fabricate. Dropping a dose-supporting citation is a hard reject.
+
+
+===== USER =====
+# Entity
+malaria diagnosis when microscopy unavailable within 24h
+
+# Surface variants
+malaria diagnosis when microscopy unavailable within 24h
+
+# Entity type (classifier hint)
+medication
+
+# Claims (count=2)
+```json
+[
+  {
+    "claim_id": "cdca1173-968d-497b-bf06-7f98bebf7aed",
+    "short_id": "cdca1173",
+    "subject": "rapid diagnostic tests",
+    "predicate": "recommends",
+    "object": "malaria diagnosis when microscopy unavailable within 24h",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "India",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "microscopy",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:28357581",
+      "title": "Malaria: An Update.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/28357581/"
+    }
+  },
+  {
+    "claim_id": "438211ce-6271-456d-b37a-f9b0933d1eee",
+    "short_id": "438211ce",
+    "subject": "rapid diagnostic test",
+    "predicate": "recommends",
+    "object": "malaria diagnosis when microscopy unavailable within 24h",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "India",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "microscopy",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:28357581",
+      "title": "Malaria: An Update.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/28357581/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-13T19:07:02.486213+00:00
+
+
+===== STDOUT =====
+---
+type: medication
+drug_class: diagnostic-test
+tags: [malaria/diagnosis, malaria/endemic-india]
+evidence_grade_max: expert_opinion
+claim_count: 2
+last_regen: 2026-05-13T19:07:02Z
+---
+
+# Rapid Diagnostic Test (Malaria RDT)
+
+**Therapeutic category:** Diagnostic device (point-of-care)
+**Drug group:** Immunochromatographic lateral-flow assay
+**Drug class:** Antigen-capture rapid test (HRP-2 / pLDH targets)
+**Controlled substance:** No
+
+## Overview
+
+Malaria RDT is a point-of-care lateral-flow immunoassay detecting *Plasmodium* antigens from a fingerprick blood sample. Used to confirm malaria when [[microscopy]] unavailable within 24 hours in endemic settings. Result in 15–20 minutes. Note: this concept note covers a **diagnostic recommendation**, not a therapeutic drug — dosing/pharmacology sections not applicable.
+
+## Indication (Why is this medication prescribed?)
+
+- Diagnosis of [[malaria]] in patients with fever in endemic regions of [[india]] when microscopy result not obtainable within 24 h [c:cdca1173] [c:438211ce] *(pending review, expert_opinion)*
+- Comparator standard: [[microscopy]] (preferred when available) [c:cdca1173]
+
+## Mechanism of Action (How does it work?)
+
+Antibody-coated nitrocellulose strip captures circulating *Plasmodium* antigens (HRP-2 for *P. falciparum*, pLDH for pan-species) from whole blood. Antigen–antibody complex migrates via capillary action, binds labeled conjugate, produces visible band. Not a pharmacologic agent — no MoA in drug sense. Diagnostic role specified by claim set [c:cdca1173].
+
+## Dosage and Administration
+
+_No dose claims in current corpus._ RDT is a single-use diagnostic device, not dosed.
+
+## Contraindications (When not to use it)
+
+_No contraindication claims in current corpus._
+
+## Warnings and Precautions
+
+- RDT is **fallback** when microscopy unavailable within 24 h — microscopy remains comparator standard [c:cdca1173] *(pending review)*
+- Evidence grade limited to expert_opinion; both supporting claims pending review [c:cdca1173] [c:438211ce]
+- Certainty divergence between sources: one high [c:cdca1173], one moderate [c:438211ce] — same PMID, same population (India, endemic)
+
+## Side Effects
+
+_Not applicable — diagnostic device, no pharmacologic side effects in current corpus._
+
+## Drug Interactions
+
+_No interaction claims in current corpus._ (Known general caveat: HRP-2 deletion strains and prior antimalarial use may affect result interpretation — not in claim set, omitted.)
+
+## Storage and Stability
+
+_No storage claims in current corpus._
+
+---
+*Last regenerated: 2026-05-13T19:07:02Z. Source claims: 2. Evidence mix: 2 expert_opinion (both pending review, same PMID:28357581).*

@@ -1,0 +1,364 @@
+===== SYSTEM =====
+# Concept note — Medication (Master-sheet Medications aligned)
+
+You are writing a single Markdown note about ONE medication (drug, biologic, or therapeutic agent). The headings match the Master-sheet "Medications" columns so an exporter can lift each section into the corresponding cell.
+
+You are given:
+- The drug name (generic).
+- A list of qualified claims about this drug, with predicate, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused medication note. Re-synthesize from the current claim set on every regeneration.
+
+## Output structure
+
+```
+---
+type: medication
+drug_class: <e.g. artemisinin-combination-therapy>
+tags: [<area/sub-area>, ...]            # e.g. malaria/treatment, malaria/severe
+evidence_grade_max: <meta_analysis|RCT|guideline|cohort|case_control|case_report|expert_opinion>
+claim_count: <int>
+last_regen: <ISO-8601 timestamp>
+---
+
+# <Generic name>
+
+**Therapeutic category:** <e.g. Antimalarial>
+**Drug group:** <e.g. Artemisinin combination therapy>
+**Drug class:** <e.g. Sesquiterpene endoperoxide>
+**Controlled substance:** <Yes — Schedule X · No>
+
+## Overview
+
+≤ 80 words plain-language description.
+
+## Indication (Why is this medication prescribed?)
+
+Bullet list of conditions/uses. Cite inline.
+
+## Mechanism of Action (How does it work?)
+
+Short paragraph. Cite mechanism claims explicitly.
+
+## Dosage and Administration
+
+Table or bullet list, organised by indication and population (adult / pediatric / pregnancy / renal-adjusted). Include dose, route, frequency, duration. Only state what claims support — never invent a dose.
+
+## Contraindications (When not to use it)
+
+Bullet list. Distinguish absolute from relative.
+
+## Warnings and Precautions
+
+Bullet list of black-box warnings, severe precautions, monitoring requirements.
+
+## Side Effects
+
+Bullet list grouped by frequency (common / serious / rare). Flag the ones with mortality risk.
+
+## Drug Interactions
+
+Bullet list. For each interaction, state effect direction (↑/↓ exposure, additive toxicity, etc.) and severity.
+
+## Storage and Stability
+
+Short paragraph or bullet list.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>. Evidence mix: <e.g. 6 RCT · 4 guideline · 2 cohort>.*
+```
+
+## Rules
+
+1. **Dose safety first.** If no claim supports a dose, write `_No dose claims in current corpus._` rather than guess. This is a hard constraint.
+2. **No hallucination** (fact-checker). Every statement traces to a claim_id; disagreements flagged with both ids.
+3. **Cite inline** (academic-researcher). `[c:<8char-claim-id>]` after each statement. Note evidence_grade when load-bearing.
+4. **Concision** (technical-writer). ≤ 800 words total.
+5. **Population qualifiers are load-bearing.** Always preserve population/setting qualifiers when surfacing dose, contraindication, or warning claims.
+6. **Brand names and prices** are out of scope for this note — they live in the Master sheet's per-country columns and are sourced separately.
+7. **Status awareness.** `(pending review)` inline for non-promoted; supersedence by replacement.
+8. **Output ONLY the Markdown.** No code fences, no preamble, no postamble.
+
+## Obsidian-friendly output (required)
+
+1. **YAML frontmatter** at the very top per the schema in the Output structure block. `type: medication` is fixed for this prompt.
+2. **Wikilink cross-references** for indications (conditions), partner/interacting drugs, target organisms, resistance genes on first mention per section. Kebab-case slugs (e.g. `[[uncomplicated-falciparum-malaria]]`, `[[lumefantrine]]`, `[[kelch13-c580y-mutation]]`). Never wikilink doses or generic verbs.
+3. **Mermaid diagrams** allowed for mechanism of action cascades (target → downstream → clinical effect) when the claim set supports 3+ mechanistic steps. Fenced ```mermaid``` block. Cite load-bearing claim with `[c:<id>]` adjacent.
+4. **Citations are sacred.** Every claim_id supporting a dose, contraindication, interaction, or efficacy statement must appear as `[c:<8char>]`. Never fabricate. Dropping a dose-supporting citation is a hard reject.
+
+
+===== USER =====
+# Entity
+airport malaria
+
+# Surface variants
+airport malaria
+
+# Entity type (classifier hint)
+medication
+
+# Claims (count=4)
+```json
+[
+  {
+    "claim_id": "0f1e0407-fd5b-45ff-96d2-b9feb74fec99",
+    "short_id": "0f1e0407",
+    "subject": "airport malaria",
+    "predicate": "requires",
+    "object": "compulsory notification",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "France",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "non_endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:19282131",
+      "title": "[Airport malaria].",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/19282131/"
+    }
+  },
+  {
+    "claim_id": "4b56ad61-7ba2-42dd-949d-958f24ca50e2",
+    "short_id": "4b56ad61",
+    "subject": "perimeter vector control within 400 meters of airports",
+    "predicate": "prevents",
+    "object": "airport malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "French overseas territories",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "perimeter radius (meters)",
+        "value": 400.0,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:19282131",
+      "title": "[Airport malaria].",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/19282131/"
+    }
+  },
+  {
+    "claim_id": "19dae890-3a95-4131-b2d0-e0c6275ca982",
+    "short_id": "19dae890",
+    "subject": "aircraft disinsection",
+    "predicate": "prevents",
+    "object": "airport malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "non_endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:19282131",
+      "title": "[Airport malaria].",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/19282131/"
+    }
+  },
+  {
+    "claim_id": "0837df50-d6e7-4c08-88af-dffd44e8f11d",
+    "short_id": "0837df50",
+    "subject": "Plasmodium falciparum",
+    "predicate": "causes",
+    "object": "airport malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "France",
+        "immune_status": "naive",
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "non_endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "reported cases since 1969",
+        "value": 30.0,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:19282131",
+      "title": "[Airport malaria].",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/19282131/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-13T18:28:28.526898+00:00
+
+
+===== STDOUT =====
+---
+type: medication
+drug_class: not-applicable-entity-is-disease
+tags: [malaria/epidemiology, malaria/non-endemic-transmission]
+evidence_grade_max: expert_opinion
+claim_count: 4
+last_regen: 2026-05-13T18:28:28Z
+---
+
+# Airport malaria
+
+**Therapeutic category:** _Not applicable — entity is a disease entity, not a medication._
+**Drug group:** _N/A_
+**Drug class:** _N/A_
+**Controlled substance:** _N/A_
+
+> ⚠️ Entity-type mismatch: "airport malaria" is an epidemiological condition (locally-acquired [[malaria]] near airports in non-endemic regions, from imported infected [[anopheles-mosquito|Anopheles]] vectors), not a therapeutic agent. Note rendered against medication template per prompt; pharmacology sections empty by design.
+
+## Overview
+
+Airport malaria = locally-acquired malaria in [[non-endemic-region|non-endemic regions]] caused by infected mosquitoes transported via aircraft from endemic zones. France reported ~30 cases since 1969, predominantly [[plasmodium-falciparum|*Plasmodium falciparum*]] in immune-[[naive-host|naive]] hosts [c:0837df50] (pending review). Disease requires compulsory notification in France [c:0f1e0407] (pending review).
+
+## Indication (Why is this medication prescribed?)
+
+_Not applicable — no therapeutic indication. Entity is a reportable condition._
+
+- Compulsory notification, France [c:0f1e0407] (pending review, expert_opinion).
+
+## Mechanism of Action (How does it work?)
+
+_Not pharmacological._ Transmission mechanism:
+
+```mermaid
+flowchart LR
+  A[Infected Anopheles transported in aircraft] --> B[Mosquito escapes near airport]
+  B --> C[Bites naive local host within flight range]
+  C --> D[P. falciparum sporozoite inoculation]
+  D --> E[Clinical malaria in non-endemic region]
+```
+
+*P. falciparum* identified as causative species in French reported cases, immune-naive population [c:0837df50] (pending review).
+
+## Dosage and Administration
+
+_No dose claims in current corpus._
+
+## Contraindications (When not to use it)
+
+_Not applicable._
+
+## Warnings and Precautions
+
+Public-health precautions (not drug warnings):
+
+- **[[aircraft-disinsection]]** — preventive against airport malaria, non-endemic setting [c:19dae890] (pending review, expert_opinion).
+- **Perimeter [[vector-control]] within 400 m of airports** — preventive, [[french-overseas-territories]] endemic setting [c:4b56ad61] (pending review, expert_opinion).
+- Mandatory case notification, France [c:0f1e0407] (pending review).
+
+## Side Effects
+
+_Not applicable — disease entity, no pharmacological adverse effect profile._
+
+Clinical sequelae of underlying *P. falciparum* infection → see [[falciparum-malaria]] note.
+
+## Drug Interactions
+
+_Not applicable._
+
+## Storage and Stability
+
+_Not applicable._
+
+---
+*Last regenerated: 2026-05-13T18:28:28Z. Source claims: 4 (all pending_review). Evidence mix: 4 expert_opinion. Entity-type mismatch flagged — reclassify as `disease` / `epidemiological-condition` upstream.*

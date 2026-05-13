@@ -15,6 +15,7 @@ import platform
 import re
 import shutil
 import subprocess
+import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -24,10 +25,13 @@ from medbrain.config import BRAIN_DIR, LLM_MODEL
 LLM_DEBUG_DIR = BRAIN_DIR / ".llm-debug"
 LLM_DEBUG = os.getenv("MEDBRAIN_LLM_DEBUG", "1") not in ("0", "false", "")
 
-# Thinking-budget magic phrase prepended to every user prompt.
-# Claude Code CLI honors: "think" | "think hard" | "think harder" | "ultrathink".
-# Empty string disables.
-THINKING_HINT = os.getenv("MEDBRAIN_THINKING_HINT", "ultrathink").strip()
+# Thinking-effort flag for the Claude CLI. Maps directly to `--effort <level>`.
+# Allowed: "low" | "medium" | "high" | "max" | "" (omit flag).
+# Replaces the older MEDBRAIN_THINKING_HINT (prepended magic phrase) which is
+# now ignored — the proper CLI flag is more reliable and doesn't bloat the
+# user prompt.
+EFFORT = os.getenv("MEDBRAIN_EFFORT", "max").strip().lower()
+_VALID_EFFORTS = {"low", "medium", "high", "max"}
 
 
 class LLMError(RuntimeError):
@@ -83,59 +87,67 @@ def call(
     """
     exe = _resolve_cli()
     mdl = model or LLM_MODEL
-    if THINKING_HINT:
-        user = f"{THINKING_HINT}\n\n{user}"
-    # Pipe user prompt via stdin. Avoids "Input must be provided either through
-    # stdin or as a prompt argument" when --append-system-prompt eats the
-    # positional slot, and dodges Windows command-line length limits for big
-    # user prompts (e.g. compaction passes whole .md files).
+
+    # System prompt is written to a temp file and passed via
+    # --system-prompt-file <path>. On Windows the command-line length limit
+    # is ~32KB; our prompts (extractor, planner, brain synth) frequently
+    # exceed that once they include the qualifier-rich examples, so passing
+    # the prompt inline as --system-prompt <huge string> reliably triggers
+    # "The command line is too long" (CreateProcess error 87) and we get
+    # exit 1 with zero papers ingested. The file variant has no length limit.
     #
-    # Pure-inference invocation — MedBrain wants the model to obey OUR prompt,
-    # not Claude Code's default conversational behaviour:
-    # - --system-prompt     REPLACE system prompt (not append). Without this our
-    #                       JSON-only directive gets diluted by the default
-    #                       Claude Code system prompt.
-    #                       NB: --bare would also help but it disables keychain
-    #                       reads, killing Claude Max OAuth. Avoid.
-    # - --allowed-tools ""  empty allow-list = no built-in tools available
-    # - --disallowed-tools "*"  explicit deny-all (defence in depth)
-    # - --strict-mcp-config ignore user-level MCP servers (PubMed, ChEMBL etc.
-    #                       defined in user settings won't auto-load and trigger
-    #                       permission prompts).
-    # - --permission-mode plan  read-only; tool attempts error instead of
-    #                       prompting interactively (would block the subprocess).
-    cmd = [
-        exe,
-        "--print",
-        "--model", mdl,
-        "--system-prompt", system,
-        "--output-format", "text",
-        "--allowed-tools", "",
-        "--disallowed-tools", "*",
-        "--strict-mcp-config",
-    ]
+    # Tempfile is created inside BRAIN_DIR/.llm-tmp so it lives on the same
+    # volume as the rest of the project (atomic rename works, antivirus
+    # exclusions apply, and debugging is easier if a call hangs).
+    tmp_dir = BRAIN_DIR / ".llm-tmp"
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    fd, sys_path = tempfile.mkstemp(
+        prefix="sysprompt_", suffix=".txt", dir=str(tmp_dir), text=True
+    )
     try:
-        proc = subprocess.run(
-            cmd,
-            input=user,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-            env=_clean_env(),
-            cwd=cwd,
-            shell=False,
-            encoding="utf-8",
-            errors="replace",
-        )
-    except subprocess.TimeoutExpired as e:
-        raise LLMError(f"Claude CLI timeout after {timeout}s") from e
-    if proc.returncode != 0:
-        raise LLMError(
-            f"Claude CLI exit {proc.returncode}: {proc.stderr.strip()[:500]}"
-        )
-    out = proc.stdout.strip()
-    _debug_dump(system=system, user=user, raw=out, stderr=proc.stderr or "")
-    return out
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(system)
+
+        cmd = [
+            exe,
+            "--print",
+            "--model", mdl,
+            "--system-prompt-file", sys_path,
+            "--output-format", "text",
+            "--allowed-tools", "",
+            "--disallowed-tools", "*",
+            "--strict-mcp-config",
+        ]
+        if EFFORT in _VALID_EFFORTS:
+            cmd.extend(["--effort", EFFORT])
+
+        try:
+            proc = subprocess.run(
+                cmd,
+                input=user,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                env=_clean_env(),
+                cwd=cwd,
+                shell=False,
+                encoding="utf-8",
+                errors="replace",
+            )
+        except subprocess.TimeoutExpired as e:
+            raise LLMError(f"Claude CLI timeout after {timeout}s") from e
+        if proc.returncode != 0:
+            raise LLMError(
+                f"Claude CLI exit {proc.returncode}: {proc.stderr.strip()[:500]}"
+            )
+        out = proc.stdout.strip()
+        _debug_dump(system=system, user=user, raw=out, stderr=proc.stderr or "")
+        return out
+    finally:
+        try:
+            os.unlink(sys_path)
+        except OSError:
+            pass
 
 
 def _debug_dump(*, system: str, user: str, raw: str, stderr: str) -> None:

@@ -91,7 +91,7 @@ def test_orchestrator_seeds_human_question_and_runs_one_iteration(monkeypatch: p
     assert len(human_qs) == 1
     assert human_qs[0].body == "malaria"
     assert human_qs[0].priority == 1
-    assert human_qs[0].status == "in_progress"
+    assert human_qs[0].status == "open"
 
     # Iterations executed
     assert len(result.iterations) >= 1

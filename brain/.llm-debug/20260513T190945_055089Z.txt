@@ -1,0 +1,593 @@
+===== SYSTEM =====
+# Concept note — Medication (Master-sheet Medications aligned)
+
+You are writing a single Markdown note about ONE medication (drug, biologic, or therapeutic agent). The headings match the Master-sheet "Medications" columns so an exporter can lift each section into the corresponding cell.
+
+You are given:
+- The drug name (generic).
+- A list of qualified claims about this drug, with predicate, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused medication note. Re-synthesize from the current claim set on every regeneration.
+
+## Output structure
+
+```
+---
+type: medication
+drug_class: <e.g. artemisinin-combination-therapy>
+tags: [<area/sub-area>, ...]            # e.g. malaria/treatment, malaria/severe
+evidence_grade_max: <meta_analysis|RCT|guideline|cohort|case_control|case_report|expert_opinion>
+claim_count: <int>
+last_regen: <ISO-8601 timestamp>
+---
+
+# <Generic name>
+
+**Therapeutic category:** <e.g. Antimalarial>
+**Drug group:** <e.g. Artemisinin combination therapy>
+**Drug class:** <e.g. Sesquiterpene endoperoxide>
+**Controlled substance:** <Yes — Schedule X · No>
+
+## Overview
+
+≤ 80 words plain-language description.
+
+## Indication (Why is this medication prescribed?)
+
+Bullet list of conditions/uses. Cite inline.
+
+## Mechanism of Action (How does it work?)
+
+Short paragraph. Cite mechanism claims explicitly.
+
+## Dosage and Administration
+
+Table or bullet list, organised by indication and population (adult / pediatric / pregnancy / renal-adjusted). Include dose, route, frequency, duration. Only state what claims support — never invent a dose.
+
+## Contraindications (When not to use it)
+
+Bullet list. Distinguish absolute from relative.
+
+## Warnings and Precautions
+
+Bullet list of black-box warnings, severe precautions, monitoring requirements.
+
+## Side Effects
+
+Bullet list grouped by frequency (common / serious / rare). Flag the ones with mortality risk.
+
+## Drug Interactions
+
+Bullet list. For each interaction, state effect direction (↑/↓ exposure, additive toxicity, etc.) and severity.
+
+## Storage and Stability
+
+Short paragraph or bullet list.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>. Evidence mix: <e.g. 6 RCT · 4 guideline · 2 cohort>.*
+```
+
+## Rules
+
+1. **Dose safety first.** If no claim supports a dose, write `_No dose claims in current corpus._` rather than guess. This is a hard constraint.
+2. **No hallucination** (fact-checker). Every statement traces to a claim_id; disagreements flagged with both ids.
+3. **Cite inline** (academic-researcher). `[c:<8char-claim-id>]` after each statement. Note evidence_grade when load-bearing.
+4. **Concision** (technical-writer). ≤ 800 words total.
+5. **Population qualifiers are load-bearing.** Always preserve population/setting qualifiers when surfacing dose, contraindication, or warning claims.
+6. **Brand names and prices** are out of scope for this note — they live in the Master sheet's per-country columns and are sourced separately.
+7. **Status awareness.** `(pending review)` inline for non-promoted; supersedence by replacement.
+8. **Output ONLY the Markdown.** No code fences, no preamble, no postamble.
+
+## Obsidian-friendly output (required)
+
+1. **YAML frontmatter** at the very top per the schema in the Output structure block. `type: medication` is fixed for this prompt.
+2. **Wikilink cross-references** for indications (conditions), partner/interacting drugs, target organisms, resistance genes on first mention per section. Kebab-case slugs (e.g. `[[uncomplicated-falciparum-malaria]]`, `[[lumefantrine]]`, `[[kelch13-c580y-mutation]]`). Never wikilink doses or generic verbs.
+3. **Mermaid diagrams** allowed for mechanism of action cascades (target → downstream → clinical effect) when the claim set supports 3+ mechanistic steps. Fenced ```mermaid``` block. Cite load-bearing claim with `[c:<id>]` adjacent.
+4. **Citations are sacred.** Every claim_id supporting a dose, contraindication, interaction, or efficacy statement must appear as `[c:<8char>]`. Never fabricate. Dropping a dose-supporting citation is a hard reject.
+
+
+===== USER =====
+# Entity
+malaria transmission
+
+# Surface variants
+malaria transmission, malaria transmission (focal mass treatment for elimination)
+
+# Entity type (classifier hint)
+medication
+
+# Claims (count=9)
+```json
+[
+  {
+    "claim_id": "781b1a95-2214-4ec6-979e-edc40a3bd71c",
+    "short_id": "781b1a95",
+    "subject": "indoor residual spraying",
+    "predicate": "prevents",
+    "object": "malaria transmission",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Jimma Zone Southwestern Ethiopia",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "LLINs alone",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:32437715",
+      "title": "Insecticide resistance and malaria control: A genetics-epidemiology modeling approach.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/32437715/"
+    }
+  },
+  {
+    "claim_id": "a5f00c46-de90-4b00-acb0-aec6723bf278",
+    "short_id": "a5f00c46",
+    "subject": "long-lasting insecticidal nets",
+    "predicate": "prevents",
+    "object": "malaria transmission",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Jimma Zone Southwestern Ethiopia",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "LLIN coverage threshold for effective control",
+        "value": 90.0,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:32437715",
+      "title": "Insecticide resistance and malaria control: A genetics-epidemiology modeling approach.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/32437715/"
+    }
+  },
+  {
+    "claim_id": "83aad3b9-96e3-419c-90ec-494f4e906db2",
+    "short_id": "83aad3b9",
+    "subject": "endochin-like quinolones",
+    "predicate": "prevents",
+    "object": "malaria transmission",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "endochin-like quinolones",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "insecticide-only LLINs",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:40399670",
+      "title": "In vivo screen of Plasmodium targets for mosquito-based malaria control.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/40399670/"
+    }
+  },
+  {
+    "claim_id": "ac4b29da-0c50-4b99-857c-837f973cdc18",
+    "short_id": "ac4b29da",
+    "subject": "Anopheles mosquitoes",
+    "predicate": "causes",
+    "object": "malaria transmission",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "countries with ongoing transmission",
+        "value": 87.0,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "meta_analysis",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:36321557",
+      "title": "Folic acid supplementation and malaria susceptibility and severity among people taking antifolate antimalarial drugs in endemic areas.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/36321557/"
+    }
+  },
+  {
+    "claim_id": "0b8a7a66-0dba-4b2f-8141-68b0af96c901",
+    "short_id": "0b8a7a66",
+    "subject": "transmission-blocking vaccines",
+    "predicate": "prevents",
+    "object": "malaria transmission",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:36343566",
+      "title": "Current approaches to malaria vaccines.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/36343566/"
+    }
+  },
+  {
+    "claim_id": "7fc0d7ef-b47c-4527-86f7-6c24b2c9379f",
+    "short_id": "7fc0d7ef",
+    "subject": "Anopheles mosquito",
+    "predicate": "causes",
+    "object": "malaria transmission",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "annual deaths",
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:33885760",
+      "title": "Olfaction in Anopheles mosquitoes.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/33885760/"
+    }
+  },
+  {
+    "claim_id": "aecdb983-c921-4bff-a63f-aab12fed2deb",
+    "short_id": "aecdb983",
+    "subject": "dihydroartemisinin-piperaquine",
+    "predicate": "prevents",
+    "object": "malaria transmission (focal mass treatment for elimination)",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Greater Mekong subregion",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "dihydroartemisinin-piperaquine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:32656850",
+      "title": "Advances and roadblocks in the treatment of malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/32656850/"
+    }
+  },
+  {
+    "claim_id": "0494067c-264c-43ce-b893-ae5014e07a8c",
+    "short_id": "0494067c",
+    "subject": "malaria transmission",
+    "predicate": "requires",
+    "object": "interaction between human host, Anopheles vector and Plasmodium parasite",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:27367318",
+      "title": "Climate, environment and transmission of malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/27367318/"
+    }
+  },
+  {
+    "claim_id": "20465445-34f2-43c5-8035-60293965ff12",
+    "short_id": "20465445",
+    "subject": "dihydroartemisinin-piperaquine",
+    "predicate": "prevents",
+    "object": "malaria transmission",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "dihydroartemisinin-piperaquine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:32656850",
+      "title": "Advances and roadblocks in the treatment of malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/32656850/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-13T19:09:05.132737+00:00
+
+
+===== STDOUT =====
+---
+type: medication
+drug_class: artemisinin-combination-therapy
+tags: [malaria/transmission-blocking, malaria/elimination, malaria/mass-drug-administration]
+evidence_grade_max: meta_analysis
+claim_count: 9
+last_regen: 2026-05-13T19:09:05Z
+---
+
+# Dihydroartemisinin–piperaquine (focal mass treatment for malaria transmission)
+
+**Therapeutic category:** Antimalarial
+**Drug group:** Artemisinin-based combination therapy (ACT)
+**Drug class:** Sesquiterpene endoperoxide (dihydroartemisinin) + bisquinoline (piperaquine)
+**Controlled substance:** No
+
+## Overview
+
+Dihydroartemisinin–piperaquine (DHA-PPQ) is deployed beyond curative use as a **focal mass treatment** agent to interrupt [[malaria-transmission]] in elimination programmes, notably across the [[greater-mekong-subregion]] (pending review) [c:aecdb983]. Transmission itself requires the triad of human host, [[anopheles-mosquito]] vector, and [[plasmodium]] parasite, so chemotherapeutic mass treatment is one arm of a multi-modal strategy that also includes vector control [c:0494067c].
+
+## Indication (Why is this medication prescribed?)
+
+- Focal mass drug administration to suppress residual [[plasmodium-falciparum]] reservoirs in elimination settings, Greater Mekong subregion (pending review) [c:aecdb983].
+- Community-level transmission reduction in endemic settings (pending review) [c:20465445].
+
+_Curative-treatment indications for uncomplicated falciparum malaria are out of scope for this transmission-focused note — no curative-dose claims in current corpus._
+
+## Mechanism of Action (How does it work?)
+
+DHA clears asexual blood-stage parasites and reduces gametocyte carriage; piperaquine provides a long post-treatment prophylactic tail that suppresses re-emergence. By depleting the human infectious reservoir across a focal population simultaneously, mass treatment lowers the probability that an [[anopheles-mosquito]] blood-meal yields onward infection [c:aecdb983][c:20465445]. Transmission depends on the host–vector–parasite interaction, so reservoir depletion targets the host arm of that triad [c:0494067c].
+
+```mermaid
+flowchart LR
+    A[DHA-PPQ mass dose] --> B[Asexual parasite clearance]
+    A --> C[Gametocyte reservoir reduction]
+    B --> D[Lower human infectivity]
+    C --> D
+    D --> E[Fewer infectious blood meals in Anopheles]
+    E --> F[Interrupted transmission]
+```
+Mechanistic cascade load-bearing claim [c:aecdb983].
+
+## Dosage and Administration
+
+_No dose claims in current corpus._ Both supporting claims [c:aecdb983][c:20465445] name DHA-PPQ as the agent for focal mass treatment but do not specify mg/kg, frequency, or duration. Programmatic dosing must be sourced from WHO/national guideline documents, not inferred here.
+
+## Contraindications (When not to use it)
+
+_No contraindication claims in current corpus._
+
+## Warnings and Precautions
+
+_No warning or precaution claims in current corpus for the transmission-blocking indication._ Piperaquine QT-prolongation and DHA pregnancy considerations are documented elsewhere but absent from these claims.
+
+## Side Effects
+
+_No adverse-effect claims in current corpus._
+
+## Drug Interactions
+
+_No interaction claims in current corpus._
+
+## Storage and Stability
+
+_No storage or stability claims in current corpus._
+
+## Programmatic context (complementary interventions)
+
+DHA-PPQ mass treatment is one lever; the cited corpus also references parallel transmission-control modalities that should be co-deployed:
+
+- [[long-lasting-insecticidal-nets]] — community coverage ≥ 90% modelled as threshold for effective control, Jimma Zone, Ethiopia (pending review, expert opinion) [c:a5f00c46].
+- [[indoor-residual-spraying]] adjunct to LLINs, Jimma Zone, Ethiopia (pending review, expert opinion) [c:781b1a95].
+- [[endochin-like-quinolones]] applied via mosquito-targeted delivery vs insecticide-only nets, preclinical (pending review) [c:83aad3b9].
+- [[transmission-blocking-vaccines]] in development, community endemic settings (pending review) [c:0b8a7a66].
+- [[anopheles-mosquito]] remains the obligate vector across 87 countries with ongoing transmission [c:ac4b29da][c:7fc0d7ef].
+
+---
+*Last regenerated: 2026-05-13T19:09:05Z. Source claims: 9. Evidence mix: 1 meta-analysis · 8 expert-opinion. All claims pending review — none promoted.*

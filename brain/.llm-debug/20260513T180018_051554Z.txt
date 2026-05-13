@@ -1,0 +1,371 @@
+===== SYSTEM =====
+OUTPUT REQUIREMENT: Return VALID JSON ONLY. Your entire response must be parseable by json.loads(). First character of your output must be `{` or `[`. No prose. No explanations. No markdown fences. No apologies. If the requested data is unavailable, return the schema with empty/null values, still as valid JSON. Tools are intentionally disabled — do not request access to them.
+
+/# Student extractor — qualified claims from a PubMed abstract
+
+You are extracting **atomic, qualified medical claims** from a malaria-focused biomedical abstract.
+
+## Output format
+
+Return a JSON array. Each element is one qualified claim.
+
+```json
+[
+  {
+    "subject": "string — entity name (drug, organism, gene, syndrome, intervention, vector, diagnostic test, complication, lifecycle stage)",
+    "predicate": "one of: treats | causes | resists | requires | contraindicates | prevents | co_occurs | recommends | diagnoses | transmits | complicates | classifies_as | affects | has_lifecycle_stage",
+    "object": "string — entity or value",
+    "qualifiers": {
+      "population": {
+        "age_range": "e.g. adults | pediatric | <5 years | pregnant | null",
+        "pregnancy": "first_trimester | second_third_trimester | not_pregnant | null",
+        "region": "geographic region — e.g. Greater Mekong | West Africa | sub-Saharan Africa | null",
+        "immune_status": "naive | semi-immune | immunocompromised | null",
+        "comorbidities": ["list of strings or empty"]
+      },
+      "setting": {
+        "care_level": "outpatient | inpatient | community | null",
+        "endemic_status": "endemic | non_endemic | traveler | null"
+      },
+      "dose_regimen": {
+        "drug": "string or null",
+        "mg_per_kg": "number or null",
+        "frequency": "string or null",
+        "duration": "string or null"
+      },
+      "comparator": "what the intervention was compared against — string or null",
+      "effect_size": {
+        "metric": "e.g. day-3 positivity rate | parasite clearance time | hazard ratio | null",
+        "value": "number or null",
+        "ci_low": "number or null",
+        "ci_high": "number or null"
+      }
+    },
+    "certainty": "high | moderate | low | very_low",
+    "evidence_note": "one short sentence on why this certainty (sample size, design quality, etc.)"
+  }
+]
+```
+
+## Rules
+
+1. **Atomic.** Each claim is one subject-predicate-object triple. If an abstract states "X treats Y AND X causes Z", emit two claims.
+2. **Qualified.** Populate `qualifiers` from what the abstract explicitly states. Leave NULL if not stated — do NOT invent values.
+3. **Predicates.** Use only the listed enum values. Map free-text to the closest:
+   - "is associated with" / "linked to" / "shown to be effective for" → `treats` if therapeutic, `prevents` if prophylactic
+   - "induces resistance" / "selects for resistance" / "associated with treatment failure" → `resists` (when subject = parasite/pathogen, object = drug)
+   - "should not be given to" / "avoid in" → `contraindicates`
+   - WHO/CDC/national-program statements like "is recommended for" → `recommends`
+   - "RDT detects" / "microscopy identifies" / "PCR confirms" / "sensitivity X% for" → `diagnoses` (subject = test/sign, object = condition/species)
+   - "is transmitted by" / "Anopheles X is a vector for" / "vectored by" → `transmits` (subject = vector, object = pathogen)
+   - "complicated by" / "leads to (clinical sequela)" / "progresses to" → `complicates` (subject = complication, object = parent condition)
+   - "is a subtype of" / "belongs to genus" / "classified as" → `classifies_as`
+   - "prevalence X% in region Y" / "kills N people/year in Z" / "incidence rate" / "burden of disease" → `affects` (subject = condition, object = population/region; populate effect_size with the numeric burden)
+   - "ring stage" / "schizont" / "gametocyte" / "exo-erythrocytic phase" / "sporogonic cycle" → `has_lifecycle_stage` (subject = pathogen, object = stage name)
+4. **Subject vs object.** For resistance claims, subject is the parasite/pathogen, object is the drug. For treatment, subject is the drug/intervention, object is the disease/population.
+5. **Certainty mapping:**
+   - `high`: large RCT or meta-analysis with consistent results, or current WHO guideline
+   - `moderate`: cohort study, smaller RCT, well-designed observational
+   - `low`: case-control, single-site observational, conflicting evidence
+   - `very_low`: case report, expert opinion, in-vitro only, mechanistic inference
+6. **Skip methodology, NOT epidemiology.** Skip methodology ("We enrolled 1241 patients", "Abstracts were screened by two reviewers") and bare meta-commentary ("Further research is needed", "More studies needed"). KEEP epidemiology facts (regional burden, mortality, prevalence, age-specific incidence, vector distribution) as `affects` or `transmits` claims with population/region qualifiers populated and numeric values in `effect_size`. Textbook-grade coverage requires epi.
+7. **No claims is a valid output.** If the abstract is purely descriptive epidemiology with no actionable medical claim, return `[]`.
+
+## DO NOT
+
+- DO NOT summarize the abstract.
+- DO NOT return a `{"title": ..., "methods": [...], "key_findings": [...]}` paper-summary object. That is wrong.
+- DO NOT wrap claims in any object key. The top-level value must be a JSON array `[ ... ]`.
+- DO NOT return an array of strings like `["Drug X treats Y", "Drug Z prevents W"]`. Each element MUST be a full JSON object with the keys: `subject`, `predicate`, `object`, `qualifiers`, `certainty`, `evidence_note`.
+- DO NOT invent facts not in the abstract.
+
+## More wrong examples
+
+```json
+["Artemisinin treats malaria", "Chloroquine resistance rising"]
+```
+
+```json
+{"claims": ["..."]}
+```
+
+Both wrong. Each claim must be a full object as shown in the schema above.
+
+## Negative example (WRONG)
+
+```json
+{"title": "...", "key_findings": [{"finding": "..."}], "conclusion": "..."}
+```
+
+## Positive example (CORRECT)
+
+```json
+[
+  {
+    "subject": "artemether-lumefantrine",
+    "predicate": "treats",
+    "object": "uncomplicated P. falciparum malaria",
+    "qualifiers": {
+      "population": {"age_range": "adults", "pregnancy": null, "region": "sub-Saharan Africa", "immune_status": null, "comorbidities": []},
+      "setting": {"care_level": "outpatient", "endemic_status": "endemic"},
+      "dose_regimen": {"drug": "artemether-lumefantrine", "mg_per_kg": null, "frequency": "twice daily", "duration": "3 days"},
+      "comparator": "dihydroartemisinin-piperaquine",
+      "effect_size": {"metric": "day-28 PCR-corrected cure rate", "value": 96.2, "ci_low": 94.1, "ci_high": 97.8}
+    },
+    "certainty": "high",
+    "evidence_note": "Multi-site RCT, n=1241, day-28 PCR-corrected efficacy."
+  }
+]
+```
+
+## More positive examples (textbook breadth)
+
+Diagnostic test claim:
+
+```json
+{
+  "subject": "histidine-rich protein 2 RDT",
+  "predicate": "diagnoses",
+  "object": "Plasmodium falciparum infection",
+  "qualifiers": {
+    "population": {"age_range": null, "pregnancy": null, "region": "sub-Saharan Africa", "immune_status": null, "comorbidities": []},
+    "setting": {"care_level": "community", "endemic_status": "endemic"},
+    "dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": null},
+    "comparator": "microscopy reference",
+    "effect_size": {"metric": "sensitivity", "value": 95.0, "ci_low": 92.0, "ci_high": 97.0}
+  },
+  "certainty": "high",
+  "evidence_note": "WHO field-evaluation meta-analysis across 14 countries."
+}
+```
+
+Epidemiology claim:
+
+```json
+{
+  "subject": "Plasmodium falciparum",
+  "predicate": "affects",
+  "object": "children under 5 in sub-Saharan Africa",
+  "qualifiers": {
+    "population": {"age_range": "<5 years", "pregnancy": null, "region": "sub-Saharan Africa", "immune_status": "semi-immune", "comorbidities": []},
+    "setting": {"care_level": "community", "endemic_status": "endemic"},
+    "dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": null},
+    "comparator": null,
+    "effect_size": {"metric": "annual mortality (deaths/year)", "value": 470000, "ci_low": 430000, "ci_high": 510000}
+  },
+  "certainty": "high",
+  "evidence_note": "WHO World Malaria Report 2023 burden estimate."
+}
+```
+
+Vector / transmission claim:
+
+```json
+{
+  "subject": "Anopheles gambiae",
+  "predicate": "transmits",
+  "object": "Plasmodium falciparum",
+  "qualifiers": {
+    "population": {"age_range": null, "pregnancy": null, "region": "sub-Saharan Africa", "immune_status": null, "comorbidities": []},
+    "setting": {"care_level": null, "endemic_status": "endemic"},
+    "dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": null},
+    "comparator": null,
+    "effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+  },
+  "certainty": "high",
+  "evidence_note": "Established vector biology; multiple entomological surveys."
+}
+```
+
+Complication claim:
+
+```json
+{
+  "subject": "cerebral malaria",
+  "predicate": "complicates",
+  "object": "severe Plasmodium falciparum infection",
+  "qualifiers": {
+    "population": {"age_range": "<5 years", "pregnancy": null, "region": "sub-Saharan Africa", "immune_status": "semi-immune", "comorbidities": []},
+    "setting": {"care_level": "inpatient", "endemic_status": "endemic"},
+    "dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": null},
+    "comparator": null,
+    "effect_size": {"metric": "case-fatality rate", "value": 18.0, "ci_low": 15.0, "ci_high": 22.0}
+  },
+  "certainty": "high",
+  "evidence_note": "Multi-centre African pediatric severe-malaria cohort."
+}
+```
+
+Lifecycle stage claim:
+
+```json
+{
+  "subject": "Plasmodium falciparum",
+  "predicate": "has_lifecycle_stage",
+  "object": "ring stage",
+  "qualifiers": {
+    "population": {"age_range": null, "pregnancy": null, "region": null, "immune_status": null, "comorbidities": []},
+    "setting": {"care_level": null, "endemic_status": null},
+    "dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": null},
+    "comparator": null,
+    "effect_size": {"metric": "intra-erythrocytic duration (hours)", "value": 24.0, "ci_low": null, "ci_high": null}
+  },
+  "certainty": "high",
+  "evidence_note": "Established parasitology; intra-erythrocytic cycle ~48h, ring stage first 24h."
+}
+```
+
+Classification claim:
+
+```json
+{
+  "subject": "Plasmodium knowlesi",
+  "predicate": "classifies_as",
+  "object": "zoonotic Plasmodium species",
+  "qualifiers": {
+    "population": {"age_range": null, "pregnancy": null, "region": "Southeast Asia", "immune_status": null, "comorbidities": []},
+    "setting": {"care_level": null, "endemic_status": "endemic"},
+    "dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": null},
+    "comparator": null,
+    "effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+  },
+  "certainty": "high",
+  "evidence_note": "Reservoir host: long-tailed and pig-tailed macaques; established taxonomy."
+}
+```
+
+## Output
+
+Return ONLY the JSON array. First character of your response must be `[`. No prose before or after. If no qualified claims exist, return `[]`.
+
+
+===== USER =====
+# Title
+Primaquine radical cure in patients with Plasmodium falciparum malaria in areas co-endemic for P falciparum and Plasmodium vivax (PRIMA): a multicentre, open-label, superiority randomised controlled trial.
+
+# Abstract
+BACKGROUND: In areas co-endemic for Plasmodium vivax and Plasmodium falciparum there is an increased risk of P vivax parasitaemia following P falciparum malaria. Radical cure is currently only recommended for patients presenting with P vivax malaria. Expanding the indication for radical cure to patients presenting with P falciparum malaria could reduce their risk of subsequent P vivax parasitaemia.
+
+METHODS: We did a multicentre, open-label, superiority randomised controlled trial in five health clinics in Bangladesh, Indonesia, and Ethiopia. In Bangladesh and Indonesia, patients were excluded if they were younger than 1 year, whereas in Ethiopia patients were excluded if they were younger than 18 years. Patients with uncomplicated P falciparum monoinfection who had fever or a history of fever in the 48 h preceding clinic visit were eligible for enrolment and were required to have a glucose-6-dehydrogenase (G6PD) activity of 70% or greater. Patients received blood schizontocidal treatment (artemether-lumefantrine in Ethiopia and Bangladesh and dihydroartemisinin-piperaquine in Indonesia) and were randomly assigned (1:1) to receive either high-dose short-course oral primaquine (intervention arm; total dose 7 mg/kg over 7 days) or standard care (standard care arm; single dose oral primaquine of 0·25 mg/kg). Random assignment was done by an independent statistician in blocks of eight by use of sealed envelopes. All randomly assigned and eligible patients were included in the primary and safety analyses. The per-protocol analysis excluded those who did not complete treatment or had substantial protocol violations. The primary endpoint was the incidence risk of P vivax parasitaemia on day 63. This trial is registered at ClinicalTrials.gov, NCT03916003.
+
+FINDINGS: Between Aug 18, 2019, and March 14, 2022, a total of 500 patients were enrolled and randomly assigned, and 495 eligible patients were included in the intention-to-treat analysis (246 intervention and 249 control). The incidence risk of P vivax parasitaemia at day 63 was 11·0% (95% CI 7·5-15·9) in the standard care arm compared with 2·5% (1·0-5·9) in the intervention arm (hazard ratio 0·20, 95% CI 0·08-0·51; p=0·0009). The effect size differed with blood schizontocidal treatment and site. Routine symptom reporting on day 2 and day 7 were similar between groups. In the first 42 days, there were a total of four primaquine-related adverse events reported in the standard care arm and 26 in the intervention arm; 132 (92%) of all 143 adverse events were mild. There were two serious adverse events in the intervention arm, which were considered unrelated to the study drug. None of the patients developed severe anaemia (defined as haemoglobin <5 g/dL).
+
+INTERPRETATION: In patients with a G6PD activity of 70% or greater, high-dose short-course primaquine was safe and relatively well tolerated and reduced the risk of subsequent P vivax parasitaemia within 63 days by five fold. Universal radical cure therefore potentially offers substantial clinical, public health, and operational benefits, but these benefits will vary with endemic setting.
+
+FUNDING: Australian Academy of Science Regional Collaborations Program, Bill & Melinda Gates Foundation, and National Health and Medical Research Council.
+
+# Publication types
+Randomized Controlled Trial, Multicenter Study, Journal Article, Research Support, Non-U.S. Gov't, Equivalence Trial
+# Task
+Extract atomic qualified medical claims from the abstract above. Return a JSON ARRAY (not a paper-summary object). Each element MUST be an object with exactly these keys: subject, predicate, object, qualifiers, certainty, evidence_note.
+
+STRICT FIELD CONSTRAINTS:
+- `predicate` MUST be EXACTLY one of: treats, causes, resists, requires, contraindicates, prevents, co_occurs, recommends, supersedes. Map free-text relations to the closest enum. NO other values allowed. If you cannot map cleanly, drop the claim.
+- `certainty` MUST be EXACTLY one of: high, moderate, low, very_low. NO other values (no 'established', no 'low-to-moderate').
+- `qualifiers` MUST be an object with the nested shape: {population:{age_range, pregnancy, region, immune_status, comorbidities}, setting:{care_level, endemic_status}, dose_regimen:{drug, mg_per_kg, frequency, duration}, comparator, effect_size:{metric, value, ci_low, ci_high}}. Use null for unknown leaf values. DO NOT use a flat free-form qualifiers object.
+- `subject` and `object` MUST be non-empty strings.
+
+DO NOT summarize the paper. DO NOT return {"title":...,"key_findings":...}. DO NOT return an array of strings. If no qualified claims exist, return [].
+Your output MUST start with `[` and end with `]`. Output ONLY the JSON array, nothing else.
+
+===== STDOUT =====
+[
+{
+"subject": "high-dose short-course primaquine",
+"predicate": "prevents",
+"object": "subsequent P vivax parasitaemia after P falciparum malaria",
+"qualifiers": {
+"population": {"age_range": ">=1 year (Bangladesh, Indonesia); >=18 years (Ethiopia)", "pregnancy": null, "region": "Bangladesh, Indonesia, Ethiopia", "immune_status": null, "comorbidities": ["G6PD activity >=70%"]},
+"setting": {"care_level": "outpatient", "endemic_status": "endemic"},
+"dose_regimen": {"drug": "primaquine", "mg_per_kg": 7, "frequency": "daily", "duration": "7 days"},
+"comparator": "single-dose primaquine 0.25 mg/kg (standard care)",
+"effect_size": {"metric": "hazard ratio for P vivax parasitaemia by day 63", "value": 0.20, "ci_low": 0.08, "ci_high": 0.51}
+},
+"certainty": "high",
+"evidence_note": "Multicentre open-label superiority RCT, n=495 ITT, p=0.0009."
+},
+{
+"subject": "single-dose primaquine 0.25 mg/kg",
+"predicate": "treats",
+"object": "uncomplicated P falciparum malaria (standard care for gametocyte clearance)",
+"qualifiers": {
+"population": {"age_range": ">=1 year (Bangladesh, Indonesia); >=18 years (Ethiopia)", "pregnancy": null, "region": "Bangladesh, Indonesia, Ethiopia", "immune_status": null, "comorbidities": ["G6PD activity >=70%"]},
+"setting": {"care_level": "outpatient", "endemic_status": "endemic"},
+"dose_regimen": {"drug": "primaquine", "mg_per_kg": 0.25, "frequency": "single dose", "duration": "1 day"},
+"comparator": "high-dose 7 mg/kg over 7 days",
+"effect_size": {"metric": "day-63 P vivax parasitaemia incidence risk (standard arm)", "value": 11.0, "ci_low": 7.5, "ci_high": 15.9}
+},
+"certainty": "high",
+"evidence_note": "Control arm of multicentre RCT; comparator standard-of-care."
+},
+{
+"subject": "artemether-lumefantrine",
+"predicate": "treats",
+"object": "uncomplicated P falciparum malaria",
+"qualifiers": {
+"population": {"age_range": null, "pregnancy": null, "region": "Ethiopia, Bangladesh", "immune_status": null, "comorbidities": []},
+"setting": {"care_level": "outpatient", "endemic_status": "endemic"},
+"dose_regimen": {"drug": "artemether-lumefantrine", "mg_per_kg": null, "frequency": null, "duration": null},
+"comparator": null,
+"effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+},
+"certainty": "high",
+"evidence_note": "Blood schizontocide used in Ethiopia and Bangladesh sites of RCT."
+},
+{
+"subject": "dihydroartemisinin-piperaquine",
+"predicate": "treats",
+"object": "uncomplicated P falciparum malaria",
+"qualifiers": {
+"population": {"age_range": null, "pregnancy": null, "region": "Indonesia", "immune_status": null, "comorbidities": []},
+"setting": {"care_level": "outpatient", "endemic_status": "endemic"},
+"dose_regimen": {"drug": "dihydroartemisinin-piperaquine", "mg_per_kg": null, "frequency": null, "duration": null},
+"comparator": null,
+"effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+},
+"certainty": "high",
+"evidence_note": "Blood schizontocide used in Indonesia site of RCT."
+},
+{
+"subject": "high-dose short-course primaquine",
+"predicate": "requires",
+"object": "G6PD activity >=70%",
+"qualifiers": {
+"population": {"age_range": null, "pregnancy": null, "region": "Bangladesh, Indonesia, Ethiopia", "immune_status": null, "comorbidities": []},
+"setting": {"care_level": "outpatient", "endemic_status": "endemic"},
+"dose_regimen": {"drug": "primaquine", "mg_per_kg": 7, "frequency": "daily", "duration": "7 days"},
+"comparator": null,
+"effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+},
+"certainty": "high",
+"evidence_note": "Eligibility criterion in RCT; safety predicated on G6PD screening."
+},
+{
+"subject": "P falciparum infection",
+"predicate": "co_occurs",
+"object": "subsequent P vivax parasitaemia",
+"qualifiers": {
+"population": {"age_range": null, "pregnancy": null, "region": "co-endemic areas (Bangladesh, Indonesia, Ethiopia)", "immune_status": null, "comorbidities": []},
+"setting": {"care_level": "outpatient", "endemic_status": "endemic"},
+"dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": null},
+"comparator": null,
+"effect_size": {"metric": "day-63 P vivax parasitaemia incidence risk under standard care", "value": 11.0, "ci_low": 7.5, "ci_high": 15.9}
+},
+"certainty": "high",
+"evidence_note": "Background-supported and confirmed by control arm incidence in RCT."
+},
+{
+"subject": "universal radical cure with primaquine",
+"predicate": "recommends",
+"object": "patients with uncomplicated P falciparum malaria in P vivax co-endemic areas (G6PD >=70%)",
+"qualifiers": {
+"population": {"age_range": null, "pregnancy": null, "region": "P falciparum/P vivax co-endemic areas", "immune_status": null, "comorbidities": ["G6PD activity >=70%"]},
+"setting": {"care_level": "outpatient", "endemic_status": "endemic"},
+"dose_regimen": {"drug": "primaquine", "mg_per_kg": 7, "frequency": "daily", "duration": "7 days"},
+"comparator": "current guidance (radical cure only for P vivax)",
+"effect_size": {"metric": "fold reduction in day-63 P vivax parasitaemia", "value": 5, "ci_low": null, "ci_high": null}
+},
+"certainty": "moderate",
+"evidence_note": "Authors' interpretation; benefit varies by endemic setting, not yet WHO guideline."
+}
+]

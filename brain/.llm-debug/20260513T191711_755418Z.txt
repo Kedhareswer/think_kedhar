@@ -1,0 +1,319 @@
+===== SYSTEM =====
+# Concept note — Medication (Master-sheet Medications aligned)
+
+You are writing a single Markdown note about ONE medication (drug, biologic, or therapeutic agent). The headings match the Master-sheet "Medications" columns so an exporter can lift each section into the corresponding cell.
+
+You are given:
+- The drug name (generic).
+- A list of qualified claims about this drug, with predicate, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused medication note. Re-synthesize from the current claim set on every regeneration.
+
+## Output structure
+
+```
+---
+type: medication
+drug_class: <e.g. artemisinin-combination-therapy>
+tags: [<area/sub-area>, ...]            # e.g. malaria/treatment, malaria/severe
+evidence_grade_max: <meta_analysis|RCT|guideline|cohort|case_control|case_report|expert_opinion>
+claim_count: <int>
+last_regen: <ISO-8601 timestamp>
+---
+
+# <Generic name>
+
+**Therapeutic category:** <e.g. Antimalarial>
+**Drug group:** <e.g. Artemisinin combination therapy>
+**Drug class:** <e.g. Sesquiterpene endoperoxide>
+**Controlled substance:** <Yes — Schedule X · No>
+
+## Overview
+
+≤ 80 words plain-language description.
+
+## Indication (Why is this medication prescribed?)
+
+Bullet list of conditions/uses. Cite inline.
+
+## Mechanism of Action (How does it work?)
+
+Short paragraph. Cite mechanism claims explicitly.
+
+## Dosage and Administration
+
+Table or bullet list, organised by indication and population (adult / pediatric / pregnancy / renal-adjusted). Include dose, route, frequency, duration. Only state what claims support — never invent a dose.
+
+## Contraindications (When not to use it)
+
+Bullet list. Distinguish absolute from relative.
+
+## Warnings and Precautions
+
+Bullet list of black-box warnings, severe precautions, monitoring requirements.
+
+## Side Effects
+
+Bullet list grouped by frequency (common / serious / rare). Flag the ones with mortality risk.
+
+## Drug Interactions
+
+Bullet list. For each interaction, state effect direction (↑/↓ exposure, additive toxicity, etc.) and severity.
+
+## Storage and Stability
+
+Short paragraph or bullet list.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>. Evidence mix: <e.g. 6 RCT · 4 guideline · 2 cohort>.*
+```
+
+## Rules
+
+1. **Dose safety first.** If no claim supports a dose, write `_No dose claims in current corpus._` rather than guess. This is a hard constraint.
+2. **No hallucination** (fact-checker). Every statement traces to a claim_id; disagreements flagged with both ids.
+3. **Cite inline** (academic-researcher). `[c:<8char-claim-id>]` after each statement. Note evidence_grade when load-bearing.
+4. **Concision** (technical-writer). ≤ 800 words total.
+5. **Population qualifiers are load-bearing.** Always preserve population/setting qualifiers when surfacing dose, contraindication, or warning claims.
+6. **Brand names and prices** are out of scope for this note — they live in the Master sheet's per-country columns and are sourced separately.
+7. **Status awareness.** `(pending review)` inline for non-promoted; supersedence by replacement.
+8. **Output ONLY the Markdown.** No code fences, no preamble, no postamble.
+
+## Obsidian-friendly output (required)
+
+1. **YAML frontmatter** at the very top per the schema in the Output structure block. `type: medication` is fixed for this prompt.
+2. **Wikilink cross-references** for indications (conditions), partner/interacting drugs, target organisms, resistance genes on first mention per section. Kebab-case slugs (e.g. `[[uncomplicated-falciparum-malaria]]`, `[[lumefantrine]]`, `[[kelch13-c580y-mutation]]`). Never wikilink doses or generic verbs.
+3. **Mermaid diagrams** allowed for mechanism of action cascades (target → downstream → clinical effect) when the claim set supports 3+ mechanistic steps. Fenced ```mermaid``` block. Cite load-bearing claim with `[c:<id>]` adjacent.
+4. **Citations are sacred.** Every claim_id supporting a dose, contraindication, interaction, or efficacy statement must appear as `[c:<8char>]`. Never fabricate. Dropping a dose-supporting citation is a hard reject.
+
+
+===== USER =====
+# Entity
+p. vivax relapse
+
+# Surface variants
+P. vivax relapse, P. vivax relapse from hypnozoites
+
+# Entity type (classifier hint)
+medication
+
+# Claims (count=3)
+```json
+[
+  {
+    "claim_id": "9f16d039-5729-4373-8ebe-e845059d274c",
+    "short_id": "9f16d039",
+    "subject": "primaquine plus chloroquine",
+    "predicate": "prevents",
+    "object": "P. vivax relapse",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": "not_pregnant",
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "primaquine + chloroquine concurrent",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "primaquine alone",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  },
+  {
+    "claim_id": "1228e637-cd59-4d98-ad61-8fe5eea014ce",
+    "short_id": "1228e637",
+    "subject": "schizonticidal treatment",
+    "predicate": "causes",
+    "object": "P. vivax relapse from hypnozoites",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "radical cure",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37348379",
+      "title": "A model for malaria treatment evaluation in the presence of multiple species.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37348379/"
+    }
+  },
+  {
+    "claim_id": "41dffd55-c129-4670-a348-bbcc37fafaa6",
+    "short_id": "41dffd55",
+    "subject": "primaquine plus chloroquine",
+    "predicate": "prevents",
+    "object": "P. vivax relapse",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": "not_pregnant",
+        "region": "UK",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "traveler"
+      },
+      "dose_regimen": {
+        "drug": "primaquine + chloroquine",
+        "mg_per_kg": null,
+        "frequency": "co-administered",
+        "duration": null
+      },
+      "comparator": "sequential dosing",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-13T19:16:46.407304+00:00
+
+
+===== STDOUT =====
+---
+type: medication
+drug_class: 8-aminoquinoline-plus-4-aminoquinoline-combination
+tags: [malaria/treatment, malaria/vivax, malaria/radical-cure]
+evidence_grade_max: expert_opinion
+claim_count: 3
+last_regen: 2026-05-13T19:16:46Z
+---
+
+# Primaquine + Chloroquine (radical cure for *P. vivax*)
+
+**Therapeutic category:** Antimalarial — radical cure regimen
+**Drug group:** 8-aminoquinoline (primaquine) + 4-aminoquinoline (chloroquine)
+**Drug class:** Combination hypnozoiticidal + blood schizonticidal
+**Controlled substance:** No
+
+> _Note: entity surfaced as "[[p-vivax-relapse]]"; corpus claims all concern the **primaquine + chloroquine** regimen indicated against that relapse. Note framed around the medication combo._
+
+## Overview
+
+Co-administration of [[primaquine]] (hypnozoiticide) with [[chloroquine]] (blood schizonticide) for radical cure of [[plasmodium-vivax]] malaria. Chloroquine clears blood-stage parasites; primaquine kills dormant liver-stage hypnozoites that drive [[p-vivax-relapse]]. Schizonticidal therapy alone — chloroquine without primaquine — leaves hypnozoites intact and causes relapse [c:1228e637] _(pending review)_.
+
+## Indication (Why is this medication prescribed?)
+
+- Radical cure of [[uncomplicated-vivax-malaria]] to prevent [[p-vivax-relapse]] from [[hypnozoites]] [c:9f16d039] [c:41dffd55] _(both pending review)_.
+- Travelers returning to UK with confirmed *P. vivax* — outpatient setting [c:41dffd55] _(pending review)_.
+
+## Mechanism of Action (How does it work?)
+
+Chloroquine kills erythrocytic schizonts → resolves acute parasitemia. Primaquine kills liver hypnozoites → blocks relapse. Schizonticidal-only treatment leaves hypnozoite reservoir intact → relapse [c:1228e637] _(pending review, expert_opinion)_.
+
+```mermaid
+flowchart LR
+  A[Chloroquine] --> B[Blood schizont kill]
+  C[Primaquine] --> D[Hypnozoite kill in liver]
+  B --> E[Acute symptom resolution]
+  D --> F[Relapse prevented]
+  G[Schizonticidal alone] --> H[Hypnozoites persist] --> I[Relapse]
+```
+Cascade supported by [c:1228e637].
+
+## Dosage and Administration
+
+_No mg/kg, frequency, or duration claims in current corpus._
+
+Supported regimen qualifiers only:
+- **Adult, non-pregnant, outpatient, UK traveler:** primaquine + chloroquine **co-administered** (concurrent), not sequential [c:41dffd55] _(pending review, moderate certainty, expert_opinion)_.
+- Pediatric, pregnancy, renal-adjusted: _no claims._
+
+## Contraindications (When not to use it)
+
+- Pregnancy — claims restrict use to `not_pregnant` populations [c:9f16d039] [c:41dffd55] _(pending review)_. Treat as relative pending G6PD/pregnancy-specific claims.
+- G6PD deficiency, infants: _no corpus claims_ — exclusion not asserted here.
+
+## Warnings and Precautions
+
+- Schizonticidal therapy without primaquine fails to prevent relapse — anti-relapse arm required [c:1228e637] _(pending review)_.
+- Sequential (chloroquine then primaquine) dosing inferior to co-administration in cited guideline opinion [c:41dffd55] _(pending review, moderate certainty)_.
+- G6PD screening, methemoglobinemia, QT monitoring: _no corpus claims._
+
+## Side Effects
+
+_No side-effect claims in current corpus._ Hemolysis (primaquine in G6PD-deficient), retinopathy/QT (chloroquine) absent from claim set — do not infer.
+
+## Drug Interactions
+
+_No interaction claims in current corpus._
+
+## Storage and Stability
+
+_No storage claims in current corpus._
+
+---
+*Last regenerated: 2026-05-13T19:16:46Z. Source claims: 3. Evidence mix: 3 expert_opinion (all pending review). Dominant source: UK malaria treatment guidelines 2016 (PMID:26880088).*

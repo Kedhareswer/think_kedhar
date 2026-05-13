@@ -41,6 +41,7 @@ from medbrain.agents.brain import BrainResult, run_brain
 from medbrain.agents.dream import DreamResult, is_due as dream_is_due, run_dream
 from medbrain.agents.questions_io import Question, QuestionsFile, load as load_questions, next_qid
 from medbrain.agents.researcher import ResearchResult, ingest_topic
+from medbrain.exporters.master_sheet import export as export_master_sheet
 from medbrain.exporters.obsidian_vault import (
     VaultExportResult,
     publish_to_vault,
@@ -59,6 +60,7 @@ class IterationResult:
     active: ActiveLearnerResult | None = None
     brain: BrainResult | None = None
     vault: VaultExportResult | None = None
+    master_sheet_path: str | None = None
     dream: DreamResult | None = None
     errors: list[str] = field(default_factory=list)
 
@@ -82,20 +84,34 @@ def _seed_human_question(topic: str) -> str:
     """Plant the user's topic as a priority-1 human-source question so the
     backlog has at least one open Q after the seed iteration, even if the
     Researcher's planner is the one doing the real work for iteration 1.
+
+    Status semantics: ALWAYS `open`. Iteration 1 calls `ingest_topic(topic)`
+    directly (bypassing active_learner), so the Q's status doesn't gate the
+    seed. Iterations 2+ use active_learner.pick_next which filters
+    status=="open" — leaving the seed Q open means a transient network /
+    LLM failure during iteration 1 is recoverable: active_learner picks
+    the same Q up next pass and retries. Brain may flip it to in_progress
+    or resolved on later passes based on corpus state.
     """
     qpath = config.QUESTIONS_FILE
     qfile = load_questions(qpath)
 
     # Dedup: if a human Q with the same body already exists, reuse it.
+    # If the prior run left it in_progress, reset to open so it's pick-able.
     for q in qfile.questions:
         if q.source == "human" and q.body.strip() == topic.strip():
+            if q.status != "open":
+                q.status = "open"
+                q.updated = datetime.now(UTC)
+                qpath.parent.mkdir(parents=True, exist_ok=True)
+                atomic_write_text(qpath, qfile.serialize())
             return q.qid
 
     qid = next_qid(qfile.questions)
     new_q = Question(
         qid=qid,
         priority=1,
-        status="in_progress",  # seed iteration will research it now
+        status="open",
         created=datetime.now(UTC),
         topic=topic[:80],
         body=topic,
@@ -193,7 +209,7 @@ def run_loop(
         except Exception as exc:
             it.errors.append(f"brain: {exc}")
 
-        # 4. UPDATE — publish to Obsidian vault.
+        # 4. UPDATE — publish to Obsidian vault + write Excel master sheet.
         if publish_vault:
             try:
                 it.vault = publish_to_vault()
@@ -203,6 +219,13 @@ def run_loop(
                     it.errors.extend(f"vault: {e}" for e in it.vault.errors)
             except Exception as exc:
                 it.errors.append(f"vault: {exc}")
+
+        # Master sheet: structured Excel for human verification. Cheap (no
+        # LLM by default), idempotent (full rewrite), reads DB + concept md.
+        try:
+            it.master_sheet_path = str(export_master_sheet())
+        except Exception as exc:
+            it.errors.append(f"master_sheet: {exc}")
 
         # 5. DREAM — cadence-gated. Skip silently when not due.
         try:

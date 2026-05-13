@@ -1,0 +1,1181 @@
+===== SYSTEM =====
+# Concept note — Medication (Master-sheet Medications aligned)
+
+You are writing a single Markdown note about ONE medication (drug, biologic, or therapeutic agent). The headings match the Master-sheet "Medications" columns so an exporter can lift each section into the corresponding cell.
+
+You are given:
+- The drug name (generic).
+- A list of qualified claims about this drug, with predicate, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused medication note. Re-synthesize from the current claim set on every regeneration.
+
+## Output structure
+
+```
+---
+type: medication
+drug_class: <e.g. artemisinin-combination-therapy>
+tags: [<area/sub-area>, ...]            # e.g. malaria/treatment, malaria/severe
+evidence_grade_max: <meta_analysis|RCT|guideline|cohort|case_control|case_report|expert_opinion>
+claim_count: <int>
+last_regen: <ISO-8601 timestamp>
+---
+
+# <Generic name>
+
+**Therapeutic category:** <e.g. Antimalarial>
+**Drug group:** <e.g. Artemisinin combination therapy>
+**Drug class:** <e.g. Sesquiterpene endoperoxide>
+**Controlled substance:** <Yes — Schedule X · No>
+
+## Overview
+
+≤ 80 words plain-language description.
+
+## Indication (Why is this medication prescribed?)
+
+Bullet list of conditions/uses. Cite inline.
+
+## Mechanism of Action (How does it work?)
+
+Short paragraph. Cite mechanism claims explicitly.
+
+## Dosage and Administration
+
+Table or bullet list, organised by indication and population (adult / pediatric / pregnancy / renal-adjusted). Include dose, route, frequency, duration. Only state what claims support — never invent a dose.
+
+## Contraindications (When not to use it)
+
+Bullet list. Distinguish absolute from relative.
+
+## Warnings and Precautions
+
+Bullet list of black-box warnings, severe precautions, monitoring requirements.
+
+## Side Effects
+
+Bullet list grouped by frequency (common / serious / rare). Flag the ones with mortality risk.
+
+## Drug Interactions
+
+Bullet list. For each interaction, state effect direction (↑/↓ exposure, additive toxicity, etc.) and severity.
+
+## Storage and Stability
+
+Short paragraph or bullet list.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>. Evidence mix: <e.g. 6 RCT · 4 guideline · 2 cohort>.*
+```
+
+## Rules
+
+1. **Dose safety first.** If no claim supports a dose, write `_No dose claims in current corpus._` rather than guess. This is a hard constraint.
+2. **No hallucination** (fact-checker). Every statement traces to a claim_id; disagreements flagged with both ids.
+3. **Cite inline** (academic-researcher). `[c:<8char-claim-id>]` after each statement. Note evidence_grade when load-bearing.
+4. **Concision** (technical-writer). ≤ 800 words total.
+5. **Population qualifiers are load-bearing.** Always preserve population/setting qualifiers when surfacing dose, contraindication, or warning claims.
+6. **Brand names and prices** are out of scope for this note — they live in the Master sheet's per-country columns and are sourced separately.
+7. **Status awareness.** `(pending review)` inline for non-promoted; supersedence by replacement.
+8. **Output ONLY the Markdown.** No code fences, no preamble, no postamble.
+
+## Obsidian-friendly output (required)
+
+1. **YAML frontmatter** at the very top per the schema in the Output structure block. `type: medication` is fixed for this prompt.
+2. **Wikilink cross-references** for indications (conditions), partner/interacting drugs, target organisms, resistance genes on first mention per section. Kebab-case slugs (e.g. `[[uncomplicated-falciparum-malaria]]`, `[[lumefantrine]]`, `[[kelch13-c580y-mutation]]`). Never wikilink doses or generic verbs.
+3. **Mermaid diagrams** allowed for mechanism of action cascades (target → downstream → clinical effect) when the claim set supports 3+ mechanistic steps. Fenced ```mermaid``` block. Cite load-bearing claim with `[c:<id>]` adjacent.
+4. **Citations are sacred.** Every claim_id supporting a dose, contraindication, interaction, or efficacy statement must appear as `[c:<8char>]`. Never fabricate. Dropping a dose-supporting citation is a hard reject.
+
+
+===== USER =====
+# Entity
+plasmodium
+
+# Surface variants
+Plasmodium
+
+# Entity type (classifier hint)
+medication
+
+# Claims (count=22)
+```json
+[
+  {
+    "claim_id": "4121fdef-1c61-45ff-a15d-9746ce7bcfc4",
+    "short_id": "4121fdef",
+    "subject": "Plasmodium",
+    "predicate": "resists",
+    "object": "established antimalarial drugs",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:10990500",
+      "title": "Cerebral malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/10990500/"
+    }
+  },
+  {
+    "claim_id": "a7ec1ecb-bfcb-4824-b03c-9d1ccfe3edaa",
+    "short_id": "a7ec1ecb",
+    "subject": "Plasmodium",
+    "predicate": "causes",
+    "object": "cerebral malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:8009217",
+      "title": "Malaria pathogenesis.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/8009217/"
+    }
+  },
+  {
+    "claim_id": "78597a79-9bf2-4f42-b202-7e7a77fc7b5a",
+    "short_id": "78597a79",
+    "subject": "Plasmodium",
+    "predicate": "causes",
+    "object": "severe anemia",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:8009217",
+      "title": "Malaria pathogenesis.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/8009217/"
+    }
+  },
+  {
+    "claim_id": "1a33d1bf-733e-43c3-9db6-28d8f791b28e",
+    "short_id": "1a33d1bf",
+    "subject": "Plasmodium",
+    "predicate": "causes",
+    "object": "malaria morbidity and mortality in endemic areas",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "malaria-endemic areas",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "annual deaths",
+        "value": 438000.0,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:28734514",
+      "title": "Malaria in Children.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/28734514/"
+    }
+  },
+  {
+    "claim_id": "2bdb5b2c-29e7-40ec-8dc5-fad729631694",
+    "short_id": "2bdb5b2c",
+    "subject": "Plasmodium",
+    "predicate": "causes",
+    "object": "imported malaria in the Netherlands",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Netherlands",
+        "immune_status": "naive",
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "non_endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "annual case count",
+        "value": 250.0,
+        "ci_low": 200.0,
+        "ci_high": 300.0
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:31424703",
+      "title": "[Not Available].",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/31424703/"
+    }
+  },
+  {
+    "claim_id": "c0b49dfc-3327-40e4-b84a-6eab9621b561",
+    "short_id": "c0b49dfc",
+    "subject": "Plasmodium",
+    "predicate": "resists",
+    "object": "existing antimalarial interventions",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:39025972",
+      "title": "Malaria vaccines: a new era of prevention and control.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/39025972/"
+    }
+  },
+  {
+    "claim_id": "9c5dd854-8fc6-4685-9b9b-3f490a6c82d1",
+    "short_id": "9c5dd854",
+    "subject": "Plasmodium",
+    "predicate": "resists",
+    "object": "antimalarial chemoprevention drugs",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:35331231",
+      "title": "Malaria chemoprevention and drug resistance: a review of the literature and policy implications.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35331231/"
+    }
+  },
+  {
+    "claim_id": "4febd4c2-63ab-4a0f-8b7c-54dc49cca206",
+    "short_id": "4febd4c2",
+    "subject": "Plasmodium",
+    "predicate": "resists",
+    "object": "sulfadoxine-pyrimethamine plus amodiaquine",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Africa outside Sahel",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:35688778",
+      "title": "Pharmacokinetic considerations in seasonal malaria chemoprevention.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35688778/"
+    }
+  },
+  {
+    "claim_id": "a131b5d2-3dc0-4ef9-92c6-16448406e398",
+    "short_id": "a131b5d2",
+    "subject": "Plasmodium",
+    "predicate": "causes",
+    "object": "human malarial disease",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "annual deaths worldwide",
+        "value": 500000.0,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:36126008",
+      "title": "Malaria: Prevention, Diagnosis, and Treatment.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/36126008/"
+    }
+  },
+  {
+    "claim_id": "472ff9fc-264d-4ac0-ad74-ccf2b3293cd7",
+    "short_id": "472ff9fc",
+    "subject": "Plasmodium",
+    "predicate": "affects",
+    "object": "red blood cells",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:23953767",
+      "title": "Malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/23953767/"
+    }
+  },
+  {
+    "claim_id": "1117cba7-dfe4-4386-a932-bd7ce620ebde",
+    "short_id": "1117cba7",
+    "subject": "Plasmodium",
+    "predicate": "resists",
+    "object": "sulphadoxine-pyrimethamine",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "sulphadoxine-pyrimethamine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "meta_analysis",
+    "status": "auto_promoted",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:31050803",
+      "title": "A systematic review and meta-analysis of dihydroartemisinin-piperaquine versus sulphadoxine-pyrimethamine for malaria prevention in pregnancy.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/31050803/"
+    }
+  },
+  {
+    "claim_id": "6255ee09-6e0a-4b68-92b1-8d5251076401",
+    "short_id": "6255ee09",
+    "subject": "Plasmodium",
+    "predicate": "resists",
+    "object": "available antimalarial drugs",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37060004",
+      "title": "Malaria therapeutics: are we close enough?",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37060004/"
+    }
+  },
+  {
+    "claim_id": "ce7540a2-a481-4117-9a0b-41d4eb361882",
+    "short_id": "ce7540a2",
+    "subject": "Plasmodium",
+    "predicate": "causes",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37060004",
+      "title": "Malaria therapeutics: are we close enough?",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37060004/"
+    }
+  },
+  {
+    "claim_id": "44076d58-68e0-426b-b20c-323a5986c7e8",
+    "short_id": "44076d58",
+    "subject": "Plasmodium",
+    "predicate": "causes",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "<5 years",
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "annual deaths (2015)",
+        "value": 429000.0,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:29361963",
+      "title": "Diagnostic tools in childhood malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/29361963/"
+    }
+  },
+  {
+    "claim_id": "b5cf2484-2af6-4ffd-b221-aacecb4af422",
+    "short_id": "b5cf2484",
+    "subject": "Plasmodium",
+    "predicate": "requires",
+    "object": "host cell egress for life cycle completion",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:35417197",
+      "title": "Plasmodium Egress Across the Parasite Life Cycle.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35417197/"
+    }
+  },
+  {
+    "claim_id": "06586eb0-7db2-444a-a35f-0628560abc28",
+    "short_id": "06586eb0",
+    "subject": "Plasmodium",
+    "predicate": "has_lifecycle_stage",
+    "object": "sporozoite",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "egress site",
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:35417197",
+      "title": "Plasmodium Egress Across the Parasite Life Cycle.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35417197/"
+    }
+  },
+  {
+    "claim_id": "22b09015-69b7-41c2-825b-445329a872f2",
+    "short_id": "22b09015",
+    "subject": "Plasmodium",
+    "predicate": "has_lifecycle_stage",
+    "object": "gametocyte",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "egress site",
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:35417197",
+      "title": "Plasmodium Egress Across the Parasite Life Cycle.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35417197/"
+    }
+  },
+  {
+    "claim_id": "216e82ba-5412-4000-b5eb-838e3954bc57",
+    "short_id": "216e82ba",
+    "subject": "Plasmodium",
+    "predicate": "has_lifecycle_stage",
+    "object": "merozoite",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "egress site",
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:35417197",
+      "title": "Plasmodium Egress Across the Parasite Life Cycle.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35417197/"
+    }
+  },
+  {
+    "claim_id": "e94c6ad7-47e1-49be-9b90-24bd343de8c1",
+    "short_id": "e94c6ad7",
+    "subject": "Plasmodium",
+    "predicate": "classifies_as",
+    "object": "protozoan intracellular parasite",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:35417197",
+      "title": "Plasmodium Egress Across the Parasite Life Cycle.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35417197/"
+    }
+  },
+  {
+    "claim_id": "c42ef453-0a42-4fee-b6ea-37f88d4bb443",
+    "short_id": "c42ef453",
+    "subject": "Plasmodium",
+    "predicate": "causes",
+    "object": "human malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:35417197",
+      "title": "Plasmodium Egress Across the Parasite Life Cycle.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35417197/"
+    }
+  },
+  {
+    "claim_id": "c9ad9ecd-6302-48aa-95a5-99fef1895702",
+    "short_id": "c9ad9ecd",
+    "subject": "Plasmodium",
+    "predicate": "affects",
+    "object": "global population",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "annual cases",
+        "value": 240000000.0,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:35417197",
+      "title": "Plasmodium Egress Across the Parasite Life Cycle.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35417197/"
+    }
+  },
+  {
+    "claim_id": "cd0576f0-1a66-4f74-9c3f-330956d87a45",
+    "short_id": "cd0576f0",
+    "subject": "Plasmodium",
+    "predicate": "resists",
+    "object": "antimalarial drugs",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:28770814",
+      "title": "Malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/28770814/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-13T19:21:04.395742+00:00
+
+
+===== STDOUT =====
+---
+type: medication
+drug_class: not-applicable-pathogen-entity
+tags: [malaria/pathogen, infectious-disease/parasite]
+evidence_grade_max: meta_analysis
+claim_count: 22
+last_regen: 2026-05-13T19:21:04Z
+---
+
+# Plasmodium
+
+**Therapeutic category:** Not applicable — Plasmodium is a pathogen, not a medication
+**Drug group:** N/A (entity misclassified as medication; classifies as protozoan intracellular parasite [c:e94c6ad7])
+**Drug class:** N/A
+**Controlled substance:** N/A
+
+## Overview
+
+Plasmodium = protozoan intracellular parasite causing human malaria [c:e94c6ad7][c:ce7540a2][c:c42ef453]. Affects red blood cells [c:472ff9fc]. ~240 million annual cases globally [c:c9ad9ecd], ~500,000 annual deaths worldwide [c:a131b5d2], 438,000 deaths/yr in endemic areas [c:1a33d1bf], 429,000 deaths/yr in children <5 (2015) [c:44076d58]. Entity belongs in pathogen sheet, not Medications. _Note: classifier hint flagged this as `medication` — likely mislabeled. Treat downstream as organism record._
+
+## Indication (Why is this medication prescribed?)
+
+_Not applicable — Plasmodium is target organism, not therapeutic agent._ Disease states caused (pending review):
+
+- [[malaria]] (general) [c:ce7540a2][c:c42ef453]
+- [[cerebral-malaria]] [c:a7ec1ecb] (pending review)
+- [[severe-anemia]] in malaria [c:78597a79] (pending review)
+- Imported [[malaria]] in non-endemic settings — e.g. Netherlands, ~250 cases/yr (200–300), immune-naive travelers [c:2bdb5b2c] (pending review)
+- Pediatric malaria mortality, <5y endemic [c:44076d58] (pending review)
+
+## Mechanism of Action (How does it work?)
+
+Plasmodium is the disease-causing agent, not a drug. Lifecycle stages relevant to drug targeting: sporozoite [c:06586eb0], merozoite [c:216e82ba], gametocyte [c:22b09015]. Parasite requires host cell egress for life cycle completion [c:b5cf2484]. Invades [[red-blood-cells]] during blood stage [c:472ff9fc].
+
+```mermaid
+flowchart LR
+  A[Sporozoite<br/>mosquito inoculation] --> B[Liver hepatocyte stage]
+  B --> C[Merozoite<br/>RBC invasion]
+  C --> D[Asexual blood-stage<br/>cycle + egress]
+  D --> E[Gametocyte<br/>transmission stage]
+  D --> F[Clinical malaria<br/>anemia / cerebral]
+```
+Egress across stages = pan-lifecycle drug target [c:b5cf2484][c:06586eb0][c:216e82ba][c:22b09015].
+
+## Dosage and Administration
+
+_No dose claims in current corpus._ Plasmodium is not a drug — dosing inapplicable. For antimalarial dosing, see notes on [[artemether-lumefantrine]], [[dihydroartemisinin-piperaquine]], [[sulfadoxine-pyrimethamine]], [[amodiaquine]].
+
+## Contraindications (When not to use it)
+
+_Not applicable — entity is pathogen._
+
+## Warnings and Precautions
+
+Resistance landscape (load-bearing for antimalarial selection):
+
+- Resists established antimalarial drugs, endemic settings [c:4121fdef][c:6255ee09][c:cd0576f0] (pending review)
+- Resists existing antimalarial interventions in [[africa]] [c:c0b49dfc] (pending review)
+- Resists antimalarial chemoprevention drugs, endemic settings [c:9c5dd854] (pending review)
+- Resists [[sulfadoxine-pyrimethamine]] + [[amodiaquine]] in Africa **outside [[sahel]]** [c:4febd4c2] (pending review) — population qualifier load-bearing for SMC policy
+- Resists [[sulphadoxine-pyrimethamine]] in pregnant adults (2nd/3rd trimester), outpatient endemic — **meta-analysis, auto-promoted** [c:1117cba7]
+
+Monitoring: surveillance for [[kelch13-mutations]] and partner-drug resistance markers advised in endemic programs (no direct claim in corpus; downstream inference).
+
+## Side Effects
+
+_Not applicable — entity is pathogen._ Disease manifestations (mortality risk flagged):
+
+- **Mortality risk:** cerebral malaria [c:a7ec1ecb], severe anemia [c:78597a79], pediatric <5 mortality [c:44076d58][c:1a33d1bf], global mortality ~500k/yr [c:a131b5d2]
+- Common: febrile blood-stage illness via RBC infection [c:472ff9fc]
+
+## Drug Interactions
+
+_Not applicable in pharmacological sense._ Parasite–drug "interactions" = resistance, covered under Warnings.
+
+## Storage and Stability
+
+_Not applicable._ Plasmodium = live obligate intracellular parasite [c:e94c6ad7]; not a stored therapeutic.
+
+---
+*Last regenerated: 2026-05-13T19:21:04Z. Source claims: 22. Evidence mix: 1 meta_analysis (auto-promoted) · 21 expert_opinion (pending review). Schema mismatch flag: entity is pathogen, not medication — recommend reclassification to `organism`/`pathogen` sheet.*

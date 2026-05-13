@@ -1,0 +1,1084 @@
+===== SYSTEM =====
+# Concept note — Medication (Master-sheet Medications aligned)
+
+You are writing a single Markdown note about ONE medication (drug, biologic, or therapeutic agent). The headings match the Master-sheet "Medications" columns so an exporter can lift each section into the corresponding cell.
+
+You are given:
+- The drug name (generic).
+- A list of qualified claims about this drug, with predicate, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused medication note. Re-synthesize from the current claim set on every regeneration.
+
+## Output structure
+
+```
+---
+type: medication
+drug_class: <e.g. artemisinin-combination-therapy>
+tags: [<area/sub-area>, ...]            # e.g. malaria/treatment, malaria/severe
+evidence_grade_max: <meta_analysis|RCT|guideline|cohort|case_control|case_report|expert_opinion>
+claim_count: <int>
+last_regen: <ISO-8601 timestamp>
+---
+
+# <Generic name>
+
+**Therapeutic category:** <e.g. Antimalarial>
+**Drug group:** <e.g. Artemisinin combination therapy>
+**Drug class:** <e.g. Sesquiterpene endoperoxide>
+**Controlled substance:** <Yes — Schedule X · No>
+
+## Overview
+
+≤ 80 words plain-language description.
+
+## Indication (Why is this medication prescribed?)
+
+Bullet list of conditions/uses. Cite inline.
+
+## Mechanism of Action (How does it work?)
+
+Short paragraph. Cite mechanism claims explicitly.
+
+## Dosage and Administration
+
+Table or bullet list, organised by indication and population (adult / pediatric / pregnancy / renal-adjusted). Include dose, route, frequency, duration. Only state what claims support — never invent a dose.
+
+## Contraindications (When not to use it)
+
+Bullet list. Distinguish absolute from relative.
+
+## Warnings and Precautions
+
+Bullet list of black-box warnings, severe precautions, monitoring requirements.
+
+## Side Effects
+
+Bullet list grouped by frequency (common / serious / rare). Flag the ones with mortality risk.
+
+## Drug Interactions
+
+Bullet list. For each interaction, state effect direction (↑/↓ exposure, additive toxicity, etc.) and severity.
+
+## Storage and Stability
+
+Short paragraph or bullet list.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>. Evidence mix: <e.g. 6 RCT · 4 guideline · 2 cohort>.*
+```
+
+## Rules
+
+1. **Dose safety first.** If no claim supports a dose, write `_No dose claims in current corpus._` rather than guess. This is a hard constraint.
+2. **No hallucination** (fact-checker). Every statement traces to a claim_id; disagreements flagged with both ids.
+3. **Cite inline** (academic-researcher). `[c:<8char-claim-id>]` after each statement. Note evidence_grade when load-bearing.
+4. **Concision** (technical-writer). ≤ 800 words total.
+5. **Population qualifiers are load-bearing.** Always preserve population/setting qualifiers when surfacing dose, contraindication, or warning claims.
+6. **Brand names and prices** are out of scope for this note — they live in the Master sheet's per-country columns and are sourced separately.
+7. **Status awareness.** `(pending review)` inline for non-promoted; supersedence by replacement.
+8. **Output ONLY the Markdown.** No code fences, no preamble, no postamble.
+
+## Obsidian-friendly output (required)
+
+1. **YAML frontmatter** at the very top per the schema in the Output structure block. `type: medication` is fixed for this prompt.
+2. **Wikilink cross-references** for indications (conditions), partner/interacting drugs, target organisms, resistance genes on first mention per section. Kebab-case slugs (e.g. `[[uncomplicated-falciparum-malaria]]`, `[[lumefantrine]]`, `[[kelch13-c580y-mutation]]`). Never wikilink doses or generic verbs.
+3. **Mermaid diagrams** allowed for mechanism of action cascades (target → downstream → clinical effect) when the claim set supports 3+ mechanistic steps. Fenced ```mermaid``` block. Cite load-bearing claim with `[c:<id>]` adjacent.
+4. **Citations are sacred.** Every claim_id supporting a dose, contraindication, interaction, or efficacy statement must appear as `[c:<8char>]`. Never fabricate. Dropping a dose-supporting citation is a hard reject.
+
+
+===== USER =====
+# Entity
+artemether-lumefantrine
+
+# Surface variants
+Artemether-Lumefantrine, artemether-lumefantrine
+
+# Entity type (classifier hint)
+medication
+
+# Claims (count=20)
+```json
+[
+  {
+    "claim_id": "f3e0d13f-ec87-47f7-9ac2-8bda8dbf4e05",
+    "short_id": "f3e0d13f",
+    "subject": "artemether-lumefantrine",
+    "predicate": "treats",
+    "object": "malaria in pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "first_trimester",
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemether-lumefantrine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:39018104",
+      "title": "Malaria in pregnancy: baby steps.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/39018104/"
+    }
+  },
+  {
+    "claim_id": "5360cf8a-e1fa-4a61-9fba-6148544f1359",
+    "short_id": "5360cf8a",
+    "subject": "artemether-lumefantrine",
+    "predicate": "treats",
+    "object": "uncomplicated malaria in children",
+    "qualifiers": {
+      "population": {
+        "age_range": "pediatric",
+        "pregnancy": null,
+        "region": "UK imported",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "non_endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemether-lumefantrine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  },
+  {
+    "claim_id": "ffa5e638-2ce0-4254-b351-6452416df3f4",
+    "short_id": "ffa5e638",
+    "subject": "artemether-lumefantrine",
+    "predicate": "treats",
+    "object": "uncomplicated Plasmodium falciparum malaria in pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": "UK imported",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "non_endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemether-lumefantrine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  },
+  {
+    "claim_id": "abfc416f-17dd-4b4c-ad0e-4e44e7627eb1",
+    "short_id": "abfc416f",
+    "subject": "Artemether-Lumefantrine",
+    "predicate": "treats",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "Artemether-Lumefantrine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:40523953",
+      "title": "Malaria: past, present, and future.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/40523953/"
+    }
+  },
+  {
+    "claim_id": "15a79d74-4944-4585-b298-b45a32298216",
+    "short_id": "15a79d74",
+    "subject": "artemether-lumefantrine",
+    "predicate": "prevents",
+    "object": "malaria-related mortality and readmission post-discharge",
+    "qualifiers": {
+      "population": {
+        "age_range": "pediatric",
+        "pregnancy": null,
+        "region": "Malawi",
+        "immune_status": null,
+        "comorbidities": [
+          "severe anaemia"
+        ]
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemether-lumefantrine",
+        "mg_per_kg": null,
+        "frequency": "monthly",
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "meta_analysis",
+    "status": "auto_promoted",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:38539181",
+      "title": "Implementation of post-discharge malaria chemoprevention (PDMC) in Benin, Kenya, Malawi, and Uganda: stakeholder engagement meeting report.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38539181/"
+    }
+  },
+  {
+    "claim_id": "76665682-1567-47f2-891a-e10110c5f636",
+    "short_id": "76665682",
+    "subject": "artemether-lumefantrine",
+    "predicate": "treats",
+    "object": "uncomplicated P falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Ethiopia, Bangladesh",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemether-lumefantrine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "RCT",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37979594",
+      "title": "Primaquine radical cure in patients with Plasmodium falciparum malaria in areas co-endemic for P falciparum and Plasmodium vivax (PRIMA): a multicentre, open-label, superiority randomised controlled trial.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37979594/"
+    }
+  },
+  {
+    "claim_id": "d1a43cc3-cd7f-489f-984c-ae37293ab4f6",
+    "short_id": "d1a43cc3",
+    "subject": "artemether-lumefantrine",
+    "predicate": "treats",
+    "object": "uncomplicated falciparum malaria in pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": "UK imported",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "non_endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemether-lumefantrine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  },
+  {
+    "claim_id": "c42adcd6-7869-4e32-8ab5-1af4e8ed7c07",
+    "short_id": "c42adcd6",
+    "subject": "artemether-lumefantrine",
+    "predicate": "treats",
+    "object": "uncomplicated Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": null,
+        "region": "UK imported",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "non_endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemether-lumefantrine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "dihydroartemisinin-piperaquine",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  },
+  {
+    "claim_id": "ca2007b7-2e03-41d7-bc52-c6c5993402a4",
+    "short_id": "ca2007b7",
+    "subject": "artemether-lumefantrine",
+    "predicate": "treats",
+    "object": "uncomplicated malaria in pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": "Netherlands",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "non_endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemether-lumefantrine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:31424703",
+      "title": "[Not Available].",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/31424703/"
+    }
+  },
+  {
+    "claim_id": "58a7c7a0-6ead-49d3-bf98-bfe8d02c1c25",
+    "short_id": "58a7c7a0",
+    "subject": "artemether-lumefantrine",
+    "predicate": "treats",
+    "object": "uncomplicated Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": null,
+        "region": "Malawi",
+        "immune_status": "immunocompromised",
+        "comorbidities": [
+          "HIV on ART"
+        ]
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemether-lumefantrine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "PCR-corrected day-28 ACPR",
+        "value": 94.0,
+        "ci_low": 92.0,
+        "ci_high": 97.0
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "RCT",
+    "status": "auto_promoted",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:36707795",
+      "title": "Artemether-lumefantrine efficacy among adults on antiretroviral therapy in Malawi.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/36707795/"
+    }
+  },
+  {
+    "claim_id": "4320eb94-e140-4c1a-825b-f1bef14db58b",
+    "short_id": "4320eb94",
+    "subject": "artemether-lumefantrine",
+    "predicate": "recommends",
+    "object": "first-line ACT for all Plasmodium species in Malaysia",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Malaysia",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemether-lumefantrine",
+        "mg_per_kg": 12.0,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "RCT",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:29020373",
+      "title": "Artemether-Lumefantrine Versus Chloroquine for the Treatment of Uncomplicated Plasmodium knowlesi Malaria: An Open-Label Randomized Controlled Trial CAN KNOW.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/29020373/"
+    }
+  },
+  {
+    "claim_id": "4bdc9935-2cd1-4f7e-9963-9b25ae132423",
+    "short_id": "4bdc9935",
+    "subject": "artemether-lumefantrine",
+    "predicate": "treats",
+    "object": "uncomplicated Plasmodium knowlesi malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults and pediatric >10 kg",
+        "pregnancy": null,
+        "region": "Sabah, Malaysia",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemether-lumefantrine",
+        "mg_per_kg": 12.0,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "chloroquine 25 mg/kg",
+      "effect_size": {
+        "metric": "aparasitemia at 24 hours (%)",
+        "value": 76.0,
+        "ci_low": 63.0,
+        "ci_high": 86.0
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "RCT",
+    "status": "auto_promoted",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:29020373",
+      "title": "Artemether-Lumefantrine Versus Chloroquine for the Treatment of Uncomplicated Plasmodium knowlesi Malaria: An Open-Label Randomized Controlled Trial CAN KNOW.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/29020373/"
+    }
+  },
+  {
+    "claim_id": "c7e794d1-5136-456c-b816-b4f415532712",
+    "short_id": "c7e794d1",
+    "subject": "artemether-lumefantrine",
+    "predicate": "treats",
+    "object": "uncomplicated malaria in children",
+    "qualifiers": {
+      "population": {
+        "age_range": "pediatric",
+        "pregnancy": null,
+        "region": "UK",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "traveler"
+      },
+      "dose_regimen": {
+        "drug": "artemether-lumefantrine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  },
+  {
+    "claim_id": "7aa2da50-0087-46b5-ad4b-32685d722edb",
+    "short_id": "7aa2da50",
+    "subject": "artemether-lumefantrine",
+    "predicate": "treats",
+    "object": "uncomplicated falciparum malaria in pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": "UK",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "traveler"
+      },
+      "dose_regimen": {
+        "drug": "artemether-lumefantrine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  },
+  {
+    "claim_id": "ac7b370a-306a-44f7-a78c-87a313566407",
+    "short_id": "ac7b370a",
+    "subject": "artemether-lumefantrine",
+    "predicate": "treats",
+    "object": "uncomplicated P. falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": null,
+        "region": "UK",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "traveler"
+      },
+      "dose_regimen": {
+        "drug": "artemether-lumefantrine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "dihydroartemisinin-piperaquine",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  },
+  {
+    "claim_id": "909620f4-edb4-4d66-9c63-bb58051f2875",
+    "short_id": "909620f4",
+    "subject": "artemether-lumefantrine",
+    "predicate": "treats",
+    "object": "uncomplicated malaria in children",
+    "qualifiers": {
+      "population": {
+        "age_range": "pediatric",
+        "pregnancy": null,
+        "region": "UK (imported)",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "traveler"
+      },
+      "dose_regimen": {
+        "drug": "artemether-lumefantrine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  },
+  {
+    "claim_id": "54a2cc5d-8dab-4b83-9a44-addbc2ca3e06",
+    "short_id": "54a2cc5d",
+    "subject": "artemether-lumefantrine",
+    "predicate": "treats",
+    "object": "uncomplicated Plasmodium falciparum malaria in pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": "UK (imported)",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "traveler"
+      },
+      "dose_regimen": {
+        "drug": "artemether-lumefantrine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  },
+  {
+    "claim_id": "a0db0841-ca4d-4681-a8b7-93bef7b7dbc3",
+    "short_id": "a0db0841",
+    "subject": "artemether-lumefantrine",
+    "predicate": "treats",
+    "object": "uncomplicated Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": null,
+        "region": "UK (imported)",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "traveler"
+      },
+      "dose_regimen": {
+        "drug": "artemether-lumefantrine (Riamet)",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "dihydroartemisinin-piperaquine",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  },
+  {
+    "claim_id": "dad5c4d0-50c1-402c-99b0-62d057ae4005",
+    "short_id": "dad5c4d0",
+    "subject": "artemether-lumefantrine",
+    "predicate": "treats",
+    "object": "uncomplicated falciparum malaria in second/third trimester pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": "UK (imported)",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "non_endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemether-lumefantrine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  },
+  {
+    "claim_id": "4f02d2d8-3840-485f-9388-a9de28d8d78d",
+    "short_id": "4f02d2d8",
+    "subject": "artemether-lumefantrine",
+    "predicate": "treats",
+    "object": "uncomplicated Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": null,
+        "region": "UK (imported)",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "non_endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemether-lumefantrine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "dihydroartemisinin-piperaquine",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-13T18:31:18.468700+00:00
+
+
+===== STDOUT =====
+---
+type: medication
+drug_class: artemisinin-combination-therapy
+tags: [malaria/treatment, malaria/uncomplicated-falciparum, malaria/pregnancy, malaria/pediatric, malaria/knowlesi, malaria/chemoprevention]
+evidence_grade_max: meta_analysis
+claim_count: 20
+last_regen: 2026-05-13T18:31:18Z
+---
+
+# Artemether-Lumefantrine
+
+**Therapeutic category:** Antimalarial
+**Drug group:** Artemisinin combination therapy (ACT)
+**Drug class:** Sesquiterpene endoperoxide (artemether) + aryl amino alcohol (lumefantrine)
+**Controlled substance:** No
+
+## Overview
+
+Fixed-dose oral ACT combining fast-acting artemether with longer-acting lumefantrine. Used as first-line treatment for [[uncomplicated-falciparum-malaria]] and other [[plasmodium]] species across endemic and imported (traveler) settings, including pregnancy and pediatric populations [c:abfc416f][c:c42adcd6]. Also studied for [[post-discharge-malaria-chemoprevention]] in pediatric [[severe-anaemia]] [c:15a79d74].
+
+## Indication (Why is this medication prescribed?)
+
+- [[uncomplicated-falciparum-malaria]] — adults, imported/inpatient UK setting [c:c42adcd6][c:a0db0841][c:4f02d2d8][c:ac7b370a]
+- [[uncomplicated-falciparum-malaria]] in pregnancy (2nd/3rd trimester) — adults [c:ffa5e638][c:d1a43cc3][c:7aa2da50][c:54a2cc5d][c:dad5c4d0]
+- Malaria in pregnancy, **first trimester** — adults, endemic outpatient (pending review) [c:f3e0d13f]
+- Uncomplicated malaria in pregnancy — adults, non-endemic Netherlands (pending review) [c:ca2007b7]
+- Uncomplicated malaria in [[pediatric-malaria|children]] — UK imported/traveler [c:5360cf8a][c:c7e794d1][c:909620f4]
+- Uncomplicated P. falciparum — RCT efficacy in endemic Ethiopia/Bangladesh [c:76665682] (RCT)
+- Uncomplicated P. falciparum in adults on [[antiretroviral-therapy]] — Malawi, PCR-corrected day-28 ACPR 94% (92–97%) [c:58a7c7a0] (RCT)
+- Uncomplicated [[plasmodium-knowlesi]] malaria — adults + pediatric >10 kg, Sabah Malaysia; aparasitemia at 24 h 76% (63–86%) vs [[chloroquine]] [c:4bdc9935] (RCT)
+- First-line ACT for all Plasmodium species — Malaysia [c:4320eb94]
+- Post-discharge chemoprevention (monthly) — pediatric [[severe-anaemia]], Malawi/Benin/Kenya/Uganda; reduces mortality + readmission [c:15a79d74] (meta-analysis)
+
+## Mechanism of Action (How does it work?)
+
+_No mechanism-of-action claims in current corpus._
+
+## Dosage and Administration
+
+| Population | Indication | Dose | Source |
+|---|---|---|---|
+| Adults + pediatric >10 kg | Uncomplicated [[plasmodium-knowlesi]] (Sabah, Malaysia, inpatient) | 12 mg/kg | [c:4bdc9935] (RCT) |
+| All ages (Malaysia first-line ACT) | All Plasmodium spp. | 12 mg/kg | [c:4320eb94] (RCT) |
+
+_No dose claims in current corpus for P. falciparum, pregnancy, pediatric non-knowlesi indications, or post-discharge chemoprevention frequency beyond "monthly" [c:15a79d74]._
+
+## Contraindications (When not to use it)
+
+_No contraindication claims in current corpus._ First-trimester use carries `(pending review)` status [c:f3e0d13f] — clinical judgement required.
+
+## Warnings and Precautions
+
+_No warning/precaution claims in current corpus._
+
+## Side Effects
+
+_No adverse-effect claims in current corpus._
+
+## Drug Interactions
+
+_No interaction claims in current corpus._ Co-administration with [[antiretroviral-therapy]] in HIV+ adults did not degrade day-28 ACPR (94%, 92–97%) [c:58a7c7a0] — efficacy preserved, but pharmacokinetic interaction not characterized here.
+
+Comparator context (not interactions): efficacy compared to [[dihydroartemisinin-piperaquine]] [c:c42adcd6][c:ac7b370a][c:a0db0841][c:4f02d2d8] and [[chloroquine]] in P. knowlesi [c:4bdc9935].
+
+## Storage and Stability
+
+_No storage/stability claims in current corpus._
+
+---
+*Last regenerated: 2026-05-13T18:31:18Z. Source claims: 20. Evidence mix: 1 meta-analysis · 4 RCT · 15 expert_opinion. Promoted: 3; pending review: 17.*

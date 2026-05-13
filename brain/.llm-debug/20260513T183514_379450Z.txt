@@ -1,0 +1,492 @@
+===== SYSTEM =====
+# Concept note — Medication (Master-sheet Medications aligned)
+
+You are writing a single Markdown note about ONE medication (drug, biologic, or therapeutic agent). The headings match the Master-sheet "Medications" columns so an exporter can lift each section into the corresponding cell.
+
+You are given:
+- The drug name (generic).
+- A list of qualified claims about this drug, with predicate, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused medication note. Re-synthesize from the current claim set on every regeneration.
+
+## Output structure
+
+```
+---
+type: medication
+drug_class: <e.g. artemisinin-combination-therapy>
+tags: [<area/sub-area>, ...]            # e.g. malaria/treatment, malaria/severe
+evidence_grade_max: <meta_analysis|RCT|guideline|cohort|case_control|case_report|expert_opinion>
+claim_count: <int>
+last_regen: <ISO-8601 timestamp>
+---
+
+# <Generic name>
+
+**Therapeutic category:** <e.g. Antimalarial>
+**Drug group:** <e.g. Artemisinin combination therapy>
+**Drug class:** <e.g. Sesquiterpene endoperoxide>
+**Controlled substance:** <Yes — Schedule X · No>
+
+## Overview
+
+≤ 80 words plain-language description.
+
+## Indication (Why is this medication prescribed?)
+
+Bullet list of conditions/uses. Cite inline.
+
+## Mechanism of Action (How does it work?)
+
+Short paragraph. Cite mechanism claims explicitly.
+
+## Dosage and Administration
+
+Table or bullet list, organised by indication and population (adult / pediatric / pregnancy / renal-adjusted). Include dose, route, frequency, duration. Only state what claims support — never invent a dose.
+
+## Contraindications (When not to use it)
+
+Bullet list. Distinguish absolute from relative.
+
+## Warnings and Precautions
+
+Bullet list of black-box warnings, severe precautions, monitoring requirements.
+
+## Side Effects
+
+Bullet list grouped by frequency (common / serious / rare). Flag the ones with mortality risk.
+
+## Drug Interactions
+
+Bullet list. For each interaction, state effect direction (↑/↓ exposure, additive toxicity, etc.) and severity.
+
+## Storage and Stability
+
+Short paragraph or bullet list.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>. Evidence mix: <e.g. 6 RCT · 4 guideline · 2 cohort>.*
+```
+
+## Rules
+
+1. **Dose safety first.** If no claim supports a dose, write `_No dose claims in current corpus._` rather than guess. This is a hard constraint.
+2. **No hallucination** (fact-checker). Every statement traces to a claim_id; disagreements flagged with both ids.
+3. **Cite inline** (academic-researcher). `[c:<8char-claim-id>]` after each statement. Note evidence_grade when load-bearing.
+4. **Concision** (technical-writer). ≤ 800 words total.
+5. **Population qualifiers are load-bearing.** Always preserve population/setting qualifiers when surfacing dose, contraindication, or warning claims.
+6. **Brand names and prices** are out of scope for this note — they live in the Master sheet's per-country columns and are sourced separately.
+7. **Status awareness.** `(pending review)` inline for non-promoted; supersedence by replacement.
+8. **Output ONLY the Markdown.** No code fences, no preamble, no postamble.
+
+## Obsidian-friendly output (required)
+
+1. **YAML frontmatter** at the very top per the schema in the Output structure block. `type: medication` is fixed for this prompt.
+2. **Wikilink cross-references** for indications (conditions), partner/interacting drugs, target organisms, resistance genes on first mention per section. Kebab-case slugs (e.g. `[[uncomplicated-falciparum-malaria]]`, `[[lumefantrine]]`, `[[kelch13-c580y-mutation]]`). Never wikilink doses or generic verbs.
+3. **Mermaid diagrams** allowed for mechanism of action cascades (target → downstream → clinical effect) when the claim set supports 3+ mechanistic steps. Fenced ```mermaid``` block. Cite load-bearing claim with `[c:<id>]` adjacent.
+4. **Citations are sacred.** Every claim_id supporting a dose, contraindication, interaction, or efficacy statement must appear as `[c:<8char>]`. Never fabricate. Dropping a dose-supporting citation is a hard reject.
+
+
+===== USER =====
+# Entity
+artemisinins
+
+# Surface variants
+artemisinins
+
+# Entity type (classifier hint)
+medication
+
+# Claims (count=7)
+```json
+[
+  {
+    "claim_id": "107042fb-0ef4-491e-82db-5607ca7a1ac3",
+    "short_id": "107042fb",
+    "subject": "artemisinins",
+    "predicate": "treats",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:32359872",
+      "title": "K13, the Cytostome, and Artemisinin Resistance.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/32359872/"
+    }
+  },
+  {
+    "claim_id": "27565d0d-bddc-46fc-b98d-65b4170f293c",
+    "short_id": "27565d0d",
+    "subject": "artemisinins",
+    "predicate": "treats",
+    "object": "Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinins",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:38552654",
+      "title": "The emergence of artemisinin partial resistance in Africa: how do we respond?",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38552654/"
+    }
+  },
+  {
+    "claim_id": "a9c5899e-2282-40bd-8b4f-463ca2c6b521",
+    "short_id": "a9c5899e",
+    "subject": "Plasmodium falciparum",
+    "predicate": "resists",
+    "object": "artemisinins",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Greater Mekong",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:32656850",
+      "title": "Advances and roadblocks in the treatment of malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/32656850/"
+    }
+  },
+  {
+    "claim_id": "5587f198-5dcc-46b3-a80f-67cdeaebe4c2",
+    "short_id": "5587f198",
+    "subject": "Plasmodium falciparum",
+    "predicate": "resists",
+    "object": "artemisinins",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Greater Mekong subregion",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinins",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:32656850",
+      "title": "Advances and roadblocks in the treatment of malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/32656850/"
+    }
+  },
+  {
+    "claim_id": "8b19b278-ce42-4d68-b358-bd5054944f09",
+    "short_id": "8b19b278",
+    "subject": "artemisinins",
+    "predicate": "treats",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinins",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:38552654",
+      "title": "The emergence of artemisinin partial resistance in Africa: how do we respond?",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38552654/"
+    }
+  },
+  {
+    "claim_id": "a206a584-9d31-44d4-91ba-b69e0de21d2e",
+    "short_id": "a206a584",
+    "subject": "Plasmodium falciparum",
+    "predicate": "resists",
+    "object": "artemisinins",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Southeast Asia",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinins",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:38552654",
+      "title": "The emergence of artemisinin partial resistance in Africa: how do we respond?",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38552654/"
+    }
+  },
+  {
+    "claim_id": "32d14142-2cfc-4585-9b4f-88dee27e7cc8",
+    "short_id": "32d14142",
+    "subject": "Plasmodium falciparum",
+    "predicate": "resists",
+    "object": "artemisinins",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "eastern Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinins",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:38552654",
+      "title": "The emergence of artemisinin partial resistance in Africa: how do we respond?",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38552654/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-13T18:34:53.869392+00:00
+
+
+===== STDOUT =====
+---
+type: medication
+drug_class: sesquiterpene-endoperoxide-antimalarial
+tags: [malaria/treatment, malaria/falciparum, malaria/resistance]
+evidence_grade_max: expert_opinion
+claim_count: 7
+last_regen: 2026-05-13T18:34:53.869392+00:00
+---
+
+# Artemisinins
+
+**Therapeutic category:** Antimalarial
+**Drug group:** Artemisinin and derivatives
+**Drug class:** Sesquiterpene endoperoxide
+**Controlled substance:** No
+
+## Overview
+
+Artemisinins — fast-acting antimalarials derived from *Artemisia annua*. Backbone of WHO-recommended combination therapy for [[plasmodium-falciparum-malaria]]. Partial resistance now spreading beyond [[greater-mekong-subregion]] into [[eastern-africa]], threatening global malaria control. (pending review)
+
+## Indication (Why is this medication prescribed?)
+
+- Treatment of [[malaria]] [c:107042fb] [c:8b19b278] (pending review)
+- Treatment of [[plasmodium-falciparum-malaria]] in endemic settings [c:27565d0d] (pending review)
+
+## Mechanism of Action (How does it work?)
+
+Endoperoxide bridge activated by parasite heme → reactive radicals → alkylation of parasite proteins/lipids → parasite kill. Resistance mechanism load-bearing: [[kelch13]] mutations alter parasite cytostome function, reducing hemoglobin uptake and artemisinin activation [c:107042fb] (pending review).
+
+```mermaid
+graph LR
+    A[Artemisinin] -->|heme activation| B[Carbon radicals]
+    B --> C[Parasite protein/lipid alkylation]
+    C --> D[Ring-stage parasite kill]
+    E[K13 mutation] -.->|reduced cytostome uptake| F[Partial resistance]
+    F -.-> D
+```
+[c:107042fb]
+
+## Dosage and Administration
+
+_No dose claims in current corpus._ Refer to WHO guidelines and partner-drug specific notes ([[artemether-lumefantrine]], [[artesunate-amodiaquine]], [[dihydroartemisinin-piperaquine]]).
+
+## Contraindications (When not to use it)
+
+_No contraindication claims in current corpus._
+
+## Warnings and Precautions
+
+- **Resistance surveillance load-bearing.** Partial resistance in *P. falciparum* documented across [[greater-mekong-subregion]] [c:a9c5899e] [c:5587f198], broader [[southeast-asia]] [c:a206a584], and emerging in [[eastern-africa]] [c:32d14142] (all pending review).
+- Monotherapy must be avoided — use only as [[artemisinin-combination-therapy]] to protect partner drug and slow resistance spread (pending review) [c:27565d0d].
+- Monitor day-3 parasitemia in endemic regions as marker of delayed clearance phenotype [c:a9c5899e] (pending review).
+
+## Side Effects
+
+_No side-effect claims in current corpus._
+
+## Drug Interactions
+
+_No interaction claims in current corpus._ Interactions typically driven by partner drug ([[lumefantrine]], [[piperaquine]], [[mefloquine]]) — see partner-drug notes.
+
+## Storage and Stability
+
+_No storage claims in current corpus._
+
+---
+*Last regenerated: 2026-05-13T18:34:53.869392+00:00. Source claims: 7. Evidence mix: 7 expert_opinion (all pending review).*

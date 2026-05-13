@@ -1,0 +1,1400 @@
+===== SYSTEM =====
+# Concept note — Medication (Master-sheet Medications aligned)
+
+You are writing a single Markdown note about ONE medication (drug, biologic, or therapeutic agent). The headings match the Master-sheet "Medications" columns so an exporter can lift each section into the corresponding cell.
+
+You are given:
+- The drug name (generic).
+- A list of qualified claims about this drug, with predicate, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused medication note. Re-synthesize from the current claim set on every regeneration.
+
+## Output structure
+
+```
+---
+type: medication
+drug_class: <e.g. artemisinin-combination-therapy>
+tags: [<area/sub-area>, ...]            # e.g. malaria/treatment, malaria/severe
+evidence_grade_max: <meta_analysis|RCT|guideline|cohort|case_control|case_report|expert_opinion>
+claim_count: <int>
+last_regen: <ISO-8601 timestamp>
+---
+
+# <Generic name>
+
+**Therapeutic category:** <e.g. Antimalarial>
+**Drug group:** <e.g. Artemisinin combination therapy>
+**Drug class:** <e.g. Sesquiterpene endoperoxide>
+**Controlled substance:** <Yes — Schedule X · No>
+
+## Overview
+
+≤ 80 words plain-language description.
+
+## Indication (Why is this medication prescribed?)
+
+Bullet list of conditions/uses. Cite inline.
+
+## Mechanism of Action (How does it work?)
+
+Short paragraph. Cite mechanism claims explicitly.
+
+## Dosage and Administration
+
+Table or bullet list, organised by indication and population (adult / pediatric / pregnancy / renal-adjusted). Include dose, route, frequency, duration. Only state what claims support — never invent a dose.
+
+## Contraindications (When not to use it)
+
+Bullet list. Distinguish absolute from relative.
+
+## Warnings and Precautions
+
+Bullet list of black-box warnings, severe precautions, monitoring requirements.
+
+## Side Effects
+
+Bullet list grouped by frequency (common / serious / rare). Flag the ones with mortality risk.
+
+## Drug Interactions
+
+Bullet list. For each interaction, state effect direction (↑/↓ exposure, additive toxicity, etc.) and severity.
+
+## Storage and Stability
+
+Short paragraph or bullet list.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>. Evidence mix: <e.g. 6 RCT · 4 guideline · 2 cohort>.*
+```
+
+## Rules
+
+1. **Dose safety first.** If no claim supports a dose, write `_No dose claims in current corpus._` rather than guess. This is a hard constraint.
+2. **No hallucination** (fact-checker). Every statement traces to a claim_id; disagreements flagged with both ids.
+3. **Cite inline** (academic-researcher). `[c:<8char-claim-id>]` after each statement. Note evidence_grade when load-bearing.
+4. **Concision** (technical-writer). ≤ 800 words total.
+5. **Population qualifiers are load-bearing.** Always preserve population/setting qualifiers when surfacing dose, contraindication, or warning claims.
+6. **Brand names and prices** are out of scope for this note — they live in the Master sheet's per-country columns and are sourced separately.
+7. **Status awareness.** `(pending review)` inline for non-promoted; supersedence by replacement.
+8. **Output ONLY the Markdown.** No code fences, no preamble, no postamble.
+
+## Obsidian-friendly output (required)
+
+1. **YAML frontmatter** at the very top per the schema in the Output structure block. `type: medication` is fixed for this prompt.
+2. **Wikilink cross-references** for indications (conditions), partner/interacting drugs, target organisms, resistance genes on first mention per section. Kebab-case slugs (e.g. `[[uncomplicated-falciparum-malaria]]`, `[[lumefantrine]]`, `[[kelch13-c580y-mutation]]`). Never wikilink doses or generic verbs.
+3. **Mermaid diagrams** allowed for mechanism of action cascades (target → downstream → clinical effect) when the claim set supports 3+ mechanistic steps. Fenced ```mermaid``` block. Cite load-bearing claim with `[c:<id>]` adjacent.
+4. **Citations are sacred.** Every claim_id supporting a dose, contraindication, interaction, or efficacy statement must appear as `[c:<8char>]`. Never fabricate. Dropping a dose-supporting citation is a hard reject.
+
+
+===== USER =====
+# Entity
+intravenous artesunate
+
+# Surface variants
+intravenous artesunate
+
+# Entity type (classifier hint)
+medication
+
+# Claims (count=27)
+```json
+[
+  {
+    "claim_id": "ffb5b275-0018-4944-acf4-4f1cc2ea2fda",
+    "short_id": "ffb5b275",
+    "subject": "intravenous artesunate",
+    "predicate": "recommends",
+    "object": "cerebral malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "artesunate",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:35959375",
+      "title": "Cerebral malaria induced by plasmodium falciparum: clinical features, pathogenesis, diagnosis, and treatment.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35959375/"
+    }
+  },
+  {
+    "claim_id": "1d02dadc-d705-4492-8f80-144222ebc4a5",
+    "short_id": "1d02dadc",
+    "subject": "intravenous artesunate",
+    "predicate": "treats",
+    "object": "cerebral malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "artesunate",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:35959375",
+      "title": "Cerebral malaria induced by plasmodium falciparum: clinical features, pathogenesis, diagnosis, and treatment.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35959375/"
+    }
+  },
+  {
+    "claim_id": "946f39fe-4a49-4959-b112-ff909a595a32",
+    "short_id": "946f39fe",
+    "subject": "intravenous artesunate",
+    "predicate": "treats",
+    "object": "severe Plasmodium falciparum malaria in pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "first_trimester",
+        "region": "UK imported",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "non_endemic"
+      },
+      "dose_regimen": {
+        "drug": "artesunate IV",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "intravenous quinine",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  },
+  {
+    "claim_id": "959dfb36-ec30-4783-9a2a-dd7d5c01b5d0",
+    "short_id": "959dfb36",
+    "subject": "intravenous artesunate",
+    "predicate": "treats",
+    "object": "severe or complicated Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults and children",
+        "pregnancy": null,
+        "region": "UK imported",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "non_endemic"
+      },
+      "dose_regimen": {
+        "drug": "artesunate IV",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "intravenous quinine",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  },
+  {
+    "claim_id": "501e7420-fcdf-4a8a-aa49-9c1b975a7c36",
+    "short_id": "501e7420",
+    "subject": "intravenous artesunate",
+    "predicate": "treats",
+    "object": "severe malaria in pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": "Netherlands",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "non_endemic"
+      },
+      "dose_regimen": {
+        "drug": "artesunate",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:31424703",
+      "title": "[Not Available].",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/31424703/"
+    }
+  },
+  {
+    "claim_id": "e5ca91fe-db58-4ca3-8a35-e441442d72a7",
+    "short_id": "e5ca91fe",
+    "subject": "intravenous artesunate",
+    "predicate": "treats",
+    "object": "severe malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": "not_pregnant",
+        "region": "Netherlands",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "non_endemic"
+      },
+      "dose_regimen": {
+        "drug": "artesunate",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:31424703",
+      "title": "[Not Available].",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/31424703/"
+    }
+  },
+  {
+    "claim_id": "601f4bc3-5f73-4450-9500-443757921978",
+    "short_id": "601f4bc3",
+    "subject": "intravenous artesunate",
+    "predicate": "treats",
+    "object": "severe malaria in pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "first_trimester",
+        "region": "UK imported",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "non_endemic"
+      },
+      "dose_regimen": {
+        "drug": "artesunate IV",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "intravenous quinine",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  },
+  {
+    "claim_id": "f5568d19-e44f-4f21-84cf-603ab79c2f9b",
+    "short_id": "f5568d19",
+    "subject": "intravenous artesunate",
+    "predicate": "treats",
+    "object": "severe or complicated malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults and pediatric",
+        "pregnancy": null,
+        "region": "UK imported",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "non_endemic"
+      },
+      "dose_regimen": {
+        "drug": "artesunate IV",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "intravenous quinine",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  },
+  {
+    "claim_id": "37ae0166-e9d8-4130-9dd3-c08090006fe0",
+    "short_id": "37ae0166",
+    "subject": "intravenous artesunate",
+    "predicate": "treats",
+    "object": "severe malaria in pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": null,
+        "region": "Netherlands",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "non_endemic"
+      },
+      "dose_regimen": {
+        "drug": "artesunate",
+        "mg_per_kg": null,
+        "frequency": "intravenous",
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:31424703",
+      "title": "[Not Available].",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/31424703/"
+    }
+  },
+  {
+    "claim_id": "1e9a52b6-8853-40f0-a34b-13b630e81b11",
+    "short_id": "1e9a52b6",
+    "subject": "intravenous artesunate",
+    "predicate": "treats",
+    "object": "severe malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Netherlands",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "non_endemic"
+      },
+      "dose_regimen": {
+        "drug": "artesunate",
+        "mg_per_kg": null,
+        "frequency": "intravenous",
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:31424703",
+      "title": "[Not Available].",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/31424703/"
+    }
+  },
+  {
+    "claim_id": "8d9d7aee-37d2-4577-a5fb-6979fc2e08f5",
+    "short_id": "8d9d7aee",
+    "subject": "intravenous artesunate",
+    "predicate": "treats",
+    "object": "complicated malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "India",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artesunate",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:28357581",
+      "title": "Malaria: An Update.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/28357581/"
+    }
+  },
+  {
+    "claim_id": "4ab7857d-1a9e-4d2e-b705-83ab95f5689b",
+    "short_id": "4ab7857d",
+    "subject": "intravenous artesunate",
+    "predicate": "treats",
+    "object": "severe malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "artesunate",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:36126008",
+      "title": "Malaria: Prevention, Diagnosis, and Treatment.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/36126008/"
+    }
+  },
+  {
+    "claim_id": "c7d0d9eb-b664-4904-afa4-5d58910572af",
+    "short_id": "c7d0d9eb",
+    "subject": "intravenous artesunate",
+    "predicate": "treats",
+    "object": "severe malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "US",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "traveler"
+      },
+      "dose_regimen": {
+        "drug": "artesunate",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:35916842",
+      "title": "Diagnosis, Treatment, and Prevention of Malaria in the US: A Review.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35916842/"
+    }
+  },
+  {
+    "claim_id": "57bc5ea3-5cd2-4245-9715-edca1c4ad23a",
+    "short_id": "57bc5ea3",
+    "subject": "intravenous artesunate",
+    "predicate": "treats",
+    "object": "severe malaria in pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "first_trimester",
+        "region": "UK",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "traveler"
+      },
+      "dose_regimen": {
+        "drug": "artesunate",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "quinine",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  },
+  {
+    "claim_id": "90e353f6-e0d6-4656-9209-aae3103e6a59",
+    "short_id": "90e353f6",
+    "subject": "intravenous artesunate",
+    "predicate": "treats",
+    "object": "severe or complicated malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults and children",
+        "pregnancy": null,
+        "region": "UK",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "traveler"
+      },
+      "dose_regimen": {
+        "drug": "artesunate",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "intravenous quinine",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  },
+  {
+    "claim_id": "6c9a8e84-c326-47e5-a198-4da42cf244b8",
+    "short_id": "6c9a8e84",
+    "subject": "intravenous artesunate",
+    "predicate": "treats",
+    "object": "severe malaria in pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "first_trimester",
+        "region": "UK (imported)",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "traveler"
+      },
+      "dose_regimen": {
+        "drug": "artesunate IV",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "intravenous quinine",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  },
+  {
+    "claim_id": "2ef392d7-509a-417d-aba6-b5dfc6628248",
+    "short_id": "2ef392d7",
+    "subject": "intravenous artesunate",
+    "predicate": "causes",
+    "object": "post-treatment haemolysis",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "artesunate IV",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "incidence (% of patients)",
+        "value": 12.5,
+        "ci_low": 10.0,
+        "ci_high": 15.0
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  },
+  {
+    "claim_id": "bc9dca9a-3019-44c5-92be-4c4c69b879bd",
+    "short_id": "bc9dca9a",
+    "subject": "intravenous artesunate",
+    "predicate": "treats",
+    "object": "severe or complicated Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults and children",
+        "pregnancy": null,
+        "region": "UK (imported)",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "traveler"
+      },
+      "dose_regimen": {
+        "drug": "artesunate IV",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "intravenous quinine",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  },
+  {
+    "claim_id": "c4079fbc-9697-4f80-b148-3f506eb2b38d",
+    "short_id": "c4079fbc",
+    "subject": "intravenous artesunate",
+    "predicate": "treats",
+    "object": "uncomplicated Plasmodium knowlesi malaria with moderately high parasitaemia",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": null,
+        "region": "Southeast Asia",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artesunate",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:27707609",
+      "title": "The Treatment of Plasmodium knowlesi Malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/27707609/"
+    }
+  },
+  {
+    "claim_id": "beaf9ddb-4347-499a-8ff2-574971fa07b2",
+    "short_id": "beaf9ddb",
+    "subject": "intravenous artesunate",
+    "predicate": "recommends",
+    "object": "severe Plasmodium knowlesi malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Southeast Asia",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artesunate",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:34620385",
+      "title": "Clinical management of Plasmodium knowlesi malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/34620385/"
+    }
+  },
+  {
+    "claim_id": "aaf76c98-dd33-483b-b274-232a7e93d066",
+    "short_id": "aaf76c98",
+    "subject": "intravenous artesunate",
+    "predicate": "treats",
+    "object": "severe Plasmodium knowlesi malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Southeast Asia",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artesunate",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "case-fatality rate",
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:34620385",
+      "title": "Clinical management of Plasmodium knowlesi malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/34620385/"
+    }
+  },
+  {
+    "claim_id": "3cc23abe-a410-4eb7-90c5-dc0caf53d27d",
+    "short_id": "3cc23abe",
+    "subject": "intravenous artesunate",
+    "predicate": "causes",
+    "object": "post-treatment haemolysis",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "UK (imported)",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "non_endemic"
+      },
+      "dose_regimen": {
+        "drug": "artesunate",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "incidence (%)",
+        "value": 12.5,
+        "ci_low": 10.0,
+        "ci_high": 15.0
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  },
+  {
+    "claim_id": "24fe51f7-a45f-46f5-ad4a-cacaca5a5361",
+    "short_id": "24fe51f7",
+    "subject": "intravenous artesunate",
+    "predicate": "treats",
+    "object": "severe falciparum malaria in pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "first_trimester",
+        "region": "UK (imported)",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "non_endemic"
+      },
+      "dose_regimen": {
+        "drug": "artesunate",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "quinine",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  },
+  {
+    "claim_id": "998d234b-239d-4196-8164-652873ff23a6",
+    "short_id": "998d234b",
+    "subject": "intravenous artesunate",
+    "predicate": "treats",
+    "object": "severe or complicated Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults and pediatric",
+        "pregnancy": null,
+        "region": "UK (imported)",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "non_endemic"
+      },
+      "dose_regimen": {
+        "drug": "artesunate",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": "until oral tolerated"
+      },
+      "comparator": "intravenous quinine",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  },
+  {
+    "claim_id": "b21bbe25-e332-487b-8765-700bcf68a0d0",
+    "short_id": "b21bbe25",
+    "subject": "intravenous artesunate",
+    "predicate": "causes",
+    "object": "delayed haemolytic anemia",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "France",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "traveler"
+      },
+      "dose_regimen": {
+        "drug": "artesunate",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": "10 days to 3 weeks post-treatment"
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "incidence of post-artesunate delayed haemolysis",
+        "value": 15.0,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:30983215",
+      "title": "[Severe and complicated malaria].",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/30983215/"
+    }
+  },
+  {
+    "claim_id": "bdc101bd-d1e0-456f-b4b2-7d1a91180d44",
+    "short_id": "bdc101bd",
+    "subject": "intravenous artesunate",
+    "predicate": "treats",
+    "object": "severe malaria in pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": "France",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "traveler"
+      },
+      "dose_regimen": {
+        "drug": "artesunate",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:30983215",
+      "title": "[Severe and complicated malaria].",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/30983215/"
+    }
+  },
+  {
+    "claim_id": "036f0a2d-62b2-4fae-9bf0-1ec4380c8eb4",
+    "short_id": "036f0a2d",
+    "subject": "intravenous artesunate",
+    "predicate": "treats",
+    "object": "severe malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "pediatric and adults",
+        "pregnancy": null,
+        "region": "France",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "traveler"
+      },
+      "dose_regimen": {
+        "drug": "artesunate",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:30983215",
+      "title": "[Severe and complicated malaria].",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/30983215/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-13T19:01:12.033369+00:00
+
+
+===== STDOUT =====
+---
+type: medication
+drug_class: artemisinin-derivative
+tags: [malaria/treatment, malaria/severe, malaria/cerebral, malaria/pregnancy, malaria/knowlesi]
+evidence_grade_max: expert_opinion
+claim_count: 27
+last_regen: 2026-05-13T19:01:12Z
+---
+
+# Intravenous Artesunate
+
+**Therapeutic category:** Antimalarial
+**Drug group:** Artemisinin derivative (parenteral)
+**Drug class:** Sesquiterpene lactone endoperoxide
+**Controlled substance:** No
+
+## Overview
+
+Parenteral artemisinin derivative. First-line for severe/complicated malaria across *P. falciparum* and *P. knowlesi*. Replaces IV quinine in most guidelines. Inpatient use only. Transition to oral ACT once tolerated.
+
+## Indication (Why is this medication prescribed?)
+
+- [[severe-falciparum-malaria]] — adults and children, preferred over [[intravenous-quinine]] (pending review) [c:959dfb36] [c:f5568d19] [c:90e353f6] [c:bc9dca9a] [c:998d234b]
+- [[cerebral-malaria]] — inpatient (pending review) [c:1d02dadc] [c:ffb5b275]
+- [[severe-malaria]] — general, US/UK/Netherlands/France imported/traveler cases (pending review) [c:4ab7857d] [c:c7d0d9eb] [c:1e9a52b6] [c:e5ca91fe] [c:036f0a2d]
+- [[complicated-malaria]] — endemic India (pending review) [c:8d9d7aee]
+- [[severe-malaria-in-pregnancy]] — first trimester preferred over [[quinine]] (UK guidance, moderate certainty) and second/third trimester (Netherlands, France) (pending review) [c:946f39fe] [c:601f4bc3] [c:57bc5ea3] [c:6c9a8e84] [c:24fe51f7] [c:501e7420] [c:37ae0166] [c:bdc101bd]
+- [[severe-plasmodium-knowlesi-malaria]] — Southeast Asia, endemic (pending review) [c:beaf9ddb] [c:aaf76c98]
+- [[uncomplicated-knowlesi-malaria]] with moderately high parasitaemia — adults, Southeast Asia (pending review) [c:c4079fbc]
+
+## Mechanism of Action (How does it work?)
+
+_No mechanism-of-action claims in current corpus._ Indication and outcome evidence only.
+
+## Dosage and Administration
+
+_No dose claims in current corpus._ Duration: continue IV until oral therapy tolerated, then switch to full oral ACT course (UK guidance) [c:998d234b].
+
+| Population | Dose | Route | Frequency | Duration |
+|---|---|---|---|---|
+| Adults, severe falciparum | _not in corpus_ | IV | _not in corpus_ | until oral tolerated [c:998d234b] |
+| Pediatric, severe falciparum | _not in corpus_ | IV | _not in corpus_ | _not in corpus_ |
+| Pregnancy (any trimester) | _not in corpus_ | IV | _not in corpus_ | _not in corpus_ |
+
+Hard constraint: prescriber MUST consult WHO/local severe-malaria dosing reference. Do not infer mg/kg from this note.
+
+## Contraindications (When not to use it)
+
+_No contraindication claims in current corpus._
+
+## Warnings and Precautions
+
+- Monitor for [[post-artesunate-delayed-haemolysis]] — onset 10 days to 3 weeks post-treatment [c:b21bbe25]
+- Hb/haptoglobin/LDH/reticulocyte surveillance recommended for ≥4 weeks post-treatment (inferred from haemolysis incidence claims [c:2ef392d7] [c:3cc23abe] [c:b21bbe25])
+- Inpatient administration only across all sourced guidelines [c:959dfb36] [c:c7d0d9eb] [c:036f0a2d]
+
+## Side Effects
+
+**Serious (mortality risk if missed):**
+- [[post-treatment-haemolysis]] — incidence 12.5% (95% CI 10–15%), UK imported cohort (pending review) [c:2ef392d7] [c:3cc23abe]
+- Delayed haemolytic anaemia — incidence ~15%, France traveler cohort, onset 10d–3wk (pending review) [c:b21bbe25]
+
+**Common / Rare:** _Not characterized in current corpus._
+
+## Drug Interactions
+
+_No interaction claims in current corpus._ Comparator data only:
+- Preferred over [[intravenous-quinine]] / [[quinine]] for severe disease and first-trimester pregnancy (high to moderate certainty across UK guidance) [c:959dfb36] [c:f5568d19] [c:90e353f6] [c:bc9dca9a] [c:998d234b] [c:946f39fe] [c:601f4bc3] [c:57bc5ea3] [c:6c9a8e84] [c:24fe51f7]
+
+## Storage and Stability
+
+_No storage/stability claims in current corpus._
+
+---
+*Last regenerated: 2026-05-13T19:01:12Z. Source claims: 27. Evidence mix: 27 expert_opinion (all pending review). Dominant sources: UK malaria guidelines 2016 (PMID:26880088), French severe malaria review (PMID:30983215), Netherlands guidance (PMID:31424703).*

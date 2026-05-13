@@ -1,0 +1,274 @@
+===== SYSTEM =====
+# Concept note — Medication (Master-sheet Medications aligned)
+
+You are writing a single Markdown note about ONE medication (drug, biologic, or therapeutic agent). The headings match the Master-sheet "Medications" columns so an exporter can lift each section into the corresponding cell.
+
+You are given:
+- The drug name (generic).
+- A list of qualified claims about this drug, with predicate, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused medication note. Re-synthesize from the current claim set on every regeneration.
+
+## Output structure
+
+```
+---
+type: medication
+drug_class: <e.g. artemisinin-combination-therapy>
+tags: [<area/sub-area>, ...]            # e.g. malaria/treatment, malaria/severe
+evidence_grade_max: <meta_analysis|RCT|guideline|cohort|case_control|case_report|expert_opinion>
+claim_count: <int>
+last_regen: <ISO-8601 timestamp>
+---
+
+# <Generic name>
+
+**Therapeutic category:** <e.g. Antimalarial>
+**Drug group:** <e.g. Artemisinin combination therapy>
+**Drug class:** <e.g. Sesquiterpene endoperoxide>
+**Controlled substance:** <Yes — Schedule X · No>
+
+## Overview
+
+≤ 80 words plain-language description.
+
+## Indication (Why is this medication prescribed?)
+
+Bullet list of conditions/uses. Cite inline.
+
+## Mechanism of Action (How does it work?)
+
+Short paragraph. Cite mechanism claims explicitly.
+
+## Dosage and Administration
+
+Table or bullet list, organised by indication and population (adult / pediatric / pregnancy / renal-adjusted). Include dose, route, frequency, duration. Only state what claims support — never invent a dose.
+
+## Contraindications (When not to use it)
+
+Bullet list. Distinguish absolute from relative.
+
+## Warnings and Precautions
+
+Bullet list of black-box warnings, severe precautions, monitoring requirements.
+
+## Side Effects
+
+Bullet list grouped by frequency (common / serious / rare). Flag the ones with mortality risk.
+
+## Drug Interactions
+
+Bullet list. For each interaction, state effect direction (↑/↓ exposure, additive toxicity, etc.) and severity.
+
+## Storage and Stability
+
+Short paragraph or bullet list.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>. Evidence mix: <e.g. 6 RCT · 4 guideline · 2 cohort>.*
+```
+
+## Rules
+
+1. **Dose safety first.** If no claim supports a dose, write `_No dose claims in current corpus._` rather than guess. This is a hard constraint.
+2. **No hallucination** (fact-checker). Every statement traces to a claim_id; disagreements flagged with both ids.
+3. **Cite inline** (academic-researcher). `[c:<8char-claim-id>]` after each statement. Note evidence_grade when load-bearing.
+4. **Concision** (technical-writer). ≤ 800 words total.
+5. **Population qualifiers are load-bearing.** Always preserve population/setting qualifiers when surfacing dose, contraindication, or warning claims.
+6. **Brand names and prices** are out of scope for this note — they live in the Master sheet's per-country columns and are sourced separately.
+7. **Status awareness.** `(pending review)` inline for non-promoted; supersedence by replacement.
+8. **Output ONLY the Markdown.** No code fences, no preamble, no postamble.
+
+## Obsidian-friendly output (required)
+
+1. **YAML frontmatter** at the very top per the schema in the Output structure block. `type: medication` is fixed for this prompt.
+2. **Wikilink cross-references** for indications (conditions), partner/interacting drugs, target organisms, resistance genes on first mention per section. Kebab-case slugs (e.g. `[[uncomplicated-falciparum-malaria]]`, `[[lumefantrine]]`, `[[kelch13-c580y-mutation]]`). Never wikilink doses or generic verbs.
+3. **Mermaid diagrams** allowed for mechanism of action cascades (target → downstream → clinical effect) when the claim set supports 3+ mechanistic steps. Fenced ```mermaid``` block. Cite load-bearing claim with `[c:<id>]` adjacent.
+4. **Citations are sacred.** Every claim_id supporting a dose, contraindication, interaction, or efficacy statement must appear as `[c:<8char>]`. Never fabricate. Dropping a dose-supporting citation is a hard reject.
+
+
+===== USER =====
+# Entity
+high-dose short-course primaquine
+
+# Surface variants
+high-dose short-course primaquine
+
+# Entity type (classifier hint)
+medication
+
+# Claims (count=2)
+```json
+[
+  {
+    "claim_id": "7ae755f6-6652-49a7-b210-afa19ce189ca",
+    "short_id": "7ae755f6",
+    "subject": "high-dose short-course primaquine",
+    "predicate": "requires",
+    "object": "G6PD activity >=70%",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Bangladesh, Indonesia, Ethiopia",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "primaquine",
+        "mg_per_kg": 7.0,
+        "frequency": "daily",
+        "duration": "7 days"
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "RCT",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37979594",
+      "title": "Primaquine radical cure in patients with Plasmodium falciparum malaria in areas co-endemic for P falciparum and Plasmodium vivax (PRIMA): a multicentre, open-label, superiority randomised controlled trial.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37979594/"
+    }
+  },
+  {
+    "claim_id": "9df20651-a4b5-4f2d-8a9e-10689ee0a0f0",
+    "short_id": "9df20651",
+    "subject": "high-dose short-course primaquine",
+    "predicate": "prevents",
+    "object": "subsequent P vivax parasitaemia after P falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": ">=1 year (Bangladesh, Indonesia); >=18 years (Ethiopia)",
+        "pregnancy": null,
+        "region": "Bangladesh, Indonesia, Ethiopia",
+        "immune_status": null,
+        "comorbidities": [
+          "G6PD activity >=70%"
+        ]
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "primaquine",
+        "mg_per_kg": 7.0,
+        "frequency": "daily",
+        "duration": "7 days"
+      },
+      "comparator": "single-dose primaquine 0.25 mg/kg (standard care)",
+      "effect_size": {
+        "metric": "hazard ratio for P vivax parasitaemia by day 63",
+        "value": 0.2,
+        "ci_low": 0.08,
+        "ci_high": 0.51
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "RCT",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37979594",
+      "title": "Primaquine radical cure in patients with Plasmodium falciparum malaria in areas co-endemic for P falciparum and Plasmodium vivax (PRIMA): a multicentre, open-label, superiority randomised controlled trial.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37979594/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-13T18:53:05.576004+00:00
+
+
+===== STDOUT =====
+---
+type: medication
+drug_class: 8-aminoquinoline
+tags: [malaria/treatment, malaria/radical-cure, malaria/vivax-prevention]
+evidence_grade_max: RCT
+claim_count: 2
+last_regen: 2026-05-13T18:53:05Z
+---
+
+# High-dose short-course primaquine
+
+**Therapeutic category:** Antimalarial
+**Drug group:** 8-aminoquinoline
+**Drug class:** 8-aminoquinoline
+**Controlled substance:** No
+
+## Overview
+
+High-dose short-course primaquine = 7 mg/kg total split daily over 7 days (1 mg/kg/day). Given after [[falciparum-malaria]] treatment in co-endemic regions to prevent later [[vivax-malaria]] parasitaemia from undetected hypnozoites. Requires G6PD screening before use (pending review).
+
+## Indication (Why is this medication prescribed?)
+
+- Prevention of subsequent [[vivax-malaria]] parasitaemia after [[falciparum-malaria]] in P falciparum/P vivax co-endemic regions (Bangladesh, Indonesia, Ethiopia) [c:9df20651] (pending review).
+
+## Mechanism of Action (How does it work?)
+
+8-aminoquinoline. Clears [[plasmodium-vivax]] hypnozoites in liver — radical cure. Trial used 7-day regimen to prevent day-63 vivax parasitaemia after falciparum episode [c:9df20651] (pending review).
+
+```mermaid
+flowchart LR
+  A[Primaquine 1 mg/kg/day x7d] --> B[Liver hypnozoite clearance]
+  B --> C[No P vivax relapse]
+  C --> D[Lower day-63 vivax parasitaemia]
+```
+[c:9df20651]
+
+## Dosage and Administration
+
+| Indication | Population | Dose | Route | Frequency | Duration |
+|---|---|---|---|---|---|
+| Prevent post-falciparum [[vivax-malaria]] | ≥1 yr (Bangladesh, Indonesia); ≥18 yr (Ethiopia); G6PD ≥70%; outpatient | 1 mg/kg/day (7 mg/kg total) | — | daily | 7 days |
+
+[c:7ae755f6][c:9df20651] (pending review, RCT). No pediatric <1 yr, pregnancy, or renal-adjusted dose claims in current corpus.
+
+## Contraindications (When not to use it)
+
+- G6PD activity <70% — absolute per trial eligibility [c:7ae755f6] (pending review). See [[g6pd-deficiency]].
+- No claims on pregnancy, infants <1 yr, lactation in current corpus.
+
+## Warnings and Precautions
+
+- Quantitative G6PD testing required pre-dose [c:7ae755f6] (pending review).
+- Hemolysis risk in [[g6pd-deficiency]] — class warning, not from current claims.
+
+## Side Effects
+
+_No adverse-event claims in current corpus._
+
+## Drug Interactions
+
+_No interaction claims in current corpus._ Co-administered with falciparum [[schizonticide]] (e.g. [[artemisinin-combination-therapy]]) in source trial — interaction direction not characterized [c:9df20651].
+
+## Storage and Stability
+
+_No storage claims in current corpus._
+
+## Efficacy
+
+- vs single-dose [[primaquine]] 0.25 mg/kg: HR 0.20 (95% CI 0.08–0.51) for day-63 P vivax parasitaemia [c:9df20651] (RCT, pending review).
+
+---
+*Last regenerated: 2026-05-13T18:53:05Z. Source claims: 2. Evidence mix: 2 RCT (both pending review, same trial PMID:37979594).*

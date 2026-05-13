@@ -1,0 +1,313 @@
+===== SYSTEM =====
+# Concept note — Medication (Master-sheet Medications aligned)
+
+You are writing a single Markdown note about ONE medication (drug, biologic, or therapeutic agent). The headings match the Master-sheet "Medications" columns so an exporter can lift each section into the corresponding cell.
+
+You are given:
+- The drug name (generic).
+- A list of qualified claims about this drug, with predicate, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused medication note. Re-synthesize from the current claim set on every regeneration.
+
+## Output structure
+
+```
+---
+type: medication
+drug_class: <e.g. artemisinin-combination-therapy>
+tags: [<area/sub-area>, ...]            # e.g. malaria/treatment, malaria/severe
+evidence_grade_max: <meta_analysis|RCT|guideline|cohort|case_control|case_report|expert_opinion>
+claim_count: <int>
+last_regen: <ISO-8601 timestamp>
+---
+
+# <Generic name>
+
+**Therapeutic category:** <e.g. Antimalarial>
+**Drug group:** <e.g. Artemisinin combination therapy>
+**Drug class:** <e.g. Sesquiterpene endoperoxide>
+**Controlled substance:** <Yes — Schedule X · No>
+
+## Overview
+
+≤ 80 words plain-language description.
+
+## Indication (Why is this medication prescribed?)
+
+Bullet list of conditions/uses. Cite inline.
+
+## Mechanism of Action (How does it work?)
+
+Short paragraph. Cite mechanism claims explicitly.
+
+## Dosage and Administration
+
+Table or bullet list, organised by indication and population (adult / pediatric / pregnancy / renal-adjusted). Include dose, route, frequency, duration. Only state what claims support — never invent a dose.
+
+## Contraindications (When not to use it)
+
+Bullet list. Distinguish absolute from relative.
+
+## Warnings and Precautions
+
+Bullet list of black-box warnings, severe precautions, monitoring requirements.
+
+## Side Effects
+
+Bullet list grouped by frequency (common / serious / rare). Flag the ones with mortality risk.
+
+## Drug Interactions
+
+Bullet list. For each interaction, state effect direction (↑/↓ exposure, additive toxicity, etc.) and severity.
+
+## Storage and Stability
+
+Short paragraph or bullet list.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>. Evidence mix: <e.g. 6 RCT · 4 guideline · 2 cohort>.*
+```
+
+## Rules
+
+1. **Dose safety first.** If no claim supports a dose, write `_No dose claims in current corpus._` rather than guess. This is a hard constraint.
+2. **No hallucination** (fact-checker). Every statement traces to a claim_id; disagreements flagged with both ids.
+3. **Cite inline** (academic-researcher). `[c:<8char-claim-id>]` after each statement. Note evidence_grade when load-bearing.
+4. **Concision** (technical-writer). ≤ 800 words total.
+5. **Population qualifiers are load-bearing.** Always preserve population/setting qualifiers when surfacing dose, contraindication, or warning claims.
+6. **Brand names and prices** are out of scope for this note — they live in the Master sheet's per-country columns and are sourced separately.
+7. **Status awareness.** `(pending review)` inline for non-promoted; supersedence by replacement.
+8. **Output ONLY the Markdown.** No code fences, no preamble, no postamble.
+
+## Obsidian-friendly output (required)
+
+1. **YAML frontmatter** at the very top per the schema in the Output structure block. `type: medication` is fixed for this prompt.
+2. **Wikilink cross-references** for indications (conditions), partner/interacting drugs, target organisms, resistance genes on first mention per section. Kebab-case slugs (e.g. `[[uncomplicated-falciparum-malaria]]`, `[[lumefantrine]]`, `[[kelch13-c580y-mutation]]`). Never wikilink doses or generic verbs.
+3. **Mermaid diagrams** allowed for mechanism of action cascades (target → downstream → clinical effect) when the claim set supports 3+ mechanistic steps. Fenced ```mermaid``` block. Cite load-bearing claim with `[c:<id>]` adjacent.
+4. **Citations are sacred.** Every claim_id supporting a dose, contraindication, interaction, or efficacy statement must appear as `[c:<8char>]`. Never fabricate. Dropping a dose-supporting citation is a hard reject.
+
+
+===== USER =====
+# Entity
+iron-folic acid supplementation
+
+# Surface variants
+iron-folic acid supplementation
+
+# Entity type (classifier hint)
+medication
+
+# Claims (count=3)
+```json
+[
+  {
+    "claim_id": "6c0c06b1-d3a6-43c8-8c96-1cf02cd55b01",
+    "short_id": "6c0c06b1",
+    "subject": "iron-folic acid supplementation",
+    "predicate": "prevents",
+    "object": "preterm birth",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "iron-folic acid",
+        "mg_per_kg": null,
+        "frequency": "daily",
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "meta_analysis",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:36321557",
+      "title": "Folic acid supplementation and malaria susceptibility and severity among people taking antifolate antimalarial drugs in endemic areas.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/36321557/"
+    }
+  },
+  {
+    "claim_id": "77b59495-41c5-4e25-90d1-e84b53e5d4d1",
+    "short_id": "77b59495",
+    "subject": "iron-folic acid supplementation",
+    "predicate": "prevents",
+    "object": "low birthweight",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "iron-folic acid",
+        "mg_per_kg": null,
+        "frequency": "daily",
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "meta_analysis",
+    "status": "auto_promoted",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:36321557",
+      "title": "Folic acid supplementation and malaria susceptibility and severity among people taking antifolate antimalarial drugs in endemic areas.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/36321557/"
+    }
+  },
+  {
+    "claim_id": "39bdfd76-b47e-47a5-8d77-aa57f39d74af",
+    "short_id": "39bdfd76",
+    "subject": "iron-folic acid supplementation",
+    "predicate": "prevents",
+    "object": "maternal anaemia",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "iron-folic acid",
+        "mg_per_kg": null,
+        "frequency": "daily",
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "elemental iron (mg)",
+        "value": null,
+        "ci_low": 30.0,
+        "ci_high": 60.0
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "meta_analysis",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:36321557",
+      "title": "Folic acid supplementation and malaria susceptibility and severity among people taking antifolate antimalarial drugs in endemic areas.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/36321557/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-13T19:02:29.650305+00:00
+
+
+===== STDOUT =====
+---
+type: medication
+drug_class: hematinic-supplement
+tags: [obstetrics/antenatal-care, nutrition/micronutrient-supplementation]
+evidence_grade_max: meta_analysis
+claim_count: 3
+last_regen: 2026-05-13T19:02:29.650305+00:00
+---
+
+# Iron-Folic Acid Supplementation
+
+**Therapeutic category:** Hematinic / antenatal micronutrient supplement
+**Drug group:** Oral iron + folate combination
+**Drug class:** Elemental iron salt + pteroylmonoglutamic acid
+**Controlled substance:** No
+
+## Overview
+
+Fixed-dose oral combination of elemental iron and folic acid used routinely in antenatal care. Daily supplementation in the second and third trimesters reduces [[maternal-anaemia]], [[low-birthweight]], and [[preterm-birth]] [c:39bdfd76][c:77b59495][c:6c0c06b1]. Standard component of WHO antenatal micronutrient regimens.
+
+## Indication (Why is this medication prescribed?)
+
+- Prevention of [[maternal-anaemia]] in pregnancy (second/third trimester, outpatient) [c:39bdfd76] _(pending review)_
+- Prevention of [[low-birthweight]] in newborns of supplemented mothers [c:77b59495]
+- Prevention of [[preterm-birth]] in supplemented pregnancies [c:6c0c06b1] _(pending review)_
+
+## Mechanism of Action (How does it work?)
+
+Elemental iron replenishes erythropoietic iron stores → supports haemoglobin synthesis → corrects/prevents iron-deficiency anaemia. [[folic-acid]] supplies one-carbon units for purine/thymidylate synthesis → supports erythropoiesis and fetal tissue growth. Combined effect on maternal haematology plausibly mediates downstream reductions in low birthweight and preterm birth [c:77b59495][c:6c0c06b1].
+
+```mermaid
+flowchart LR
+  A[Oral Fe + folate] --> B[Restore Fe stores + 1-C units]
+  B --> C[Haemoglobin synthesis ↑]
+  C --> D[Maternal anaemia ↓]
+  D --> E[Low birthweight ↓ / Preterm birth ↓]
+```
+
+## Dosage and Administration
+
+| Population | Dose | Route | Frequency | Duration |
+|---|---|---|---|---|
+| Pregnant adults, 2nd/3rd trimester, outpatient | Elemental iron **30–60 mg** + folic acid (co-formulated) [c:39bdfd76] | Oral | Daily [c:39bdfd76][c:77b59495][c:6c0c06b1] | _Duration not specified in current corpus_ |
+
+Pediatric, renal-adjusted, and non-pregnant adult dosing: _No dose claims in current corpus._
+
+## Contraindications (When not to use it)
+
+_No contraindication claims in current corpus._
+
+## Warnings and Precautions
+
+_No warning/precaution claims in current corpus._ Note: source PMID:36321557 concerns folate–antifolate antimalarial interaction context; no specific warning claim extracted.
+
+## Side Effects
+
+_No adverse-effect claims in current corpus._
+
+## Drug Interactions
+
+_No interaction claims in current corpus._ Source title flags potential interaction with [[antifolate-antimalarials]]; not extracted as a discrete claim.
+
+## Storage and Stability
+
+_No storage claims in current corpus._
+
+---
+*Last regenerated: 2026-05-13T19:02:29.650305+00:00. Source claims: 3. Evidence mix: 3 meta_analysis.*

@@ -1,0 +1,408 @@
+===== SYSTEM =====
+# Concept note — Medication (Master-sheet Medications aligned)
+
+You are writing a single Markdown note about ONE medication (drug, biologic, or therapeutic agent). The headings match the Master-sheet "Medications" columns so an exporter can lift each section into the corresponding cell.
+
+You are given:
+- The drug name (generic).
+- A list of qualified claims about this drug, with predicate, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused medication note. Re-synthesize from the current claim set on every regeneration.
+
+## Output structure
+
+```
+---
+type: medication
+drug_class: <e.g. artemisinin-combination-therapy>
+tags: [<area/sub-area>, ...]            # e.g. malaria/treatment, malaria/severe
+evidence_grade_max: <meta_analysis|RCT|guideline|cohort|case_control|case_report|expert_opinion>
+claim_count: <int>
+last_regen: <ISO-8601 timestamp>
+---
+
+# <Generic name>
+
+**Therapeutic category:** <e.g. Antimalarial>
+**Drug group:** <e.g. Artemisinin combination therapy>
+**Drug class:** <e.g. Sesquiterpene endoperoxide>
+**Controlled substance:** <Yes — Schedule X · No>
+
+## Overview
+
+≤ 80 words plain-language description.
+
+## Indication (Why is this medication prescribed?)
+
+Bullet list of conditions/uses. Cite inline.
+
+## Mechanism of Action (How does it work?)
+
+Short paragraph. Cite mechanism claims explicitly.
+
+## Dosage and Administration
+
+Table or bullet list, organised by indication and population (adult / pediatric / pregnancy / renal-adjusted). Include dose, route, frequency, duration. Only state what claims support — never invent a dose.
+
+## Contraindications (When not to use it)
+
+Bullet list. Distinguish absolute from relative.
+
+## Warnings and Precautions
+
+Bullet list of black-box warnings, severe precautions, monitoring requirements.
+
+## Side Effects
+
+Bullet list grouped by frequency (common / serious / rare). Flag the ones with mortality risk.
+
+## Drug Interactions
+
+Bullet list. For each interaction, state effect direction (↑/↓ exposure, additive toxicity, etc.) and severity.
+
+## Storage and Stability
+
+Short paragraph or bullet list.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>. Evidence mix: <e.g. 6 RCT · 4 guideline · 2 cohort>.*
+```
+
+## Rules
+
+1. **Dose safety first.** If no claim supports a dose, write `_No dose claims in current corpus._` rather than guess. This is a hard constraint.
+2. **No hallucination** (fact-checker). Every statement traces to a claim_id; disagreements flagged with both ids.
+3. **Cite inline** (academic-researcher). `[c:<8char-claim-id>]` after each statement. Note evidence_grade when load-bearing.
+4. **Concision** (technical-writer). ≤ 800 words total.
+5. **Population qualifiers are load-bearing.** Always preserve population/setting qualifiers when surfacing dose, contraindication, or warning claims.
+6. **Brand names and prices** are out of scope for this note — they live in the Master sheet's per-country columns and are sourced separately.
+7. **Status awareness.** `(pending review)` inline for non-promoted; supersedence by replacement.
+8. **Output ONLY the Markdown.** No code fences, no preamble, no postamble.
+
+## Obsidian-friendly output (required)
+
+1. **YAML frontmatter** at the very top per the schema in the Output structure block. `type: medication` is fixed for this prompt.
+2. **Wikilink cross-references** for indications (conditions), partner/interacting drugs, target organisms, resistance genes on first mention per section. Kebab-case slugs (e.g. `[[uncomplicated-falciparum-malaria]]`, `[[lumefantrine]]`, `[[kelch13-c580y-mutation]]`). Never wikilink doses or generic verbs.
+3. **Mermaid diagrams** allowed for mechanism of action cascades (target → downstream → clinical effect) when the claim set supports 3+ mechanistic steps. Fenced ```mermaid``` block. Cite load-bearing claim with `[c:<id>]` adjacent.
+4. **Citations are sacred.** Every claim_id supporting a dose, contraindication, interaction, or efficacy statement must appear as `[c:<8char>]`. Never fabricate. Dropping a dose-supporting citation is a hard reject.
+
+
+===== USER =====
+# Entity
+empirical broad-spectrum antibiotics
+
+# Surface variants
+empirical broad-spectrum antibiotics
+
+# Entity type (classifier hint)
+medication
+
+# Claims (count=5)
+```json
+[
+  {
+    "claim_id": "abe0dd6a-535f-4932-ac5e-e9ed6f2519eb",
+    "short_id": "abe0dd6a",
+    "subject": "empirical broad-spectrum antibiotics",
+    "predicate": "treats",
+    "object": "severe malaria with possible bacterial coinfection",
+    "qualifiers": {
+      "population": {
+        "age_range": "pediatric",
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  },
+  {
+    "claim_id": "9ca47024-09ce-40cf-b778-f40ff66ff41d",
+    "short_id": "9ca47024",
+    "subject": "empirical broad-spectrum antibiotics",
+    "predicate": "treats",
+    "object": "severe malaria with suspected bacterial co-infection",
+    "qualifiers": {
+      "population": {
+        "age_range": "pediatric",
+        "pregnancy": null,
+        "region": "UK (imported)",
+        "immune_status": null,
+        "comorbidities": [
+          "possible Gram-negative bacteraemia"
+        ]
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "traveler"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  },
+  {
+    "claim_id": "d200e663-f17d-4b17-89fd-ab379e219919",
+    "short_id": "d200e663",
+    "subject": "empirical broad-spectrum antibiotics",
+    "predicate": "treats",
+    "object": "severe malaria in children",
+    "qualifiers": {
+      "population": {
+        "age_range": "pediatric",
+        "pregnancy": null,
+        "region": "UK",
+        "immune_status": null,
+        "comorbidities": [
+          "suspected bacterial co-infection"
+        ]
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "traveler"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  },
+  {
+    "claim_id": "c09b8c11-2005-462b-abf8-301f77664f6c",
+    "short_id": "c09b8c11",
+    "subject": "empirical broad-spectrum antibiotics",
+    "predicate": "treats",
+    "object": "children with severe malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "pediatric",
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": [
+          "suspected bacterial co-infection"
+        ]
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": "until bacterial infection excluded"
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  },
+  {
+    "claim_id": "36346fc2-67d2-4efd-ab74-3e2973126713",
+    "short_id": "36346fc2",
+    "subject": "empirical broad-spectrum antibiotics",
+    "predicate": "treats",
+    "object": "children with severe malaria (pending bacterial exclusion)",
+    "qualifiers": {
+      "population": {
+        "age_range": "pediatric",
+        "pregnancy": null,
+        "region": "UK (imported)",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "non_endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-13T18:48:29.355481+00:00
+
+
+===== STDOUT =====
+---
+type: medication
+drug_class: empirical-antibacterial-therapy
+tags: [malaria/severe, malaria/pediatric, infection/coinfection]
+evidence_grade_max: expert_opinion
+claim_count: 5
+last_regen: 2026-05-13T18:48:29Z
+---
+
+# Empirical Broad-Spectrum Antibiotics
+
+**Therapeutic category:** Antibacterial (empirical adjunct)
+**Drug group:** Broad-spectrum antibacterials (class-level, agent unspecified in current claims)
+**Drug class:** Unspecified — covers Gram-negative and Gram-positive pathogens pending culture
+**Controlled substance:** No
+
+## Overview
+
+Empirical broad-spectrum antibiotics = adjunct therapy given alongside antimalarials in pediatric severe malaria when bacterial coinfection suspected. Cover likely pathogens (especially Gram-negative bacteraemia) before culture results. Not antimalarial agent itself — risk-mitigation layer for sepsis overlap. Current claim corpus class-level only; no specific agent named.
+
+## Indication (Why is this medication prescribed?)
+
+- [[severe-malaria]] with suspected bacterial coinfection, pediatric inpatient [c:abe0dd6a]
+- [[severe-malaria]] in children, imported UK cases, with possible [[gram-negative-bacteraemia]] [c:9ca47024]
+- [[severe-malaria]] in children (UK, traveler setting) with suspected bacterial co-infection [c:d200e663]
+- Children with [[severe-malaria]] and suspected bacterial co-infection, inpatient [c:c09b8c11]
+- Children with [[severe-malaria]] pending bacterial exclusion, UK non-endemic imported (pending review) [c:36346fc2]
+
+## Mechanism of Action (How does it work?)
+
+Class-level mechanism: broad-spectrum coverage of suspected bacterial pathogens (Gram-negative + Gram-positive) co-occurring with [[plasmodium-falciparum]] sepsis-like presentation. Severe malaria mimics + overlaps bacterial sepsis; coinfection rate non-trivial in pediatric cases, especially [[gram-negative-bacteraemia]] [c:9ca47024]. Empirical cover bridges diagnostic gap until cultures return.
+
+_No specific agent-level mechanism claims in current corpus._
+
+## Dosage and Administration
+
+_No dose claims in current corpus._ Specific agent, mg/kg, frequency not specified by claim set. Duration: continue **until bacterial infection excluded** [c:c09b8c11] — i.e., culture-guided stop.
+
+| Population | Setting | Duration |
+|---|---|---|
+| Pediatric, severe malaria + suspected coinfection | Inpatient | Until bacterial infection excluded [c:c09b8c11] |
+
+## Contraindications (When not to use it)
+
+_No contraindication claims in current corpus._ Standard agent-specific contraindications apply once specific antibiotic chosen (not covered by class-level claims).
+
+## Warnings and Precautions
+
+- Pediatric population — agent selection must respect pediatric safety profile [c:abe0dd6a][c:d200e663]
+- Inpatient monitoring required [c:abe0dd6a][c:c09b8c11]
+- De-escalate once cultures exclude bacterial infection — duration is conditional, not fixed [c:c09b8c11]
+- Imported/traveler UK cases: consider region-specific resistance patterns [c:9ca47024][c:36346fc2] (pending review)
+
+## Side Effects
+
+_No side effect claims in current corpus._ Depends on specific agent selected.
+
+## Drug Interactions
+
+_No interaction claims in current corpus._ Co-administration with [[artesunate]] / [[quinine]] / [[artemether-lumefantrine]] standard in severe malaria protocols but interactions not characterized in current claim set.
+
+## Storage and Stability
+
+_No storage claims in current corpus._ Agent-specific.
+
+---
+*Last regenerated: 2026-05-13T18:48:29Z. Source claims: 5. Evidence mix: 5 expert_opinion (all pending review, all PMID:26880088 UK malaria treatment guidelines 2016).*

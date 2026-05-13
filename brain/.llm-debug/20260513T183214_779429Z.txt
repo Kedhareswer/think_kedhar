@@ -1,0 +1,320 @@
+===== SYSTEM =====
+# Concept note — Medication (Master-sheet Medications aligned)
+
+You are writing a single Markdown note about ONE medication (drug, biologic, or therapeutic agent). The headings match the Master-sheet "Medications" columns so an exporter can lift each section into the corresponding cell.
+
+You are given:
+- The drug name (generic).
+- A list of qualified claims about this drug, with predicate, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused medication note. Re-synthesize from the current claim set on every regeneration.
+
+## Output structure
+
+```
+---
+type: medication
+drug_class: <e.g. artemisinin-combination-therapy>
+tags: [<area/sub-area>, ...]            # e.g. malaria/treatment, malaria/severe
+evidence_grade_max: <meta_analysis|RCT|guideline|cohort|case_control|case_report|expert_opinion>
+claim_count: <int>
+last_regen: <ISO-8601 timestamp>
+---
+
+# <Generic name>
+
+**Therapeutic category:** <e.g. Antimalarial>
+**Drug group:** <e.g. Artemisinin combination therapy>
+**Drug class:** <e.g. Sesquiterpene endoperoxide>
+**Controlled substance:** <Yes — Schedule X · No>
+
+## Overview
+
+≤ 80 words plain-language description.
+
+## Indication (Why is this medication prescribed?)
+
+Bullet list of conditions/uses. Cite inline.
+
+## Mechanism of Action (How does it work?)
+
+Short paragraph. Cite mechanism claims explicitly.
+
+## Dosage and Administration
+
+Table or bullet list, organised by indication and population (adult / pediatric / pregnancy / renal-adjusted). Include dose, route, frequency, duration. Only state what claims support — never invent a dose.
+
+## Contraindications (When not to use it)
+
+Bullet list. Distinguish absolute from relative.
+
+## Warnings and Precautions
+
+Bullet list of black-box warnings, severe precautions, monitoring requirements.
+
+## Side Effects
+
+Bullet list grouped by frequency (common / serious / rare). Flag the ones with mortality risk.
+
+## Drug Interactions
+
+Bullet list. For each interaction, state effect direction (↑/↓ exposure, additive toxicity, etc.) and severity.
+
+## Storage and Stability
+
+Short paragraph or bullet list.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>. Evidence mix: <e.g. 6 RCT · 4 guideline · 2 cohort>.*
+```
+
+## Rules
+
+1. **Dose safety first.** If no claim supports a dose, write `_No dose claims in current corpus._` rather than guess. This is a hard constraint.
+2. **No hallucination** (fact-checker). Every statement traces to a claim_id; disagreements flagged with both ids.
+3. **Cite inline** (academic-researcher). `[c:<8char-claim-id>]` after each statement. Note evidence_grade when load-bearing.
+4. **Concision** (technical-writer). ≤ 800 words total.
+5. **Population qualifiers are load-bearing.** Always preserve population/setting qualifiers when surfacing dose, contraindication, or warning claims.
+6. **Brand names and prices** are out of scope for this note — they live in the Master sheet's per-country columns and are sourced separately.
+7. **Status awareness.** `(pending review)` inline for non-promoted; supersedence by replacement.
+8. **Output ONLY the Markdown.** No code fences, no preamble, no postamble.
+
+## Obsidian-friendly output (required)
+
+1. **YAML frontmatter** at the very top per the schema in the Output structure block. `type: medication` is fixed for this prompt.
+2. **Wikilink cross-references** for indications (conditions), partner/interacting drugs, target organisms, resistance genes on first mention per section. Kebab-case slugs (e.g. `[[uncomplicated-falciparum-malaria]]`, `[[lumefantrine]]`, `[[kelch13-c580y-mutation]]`). Never wikilink doses or generic verbs.
+3. **Mermaid diagrams** allowed for mechanism of action cascades (target → downstream → clinical effect) when the claim set supports 3+ mechanistic steps. Fenced ```mermaid``` block. Cite load-bearing claim with `[c:<id>]` adjacent.
+4. **Citations are sacred.** Every claim_id supporting a dose, contraindication, interaction, or efficacy statement must appear as `[c:<8char>]`. Never fabricate. Dropping a dose-supporting citation is a hard reject.
+
+
+===== USER =====
+# Entity
+artemether-lumefantrine plus pirimiphos-methyl indoor residual spraying
+
+# Surface variants
+artemether-lumefantrine plus pirimiphos-methyl indoor residual spraying
+
+# Entity type (classifier hint)
+medication
+
+# Claims (count=3)
+```json
+[
+  {
+    "claim_id": "30139c8a-60b5-4651-a22c-e98ff7ba064a",
+    "short_id": "30139c8a",
+    "subject": "artemether-lumefantrine plus pirimiphos-methyl indoor residual spraying",
+    "predicate": "prevents",
+    "object": "malaria seroprevalence in non-recipients within 3 km",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Namibia",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemether-lumefantrine + pirimiphos-methyl IRS",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "no reactive focal intervention",
+      "effect_size": {
+        "metric": "reduction in seroprevalence (%)",
+        "value": 34.0,
+        "ci_low": 20.0,
+        "ci_high": 45.0
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "RCT",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:38965434",
+      "title": "Extension of efficacy range for targeted malaria-elimination interventions due to spillover effects.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38965434/"
+    }
+  },
+  {
+    "claim_id": "c1100831-9032-4b84-8f24-15ae734a6f5d",
+    "short_id": "c1100831",
+    "subject": "artemether-lumefantrine plus pirimiphos-methyl indoor residual spraying",
+    "predicate": "prevents",
+    "object": "malaria infection prevalence in non-recipients within 3 km",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Namibia",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemether-lumefantrine + pirimiphos-methyl IRS",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "no reactive focal intervention",
+      "effect_size": {
+        "metric": "reduction in infection prevalence (%)",
+        "value": 79.0,
+        "ci_low": 6.0,
+        "ci_high": 95.0
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "RCT",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:38965434",
+      "title": "Extension of efficacy range for targeted malaria-elimination interventions due to spillover effects.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38965434/"
+    }
+  },
+  {
+    "claim_id": "0670e3b6-98c0-47b0-ab1c-b82a3b5c948c",
+    "short_id": "0670e3b6",
+    "subject": "artemether-lumefantrine plus pirimiphos-methyl indoor residual spraying",
+    "predicate": "prevents",
+    "object": "malaria incidence in non-recipients within 1 km of index cases",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Namibia",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemether-lumefantrine + pirimiphos-methyl IRS",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "no reactive focal intervention",
+      "effect_size": {
+        "metric": "reduction in malaria incidence (%)",
+        "value": 43.0,
+        "ci_low": 20.0,
+        "ci_high": 59.0
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "RCT",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:38965434",
+      "title": "Extension of efficacy range for targeted malaria-elimination interventions due to spillover effects.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38965434/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-13T18:31:54.595860+00:00
+
+
+===== STDOUT =====
+---
+type: medication
+drug_class: combination-intervention-act-plus-irs
+tags: [malaria/elimination, malaria/reactive-focal-intervention, vector-control]
+evidence_grade_max: RCT
+claim_count: 3
+last_regen: 2026-05-13T18:31:54.595860+00:00
+---
+
+# Artemether-Lumefantrine plus Pirimiphos-Methyl Indoor Residual Spraying
+
+**Therapeutic category:** Combination malaria elimination intervention (reactive focal)
+**Drug group:** [[artemisinin-combination-therapy]] + organophosphate [[indoor-residual-spraying]]
+**Drug class:** Sesquiterpene endoperoxide + aryl-amino alcohol (oral) co-deployed with organophosphate insecticide (IRS)
+**Controlled substance:** No
+
+## Overview
+
+Reactive focal intervention pairing oral [[artemether-lumefantrine]] presumptive treatment with [[pirimiphos-methyl]] indoor residual spraying around index malaria cases. Deployed at community level in endemic [[namibia]] elimination settings to suppress local [[plasmodium-falciparum]] transmission. Effect extends beyond direct recipients via spillover to neighbours within 1–3 km (pending review).
+
+## Indication (Why is this medication prescribed?)
+
+- Reactive focal intervention around index [[malaria]] cases in elimination-phase endemic settings, community care level [c:0670e3b6] [c:c1100831] [c:30139c8a] (pending review).
+
+## Mechanism of Action (How does it work?)
+
+Dual-arm transmission interruption. AL clears bloodstream [[plasmodium-falciparum]] gametocytes/asexual stages in index-area residents; pirimiphos-methyl IRS kills indoor-resting [[anopheles]] vectors. Combined effect shrinks infectious reservoir + vector capacity around index case, producing spillover protection to non-recipients within 1–3 km [c:0670e3b6] [c:c1100831] [c:30139c8a] (pending review, RCT).
+
+```mermaid
+graph LR
+  A[Index case detected] --> B[AL presumptive Tx — recipients]
+  A --> C[Pirimiphos-methyl IRS — recipient households]
+  B --> D[Reservoir ↓]
+  C --> E[Vector survival ↓]
+  D --> F[Non-recipient incidence ↓ within 1 km]
+  E --> F
+  D --> G[Non-recipient infection prevalence ↓ within 3 km]
+  E --> G
+```
+[c:0670e3b6]
+
+## Dosage and Administration
+
+_No dose claims in current corpus._ Reactive-focal deployment around index cases in [[namibia]] community setting documented; per-recipient AL mg/kg + IRS coverage radius not specified by claims [c:30139c8a] (pending review).
+
+## Contraindications (When not to use it)
+
+_No contraindication claims in current corpus._
+
+## Warnings and Precautions
+
+_No warning/precaution claims in current corpus._ Standard cautions for component agents ([[artemether-lumefantrine]], [[pirimiphos-methyl]]) apply but not asserted by present claims.
+
+## Side Effects
+
+_No adverse-event claims in current corpus._
+
+## Drug Interactions
+
+_No interaction claims in current corpus._
+
+## Efficacy (spillover, non-recipients)
+
+vs no reactive focal intervention, [[namibia]] community endemic setting, RCT (all pending review):
+
+- Malaria incidence within 1 km of index case: **↓ 43%** (CI 20–59), certainty moderate [c:0670e3b6].
+- Infection prevalence within 3 km: **↓ 79%** (CI 6–95), certainty low — wide CI [c:c1100831].
+- Seroprevalence within 3 km: **↓ 34%** (CI 20–45), certainty moderate [c:30139c8a].
+
+## Storage and Stability
+
+_No storage claims in current corpus._
+
+---
+*Last regenerated: 2026-05-13T18:31:54.595860+00:00. Source claims: 3. Evidence mix: 3 RCT (all pending review).*

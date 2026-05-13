@@ -1,0 +1,358 @@
+===== SYSTEM =====
+# Concept note — Medication (Master-sheet Medications aligned)
+
+You are writing a single Markdown note about ONE medication (drug, biologic, or therapeutic agent). The headings match the Master-sheet "Medications" columns so an exporter can lift each section into the corresponding cell.
+
+You are given:
+- The drug name (generic).
+- A list of qualified claims about this drug, with predicate, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused medication note. Re-synthesize from the current claim set on every regeneration.
+
+## Output structure
+
+```
+---
+type: medication
+drug_class: <e.g. artemisinin-combination-therapy>
+tags: [<area/sub-area>, ...]            # e.g. malaria/treatment, malaria/severe
+evidence_grade_max: <meta_analysis|RCT|guideline|cohort|case_control|case_report|expert_opinion>
+claim_count: <int>
+last_regen: <ISO-8601 timestamp>
+---
+
+# <Generic name>
+
+**Therapeutic category:** <e.g. Antimalarial>
+**Drug group:** <e.g. Artemisinin combination therapy>
+**Drug class:** <e.g. Sesquiterpene endoperoxide>
+**Controlled substance:** <Yes — Schedule X · No>
+
+## Overview
+
+≤ 80 words plain-language description.
+
+## Indication (Why is this medication prescribed?)
+
+Bullet list of conditions/uses. Cite inline.
+
+## Mechanism of Action (How does it work?)
+
+Short paragraph. Cite mechanism claims explicitly.
+
+## Dosage and Administration
+
+Table or bullet list, organised by indication and population (adult / pediatric / pregnancy / renal-adjusted). Include dose, route, frequency, duration. Only state what claims support — never invent a dose.
+
+## Contraindications (When not to use it)
+
+Bullet list. Distinguish absolute from relative.
+
+## Warnings and Precautions
+
+Bullet list of black-box warnings, severe precautions, monitoring requirements.
+
+## Side Effects
+
+Bullet list grouped by frequency (common / serious / rare). Flag the ones with mortality risk.
+
+## Drug Interactions
+
+Bullet list. For each interaction, state effect direction (↑/↓ exposure, additive toxicity, etc.) and severity.
+
+## Storage and Stability
+
+Short paragraph or bullet list.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>. Evidence mix: <e.g. 6 RCT · 4 guideline · 2 cohort>.*
+```
+
+## Rules
+
+1. **Dose safety first.** If no claim supports a dose, write `_No dose claims in current corpus._` rather than guess. This is a hard constraint.
+2. **No hallucination** (fact-checker). Every statement traces to a claim_id; disagreements flagged with both ids.
+3. **Cite inline** (academic-researcher). `[c:<8char-claim-id>]` after each statement. Note evidence_grade when load-bearing.
+4. **Concision** (technical-writer). ≤ 800 words total.
+5. **Population qualifiers are load-bearing.** Always preserve population/setting qualifiers when surfacing dose, contraindication, or warning claims.
+6. **Brand names and prices** are out of scope for this note — they live in the Master sheet's per-country columns and are sourced separately.
+7. **Status awareness.** `(pending review)` inline for non-promoted; supersedence by replacement.
+8. **Output ONLY the Markdown.** No code fences, no preamble, no postamble.
+
+## Obsidian-friendly output (required)
+
+1. **YAML frontmatter** at the very top per the schema in the Output structure block. `type: medication` is fixed for this prompt.
+2. **Wikilink cross-references** for indications (conditions), partner/interacting drugs, target organisms, resistance genes on first mention per section. Kebab-case slugs (e.g. `[[uncomplicated-falciparum-malaria]]`, `[[lumefantrine]]`, `[[kelch13-c580y-mutation]]`). Never wikilink doses or generic verbs.
+3. **Mermaid diagrams** allowed for mechanism of action cascades (target → downstream → clinical effect) when the claim set supports 3+ mechanistic steps. Fenced ```mermaid``` block. Cite load-bearing claim with `[c:<id>]` adjacent.
+4. **Citations are sacred.** Every claim_id supporting a dose, contraindication, interaction, or efficacy statement must appear as `[c:<8char>]`. Never fabricate. Dropping a dose-supporting citation is a hard reject.
+
+
+===== USER =====
+# Entity
+anaemia
+
+# Surface variants
+anaemia, anaemia in communities using ITNs
+
+# Entity type (classifier hint)
+medication
+
+# Claims (count=4)
+```json
+[
+  {
+    "claim_id": "c0de6166-d40f-4202-bed8-c0e091a6abf6",
+    "short_id": "c0de6166",
+    "subject": "indoor residual spraying with pyrethroid-like insecticide",
+    "predicate": "prevents",
+    "object": "anaemia",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "DDT or deltamethrin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "ITNs alone",
+      "effect_size": {
+        "metric": "risk ratio for anaemia prevalence",
+        "value": 1.12,
+        "ci_low": 0.89,
+        "ci_high": 1.4
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "meta_analysis",
+    "status": "auto_promoted",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:31120132",
+      "title": "Indoor residual spraying for preventing malaria in communities using insecticide-treated nets.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/31120132/"
+    }
+  },
+  {
+    "claim_id": "f098b7ec-df2e-4037-9ced-8483593ef879",
+    "short_id": "f098b7ec",
+    "subject": "indoor residual spraying with non-pyrethroid-like insecticide",
+    "predicate": "prevents",
+    "object": "anaemia",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "bendiocarb or pirimiphos-methyl",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "ITNs alone",
+      "effect_size": {
+        "metric": "risk ratio for anaemia prevalence",
+        "value": 0.46,
+        "ci_low": 0.18,
+        "ci_high": 1.2
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "meta_analysis",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:31120132",
+      "title": "Indoor residual spraying for preventing malaria in communities using insecticide-treated nets.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/31120132/"
+    }
+  },
+  {
+    "claim_id": "d61b7e6d-0333-4af6-9f53-0edddea97b22",
+    "short_id": "d61b7e6d",
+    "subject": "indoor residual spraying with pyrethroid-like insecticides",
+    "predicate": "prevents",
+    "object": "anaemia in communities using ITNs",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "DDT or deltamethrin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "ITNs alone",
+      "effect_size": {
+        "metric": "risk ratio for anaemia prevalence",
+        "value": 1.12,
+        "ci_low": 0.89,
+        "ci_high": 1.4
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "meta_analysis",
+    "status": "auto_promoted",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:35038163",
+      "title": "Indoor residual spraying for preventing malaria in communities using insecticide-treated nets.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35038163/"
+    }
+  },
+  {
+    "claim_id": "320e8c41-a2ac-4351-b7eb-63fa43f57c19",
+    "short_id": "320e8c41",
+    "subject": "indoor residual spraying with non-pyrethroid-like insecticides",
+    "predicate": "prevents",
+    "object": "anaemia in communities using ITNs",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "bendiocarb, pirimiphos-methyl, or propoxur",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "ITNs alone",
+      "effect_size": {
+        "metric": "risk ratio for anaemia prevalence",
+        "value": 0.71,
+        "ci_low": 0.38,
+        "ci_high": 1.31
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "meta_analysis",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:35038163",
+      "title": "Indoor residual spraying for preventing malaria in communities using insecticide-treated nets.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35038163/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-13T18:29:13.500208+00:00
+
+
+===== STDOUT =====
+---
+type: medication
+drug_class: not-a-medication
+tags: [malaria/prevention, anaemia/prevention, vector-control]
+evidence_grade_max: meta_analysis
+claim_count: 4
+last_regen: 2026-05-13T18:29:13Z
+---
+
+# Anaemia
+
+**Therapeutic category:** _Not applicable — entity is a clinical condition, not a medication._
+**Drug group:** _n/a_
+**Drug class:** _n/a_
+**Controlled substance:** _n/a_
+
+## Overview
+
+Entity classifier flagged `anaemia` as medication, but anaemia is a haematologic condition (reduced haemoglobin / red-cell mass), commonly secondary to malaria in endemic sub-Saharan Africa. Current corpus contains no pharmacologic claims for anaemia itself — all 4 claims describe [[indoor-residual-spraying]] (vector control) as upstream prevention of anaemia in [[itn]]-using communities. Note retained as stub pending re-classification.
+
+## Indication (Why is this medication prescribed?)
+
+- _No medication-indication claims in current corpus._
+- Upstream prevention only: IRS with pyrethroid-like insecticides ([[ddt]] / [[deltamethrin]]) targets anaemia prevalence in [[sub-saharan-africa]] communities already using ITNs [c:c0de6166] [c:d61b7e6d].
+- IRS with non-pyrethroid-like insecticides ([[bendiocarb]] / [[pirimiphos-methyl]] / [[propoxur]]) likewise [c:f098b7ec] (pending review) [c:320e8c41] (pending review).
+
+## Mechanism of Action (How does it work?)
+
+_No mechanism-of-action claims in current corpus._ Anaemia is a downstream outcome, not an agent. Vector-control claims act upstream by reducing [[plasmodium-falciparum]] transmission → fewer infections → less haemolysis and dyserythropoiesis → lower anaemia prevalence.
+
+```mermaid
+flowchart LR
+  A[IRS insecticide] --> B[Vector mortality]
+  B --> C[Reduced P. falciparum transmission]
+  C --> D[Fewer malaria infections]
+  D --> E[Less haemolysis/dyserythropoiesis]
+  E --> F[Lower anaemia prevalence]
+```
+Cascade supported by meta-analytic risk ratios on anaemia endpoint [c:c0de6166] [c:d61b7e6d].
+
+## Dosage and Administration
+
+_No dose claims in current corpus._ Anaemia is not a drug; dosing not applicable. Insecticide application regimens (mg/kg, frequency, duration) not specified in source claims [c:c0de6166] [c:f098b7ec] [c:d61b7e6d] [c:320e8c41].
+
+## Contraindications (When not to use it)
+
+_No contraindication claims in current corpus._ Not applicable to a condition entity.
+
+## Warnings and Precautions
+
+- Effect sizes for IRS-on-anaemia are imprecise. Pyrethroid-like IRS vs ITNs alone: RR 1.12 (95% CI 0.89–1.40), evidence_grade meta_analysis, certainty low [c:c0de6166] [c:d61b7e6d] — CI crosses 1, no significant benefit over ITNs alone.
+- Non-pyrethroid-like IRS vs ITNs alone: RR 0.46 (0.18–1.20) [c:f098b7ec] (pending review) and RR 0.71 (0.38–1.31) [c:320e8c41] (pending review) — point estimates favour benefit but CIs cross 1.
+- Two PMIDs (31120132, 35038163) report overlapping pyrethroid-like estimates; non-pyrethroid-like estimates diverge (0.46 vs 0.71) — possible Cochrane update supersedence not encoded in `supersedes_id`. Flag for review.
+
+## Side Effects
+
+_No side-effect claims in current corpus._
+
+## Drug Interactions
+
+_No interaction claims in current corpus._
+
+## Storage and Stability
+
+_Not applicable._
+
+---
+*Last regenerated: 2026-05-13T18:29:13Z. Source claims: 4. Evidence mix: 4 meta_analysis (2 auto_promoted · 2 pending_review). Entity-type mismatch: classifier labelled `anaemia` as medication; recommend reclassification to `condition`.*

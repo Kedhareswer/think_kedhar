@@ -1,0 +1,356 @@
+===== SYSTEM =====
+# Concept note — Medication (Master-sheet Medications aligned)
+
+You are writing a single Markdown note about ONE medication (drug, biologic, or therapeutic agent). The headings match the Master-sheet "Medications" columns so an exporter can lift each section into the corresponding cell.
+
+You are given:
+- The drug name (generic).
+- A list of qualified claims about this drug, with predicate, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused medication note. Re-synthesize from the current claim set on every regeneration.
+
+## Output structure
+
+```
+---
+type: medication
+drug_class: <e.g. artemisinin-combination-therapy>
+tags: [<area/sub-area>, ...]            # e.g. malaria/treatment, malaria/severe
+evidence_grade_max: <meta_analysis|RCT|guideline|cohort|case_control|case_report|expert_opinion>
+claim_count: <int>
+last_regen: <ISO-8601 timestamp>
+---
+
+# <Generic name>
+
+**Therapeutic category:** <e.g. Antimalarial>
+**Drug group:** <e.g. Artemisinin combination therapy>
+**Drug class:** <e.g. Sesquiterpene endoperoxide>
+**Controlled substance:** <Yes — Schedule X · No>
+
+## Overview
+
+≤ 80 words plain-language description.
+
+## Indication (Why is this medication prescribed?)
+
+Bullet list of conditions/uses. Cite inline.
+
+## Mechanism of Action (How does it work?)
+
+Short paragraph. Cite mechanism claims explicitly.
+
+## Dosage and Administration
+
+Table or bullet list, organised by indication and population (adult / pediatric / pregnancy / renal-adjusted). Include dose, route, frequency, duration. Only state what claims support — never invent a dose.
+
+## Contraindications (When not to use it)
+
+Bullet list. Distinguish absolute from relative.
+
+## Warnings and Precautions
+
+Bullet list of black-box warnings, severe precautions, monitoring requirements.
+
+## Side Effects
+
+Bullet list grouped by frequency (common / serious / rare). Flag the ones with mortality risk.
+
+## Drug Interactions
+
+Bullet list. For each interaction, state effect direction (↑/↓ exposure, additive toxicity, etc.) and severity.
+
+## Storage and Stability
+
+Short paragraph or bullet list.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>. Evidence mix: <e.g. 6 RCT · 4 guideline · 2 cohort>.*
+```
+
+## Rules
+
+1. **Dose safety first.** If no claim supports a dose, write `_No dose claims in current corpus._` rather than guess. This is a hard constraint.
+2. **No hallucination** (fact-checker). Every statement traces to a claim_id; disagreements flagged with both ids.
+3. **Cite inline** (academic-researcher). `[c:<8char-claim-id>]` after each statement. Note evidence_grade when load-bearing.
+4. **Concision** (technical-writer). ≤ 800 words total.
+5. **Population qualifiers are load-bearing.** Always preserve population/setting qualifiers when surfacing dose, contraindication, or warning claims.
+6. **Brand names and prices** are out of scope for this note — they live in the Master sheet's per-country columns and are sourced separately.
+7. **Status awareness.** `(pending review)` inline for non-promoted; supersedence by replacement.
+8. **Output ONLY the Markdown.** No code fences, no preamble, no postamble.
+
+## Obsidian-friendly output (required)
+
+1. **YAML frontmatter** at the very top per the schema in the Output structure block. `type: medication` is fixed for this prompt.
+2. **Wikilink cross-references** for indications (conditions), partner/interacting drugs, target organisms, resistance genes on first mention per section. Kebab-case slugs (e.g. `[[uncomplicated-falciparum-malaria]]`, `[[lumefantrine]]`, `[[kelch13-c580y-mutation]]`). Never wikilink doses or generic verbs.
+3. **Mermaid diagrams** allowed for mechanism of action cascades (target → downstream → clinical effect) when the claim set supports 3+ mechanistic steps. Fenced ```mermaid``` block. Cite load-bearing claim with `[c:<id>]` adjacent.
+4. **Citations are sacred.** Every claim_id supporting a dose, contraindication, interaction, or efficacy statement must appear as `[c:<8char>]`. Never fabricate. Dropping a dose-supporting citation is a hard reject.
+
+
+===== USER =====
+# Entity
+fatal plasmodium knowlesi malaria
+
+# Surface variants
+fatal Plasmodium knowlesi malaria
+
+# Entity type (classifier hint)
+medication
+
+# Claims (count=4)
+```json
+[
+  {
+    "claim_id": "3274cbe7-3884-4313-8886-c980c4638500",
+    "short_id": "3274cbe7",
+    "subject": "cardiovascular comorbidities",
+    "predicate": "co_occurs",
+    "object": "fatal Plasmodium knowlesi malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": null,
+        "region": "Southeast Asia",
+        "immune_status": null,
+        "comorbidities": [
+          "cardiovascular disease",
+          "metabolic disease"
+        ]
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "proportion of fatal cases with cardiovascular-metabolic disease",
+        "value": 34.0,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "meta_analysis",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:30624597",
+      "title": "Deaths From Plasmodium knowlesi Malaria: Case Series and Systematic Review.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/30624597/"
+    }
+  },
+  {
+    "claim_id": "d7c0f96f-5010-47ac-af73-a985ccee7d9e",
+    "short_id": "d7c0f96f",
+    "subject": "delayed intravenous antimalarial treatment",
+    "predicate": "co_occurs",
+    "object": "fatal Plasmodium knowlesi malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Southeast Asia",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "proportion of fatal cases",
+        "value": 36.0,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "meta_analysis",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:30624597",
+      "title": "Deaths From Plasmodium knowlesi Malaria: Case Series and Systematic Review.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/30624597/"
+    }
+  },
+  {
+    "claim_id": "bd5a6115-79e6-4e82-aeac-351f416ff19f",
+    "short_id": "bd5a6115",
+    "subject": "microscopic misdiagnosis",
+    "predicate": "co_occurs",
+    "object": "fatal Plasmodium knowlesi malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Southeast Asia",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "proportion of fatal cases",
+        "value": 90.0,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "meta_analysis",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:30624597",
+      "title": "Deaths From Plasmodium knowlesi Malaria: Case Series and Systematic Review.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/30624597/"
+    }
+  },
+  {
+    "claim_id": "02d37ec7-b1ca-4524-b25d-2fd3d4339b11",
+    "short_id": "02d37ec7",
+    "subject": "cardiovascular comorbidity",
+    "predicate": "co_occurs",
+    "object": "fatal Plasmodium knowlesi malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": null,
+        "region": "Sabah, Malaysia",
+        "immune_status": null,
+        "comorbidities": [
+          "cardiovascular disease",
+          "metabolic disease"
+        ]
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "proportion of fatal cases",
+        "value": 34.0,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "meta_analysis",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:30624597",
+      "title": "Deaths From Plasmodium knowlesi Malaria: Case Series and Systematic Review.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/30624597/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-13T18:50:01.174081+00:00
+
+
+===== STDOUT =====
+---
+type: medication
+drug_class: not-applicable-entity-is-disease-outcome
+tags: [malaria/severe, malaria/knowlesi, mortality-risk-factors]
+evidence_grade_max: meta_analysis
+claim_count: 4
+last_regen: 2026-05-13T18:50:01Z
+---
+
+# Fatal Plasmodium knowlesi Malaria
+
+**Therapeutic category:** _Not applicable — entity is a clinical outcome, not a medication._
+**Drug group:** _N/A_
+**Drug class:** _N/A_
+**Controlled substance:** _N/A_
+
+> **Classification note (pending review):** Entity supplied as `medication` but corpus describes a fatal disease outcome of [[plasmodium-knowlesi]] infection. Note rendered using medication template; medication-specific sections marked N/A. Recommend reclassifying to `condition` or `clinical-outcome`.
+
+## Overview
+
+Fatal [[plasmodium-knowlesi-malaria]] = death from zoonotic simian malaria, [[southeast-asia]] endemic, especially [[sabah-malaysia]]. Current corpus (4 claims, all meta-analysis grade, all pending review, all from PMID:30624597) characterises risk-factor profile of fatal cases — not a pharmacotherapy.
+
+## Indication (Why is this medication prescribed?)
+
+_Not applicable. Entity is disease outcome, not therapeutic agent._
+
+## Mechanism of Action (How does it work?)
+
+_No mechanism-of-action claims in current corpus. Mechanism of fatal progression (hyperparasitaemia, multi-organ failure) not represented in supplied claims._
+
+## Dosage and Administration
+
+_No dose claims in current corpus._
+
+## Contraindications (When not to use it)
+
+_Not applicable._
+
+## Warnings and Precautions
+
+Risk factors for fatal outcome (inpatient, endemic [[southeast-asia]] setting):
+
+- **[[cardiovascular-disease]] / [[metabolic-disease]] comorbidity in adults** — present in 34% of fatal cases [c:3274cbe7] (pending review, meta-analysis, moderate certainty). [[sabah-malaysia]] subset confirms 34% [c:02d37ec7] (pending review, low certainty).
+- **Delayed [[intravenous-antimalarial-treatment]]** — present in 36% of fatal cases [c:d7c0f96f] (pending review, low certainty). Implication: prompt parenteral [[artesunate]] critical; delay = mortality signal.
+- **Microscopic [[species-misdiagnosis]]** — present in 90% of fatal cases [c:bd5a6115] (pending review, low certainty). P. knowlesi morphologically mimics [[plasmodium-malariae]] (ring/band forms) and [[plasmodium-falciparum]] (early rings). Microscopy alone insufficient; confirm with [[pcr-speciation]].
+
+## Side Effects
+
+_Not applicable — entity is outcome, not agent._
+
+## Drug Interactions
+
+_Not applicable._
+
+## Storage and Stability
+
+_Not applicable._
+
+---
+*Last regenerated: 2026-05-13T18:50:01Z. Source claims: 4 (all pending review). Evidence mix: 4 meta-analysis (all PMID:30624597). Entity-type mismatch flagged — reclassify recommended.*

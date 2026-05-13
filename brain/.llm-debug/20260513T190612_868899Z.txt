@@ -1,0 +1,5649 @@
+===== SYSTEM =====
+# Concept note — Medication (Master-sheet Medications aligned)
+
+You are writing a single Markdown note about ONE medication (drug, biologic, or therapeutic agent). The headings match the Master-sheet "Medications" columns so an exporter can lift each section into the corresponding cell.
+
+You are given:
+- The drug name (generic).
+- A list of qualified claims about this drug, with predicate, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused medication note. Re-synthesize from the current claim set on every regeneration.
+
+## Output structure
+
+```
+---
+type: medication
+drug_class: <e.g. artemisinin-combination-therapy>
+tags: [<area/sub-area>, ...]            # e.g. malaria/treatment, malaria/severe
+evidence_grade_max: <meta_analysis|RCT|guideline|cohort|case_control|case_report|expert_opinion>
+claim_count: <int>
+last_regen: <ISO-8601 timestamp>
+---
+
+# <Generic name>
+
+**Therapeutic category:** <e.g. Antimalarial>
+**Drug group:** <e.g. Artemisinin combination therapy>
+**Drug class:** <e.g. Sesquiterpene endoperoxide>
+**Controlled substance:** <Yes — Schedule X · No>
+
+## Overview
+
+≤ 80 words plain-language description.
+
+## Indication (Why is this medication prescribed?)
+
+Bullet list of conditions/uses. Cite inline.
+
+## Mechanism of Action (How does it work?)
+
+Short paragraph. Cite mechanism claims explicitly.
+
+## Dosage and Administration
+
+Table or bullet list, organised by indication and population (adult / pediatric / pregnancy / renal-adjusted). Include dose, route, frequency, duration. Only state what claims support — never invent a dose.
+
+## Contraindications (When not to use it)
+
+Bullet list. Distinguish absolute from relative.
+
+## Warnings and Precautions
+
+Bullet list of black-box warnings, severe precautions, monitoring requirements.
+
+## Side Effects
+
+Bullet list grouped by frequency (common / serious / rare). Flag the ones with mortality risk.
+
+## Drug Interactions
+
+Bullet list. For each interaction, state effect direction (↑/↓ exposure, additive toxicity, etc.) and severity.
+
+## Storage and Stability
+
+Short paragraph or bullet list.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>. Evidence mix: <e.g. 6 RCT · 4 guideline · 2 cohort>.*
+```
+
+## Rules
+
+1. **Dose safety first.** If no claim supports a dose, write `_No dose claims in current corpus._` rather than guess. This is a hard constraint.
+2. **No hallucination** (fact-checker). Every statement traces to a claim_id; disagreements flagged with both ids.
+3. **Cite inline** (academic-researcher). `[c:<8char-claim-id>]` after each statement. Note evidence_grade when load-bearing.
+4. **Concision** (technical-writer). ≤ 800 words total.
+5. **Population qualifiers are load-bearing.** Always preserve population/setting qualifiers when surfacing dose, contraindication, or warning claims.
+6. **Brand names and prices** are out of scope for this note — they live in the Master sheet's per-country columns and are sourced separately.
+7. **Status awareness.** `(pending review)` inline for non-promoted; supersedence by replacement.
+8. **Output ONLY the Markdown.** No code fences, no preamble, no postamble.
+
+## Obsidian-friendly output (required)
+
+1. **YAML frontmatter** at the very top per the schema in the Output structure block. `type: medication` is fixed for this prompt.
+2. **Wikilink cross-references** for indications (conditions), partner/interacting drugs, target organisms, resistance genes on first mention per section. Kebab-case slugs (e.g. `[[uncomplicated-falciparum-malaria]]`, `[[lumefantrine]]`, `[[kelch13-c580y-mutation]]`). Never wikilink doses or generic verbs.
+3. **Mermaid diagrams** allowed for mechanism of action cascades (target → downstream → clinical effect) when the claim set supports 3+ mechanistic steps. Fenced ```mermaid``` block. Cite load-bearing claim with `[c:<id>]` adjacent.
+4. **Citations are sacred.** Every claim_id supporting a dose, contraindication, interaction, or efficacy statement must appear as `[c:<8char>]`. Never fabricate. Dropping a dose-supporting citation is a hard reject.
+
+
+===== USER =====
+# Entity
+malaria
+
+# Surface variants
+malaria, malaria in India, malaria in humans, malaria in infancy, malaria in infants, malaria in later pregnancy, malaria in military personnel, malaria in pregnancy, malaria in pregnant travelers, malaria in returning travelers, malaria in sub-Saharan Africa, malaria in travelers, malaria in travelers to endemic areas, malaria in young children
+
+# Entity type (classifier hint)
+medication
+
+# Claims (count=121)
+```json
+[
+  {
+    "claim_id": "f12c596e-1816-4677-a9bc-25d917b4eded",
+    "short_id": "f12c596e",
+    "subject": "community-level ITN campaigns",
+    "predicate": "prevents",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Ghana",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "ITN usage rate (%)",
+        "value": null,
+        "ci_low": 20.0,
+        "ci_high": 94.0
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:39127692",
+      "title": "Ownership and usage of insecticide-treated nets in Ghana: a scoping review of facilitators and barriers.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/39127692/"
+    }
+  },
+  {
+    "claim_id": "74438a86-749a-46b2-9f3c-c4b933f85704",
+    "short_id": "74438a86",
+    "subject": "insecticide-treated nets",
+    "predicate": "prevents",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Ghana",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "ITN ownership rate (%)",
+        "value": null,
+        "ci_low": 28.0,
+        "ci_high": 97.8
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:39127692",
+      "title": "Ownership and usage of insecticide-treated nets in Ghana: a scoping review of facilitators and barriers.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/39127692/"
+    }
+  },
+  {
+    "claim_id": "fca1155d-73aa-4266-963c-89dc1e05345e",
+    "short_id": "fca1155d",
+    "subject": "insecticide-treated nets",
+    "predicate": "prevents",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "pyrethroid",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "meta_analysis",
+    "status": "auto_promoted",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:31120132",
+      "title": "Indoor residual spraying for preventing malaria in communities using insecticide-treated nets.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/31120132/"
+    }
+  },
+  {
+    "claim_id": "12d04116-64d9-4f02-bedd-9ff46e6ad43b",
+    "short_id": "12d04116",
+    "subject": "malaria vaccines",
+    "predicate": "prevents",
+    "object": "malaria in young children",
+    "qualifiers": {
+      "population": {
+        "age_range": "pediatric",
+        "pregnancy": null,
+        "region": null,
+        "immune_status": "semi-immune",
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:35264158",
+      "title": "Resurgent and delayed malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35264158/"
+    }
+  },
+  {
+    "claim_id": "efebe361-7b4d-4560-a4eb-57e9aacaeffe",
+    "short_id": "efebe361",
+    "subject": "chemoprevention",
+    "predicate": "prevents",
+    "object": "malaria in young children",
+    "qualifiers": {
+      "population": {
+        "age_range": "pediatric",
+        "pregnancy": null,
+        "region": null,
+        "immune_status": "semi-immune",
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:35264158",
+      "title": "Resurgent and delayed malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35264158/"
+    }
+  },
+  {
+    "claim_id": "f236c3d2-a164-4ae3-9f60-c2457685b783",
+    "short_id": "f236c3d2",
+    "subject": "insecticide treated mosquito nets",
+    "predicate": "prevents",
+    "object": "malaria in young children",
+    "qualifiers": {
+      "population": {
+        "age_range": "pediatric",
+        "pregnancy": null,
+        "region": null,
+        "immune_status": "semi-immune",
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:35264158",
+      "title": "Resurgent and delayed malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35264158/"
+    }
+  },
+  {
+    "claim_id": "b80831cc-2109-469d-b5e4-80e6dfe19b34",
+    "short_id": "b80831cc",
+    "subject": "larviciding",
+    "predicate": "prevents",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:29368633",
+      "title": "Implementing a larviciding efficacy or effectiveness control intervention against malaria vectors: key parameters for success.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/29368633/"
+    }
+  },
+  {
+    "claim_id": "0496d512-faa4-4b84-963f-a6c486298d5d",
+    "short_id": "0496d512",
+    "subject": "indoor residual spraying",
+    "predicate": "prevents",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:29368633",
+      "title": "Implementing a larviciding efficacy or effectiveness control intervention against malaria vectors: key parameters for success.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/29368633/"
+    }
+  },
+  {
+    "claim_id": "79d49ea3-d8cb-4af8-acfb-f6a6b5aadace",
+    "short_id": "79d49ea3",
+    "subject": "long-lasting insecticidal nets",
+    "predicate": "prevents",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:29368633",
+      "title": "Implementing a larviciding efficacy or effectiveness control intervention against malaria vectors: key parameters for success.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/29368633/"
+    }
+  },
+  {
+    "claim_id": "6157331e-53a6-49ce-aa68-8e9b9c168cd6",
+    "short_id": "6157331e",
+    "subject": "charge-altering releasable transporter vaccine",
+    "predicate": "prevents",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "charge-altering releasable transporter",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "very_low",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:34347570",
+      "title": "Novel malaria vaccines.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/34347570/"
+    }
+  },
+  {
+    "claim_id": "7aed2a13-108b-490a-8def-d56dcf854100",
+    "short_id": "7aed2a13",
+    "subject": "sustained release polymer nanoparticle hydrogel vaccine",
+    "predicate": "prevents",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "polymer nanoparticle hydrogel vaccine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "very_low",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:34347570",
+      "title": "Novel malaria vaccines.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/34347570/"
+    }
+  },
+  {
+    "claim_id": "1bd4f253-201b-48ee-af07-cd5d3c27c2c3",
+    "short_id": "1bd4f253",
+    "subject": "whole organism vaccination",
+    "predicate": "prevents",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "whole organism vaccine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:34347570",
+      "title": "Novel malaria vaccines.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/34347570/"
+    }
+  },
+  {
+    "claim_id": "1bfd45e6-9cf1-4f7f-bef1-df6d534edfbd",
+    "short_id": "1bfd45e6",
+    "subject": "self-assembling protein nanoparticle vaccine",
+    "predicate": "prevents",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "self-assembling protein nanoparticle vaccine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "very_low",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:34347570",
+      "title": "Novel malaria vaccines.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/34347570/"
+    }
+  },
+  {
+    "claim_id": "0d1d3746-3a28-4833-b5e1-e7b71167b011",
+    "short_id": "0d1d3746",
+    "subject": "self-amplifying RNA vaccine",
+    "predicate": "prevents",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "self-amplifying RNA vaccine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "very_low",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:34347570",
+      "title": "Novel malaria vaccines.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/34347570/"
+    }
+  },
+  {
+    "claim_id": "5623fe3d-acc5-4c06-b868-98629c2d8d1f",
+    "short_id": "5623fe3d",
+    "subject": "circumsporozoite protein-based vaccine",
+    "predicate": "prevents",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "circumsporozoite protein-based vaccine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:34347570",
+      "title": "Novel malaria vaccines.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/34347570/"
+    }
+  },
+  {
+    "claim_id": "45b1cd93-9342-4560-8620-b17690af24af",
+    "short_id": "45b1cd93",
+    "subject": "monoclonal antibodies targeting immunogenic peptides",
+    "predicate": "prevents",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "monoclonal antibodies",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:34347570",
+      "title": "Novel malaria vaccines.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/34347570/"
+    }
+  },
+  {
+    "claim_id": "507ef420-cd20-4a53-bfe2-2cd5f3eb23ad",
+    "short_id": "507ef420",
+    "subject": "radiation-attenuated sporozoite vaccine",
+    "predicate": "prevents",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "radiation-attenuated sporozoites",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:34347570",
+      "title": "Novel malaria vaccines.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/34347570/"
+    }
+  },
+  {
+    "claim_id": "af43ff44-09f0-47d5-a661-a98468c48ce0",
+    "short_id": "af43ff44",
+    "subject": "prompt effective antimalarial treatment",
+    "predicate": "treats",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:28734514",
+      "title": "Malaria in Children.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/28734514/"
+    }
+  },
+  {
+    "claim_id": "984cfa60-dbe7-45cd-be17-6b8c99e8780c",
+    "short_id": "984cfa60",
+    "subject": "malaria",
+    "predicate": "causes",
+    "object": "fever",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:28357581",
+      "title": "Malaria: An Update.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/28357581/"
+    }
+  },
+  {
+    "claim_id": "e313b62a-3fbb-4b4d-822c-5ff038e0139a",
+    "short_id": "e313b62a",
+    "subject": "malaria",
+    "predicate": "causes",
+    "object": "mortality in children under five",
+    "qualifiers": {
+      "population": {
+        "age_range": "<5 years",
+        "pregnancy": null,
+        "region": "India",
+        "immune_status": "non-immune",
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:28357581",
+      "title": "Malaria: An Update.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/28357581/"
+    }
+  },
+  {
+    "claim_id": "d428a14f-f91c-4320-9e7e-8146cc6367f9",
+    "short_id": "d428a14f",
+    "subject": "Plasmodium vivax",
+    "predicate": "causes",
+    "object": "malaria in India",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "India",
+        "immune_status": "non-immune",
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:28357581",
+      "title": "Malaria: An Update.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/28357581/"
+    }
+  },
+  {
+    "claim_id": "54e6a8a6-7620-4fbd-a56a-7ed58319862d",
+    "short_id": "54e6a8a6",
+    "subject": "Plasmodium falciparum",
+    "predicate": "causes",
+    "object": "malaria in India",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "India",
+        "immune_status": "non-immune",
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:28357581",
+      "title": "Malaria: An Update.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/28357581/"
+    }
+  },
+  {
+    "claim_id": "db76f496-c0b8-456c-afed-02b4e813989a",
+    "short_id": "db76f496",
+    "subject": "RTS,S vaccine",
+    "predicate": "prevents",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "pediatric",
+        "pregnancy": null,
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "RTS,S",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:32620355",
+      "title": "Update on malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/32620355/"
+    }
+  },
+  {
+    "claim_id": "2657de02-c451-4f76-a6bc-48b3ce0dbc12",
+    "short_id": "2657de02",
+    "subject": "artemisinin derivatives",
+    "predicate": "treats",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinin derivatives",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:32620355",
+      "title": "Update on malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/32620355/"
+    }
+  },
+  {
+    "claim_id": "df2b4d9e-b633-4d97-8d6b-c3ef51f78496",
+    "short_id": "df2b4d9e",
+    "subject": "malaria",
+    "predicate": "causes",
+    "object": "death",
+    "qualifiers": {
+      "population": {
+        "age_range": "<5 years",
+        "pregnancy": null,
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "annual deaths (2018)",
+        "value": 405000.0,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:32620355",
+      "title": "Update on malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/32620355/"
+    }
+  },
+  {
+    "claim_id": "9ba9a7c5-3636-45a9-ac47-ebc9b3622a7e",
+    "short_id": "9ba9a7c5",
+    "subject": "malaria",
+    "predicate": "causes",
+    "object": "severe disease cases",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "annual severe cases (2018)",
+        "value": 3000000.0,
+        "ci_low": 2000000.0,
+        "ci_high": 4000000.0
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:32620355",
+      "title": "Update on malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/32620355/"
+    }
+  },
+  {
+    "claim_id": "4c7be22f-23b6-4407-93ea-3062737fec43",
+    "short_id": "4c7be22f",
+    "subject": "malaria in pregnancy",
+    "predicate": "causes",
+    "object": "fetal growth restriction",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:27645498",
+      "title": "Undernutrition and malaria in pregnancy - a dangerous dyad?",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/27645498/"
+    }
+  },
+  {
+    "claim_id": "928a06ed-fe97-4f6d-a329-ba68c362b478",
+    "short_id": "928a06ed",
+    "subject": "malaria in pregnancy",
+    "predicate": "causes",
+    "object": "preterm birth",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:27645498",
+      "title": "Undernutrition and malaria in pregnancy - a dangerous dyad?",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/27645498/"
+    }
+  },
+  {
+    "claim_id": "fb7a3787-1f0d-46f0-babb-a2397e247d15",
+    "short_id": "fb7a3787",
+    "subject": "macronutrient undernutrition",
+    "predicate": "co_occurs",
+    "object": "malaria in pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": null,
+        "immune_status": null,
+        "comorbidities": [
+          "macronutrient undernutrition"
+        ]
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:27645498",
+      "title": "Undernutrition and malaria in pregnancy - a dangerous dyad?",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/27645498/"
+    }
+  },
+  {
+    "claim_id": "0d5db98e-d5cc-483e-b30f-21796ca24f65",
+    "short_id": "0d5db98e",
+    "subject": "sulphadoxine-pyrimethamine",
+    "predicate": "prevents",
+    "object": "malaria in pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "sulphadoxine-pyrimethamine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:39018104",
+      "title": "Malaria in pregnancy: baby steps.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/39018104/"
+    }
+  },
+  {
+    "claim_id": "f3e0d13f-ec87-47f7-9ac2-8bda8dbf4e05",
+    "short_id": "f3e0d13f",
+    "subject": "artemether-lumefantrine",
+    "predicate": "treats",
+    "object": "malaria in pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "first_trimester",
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemether-lumefantrine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:39018104",
+      "title": "Malaria in pregnancy: baby steps.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/39018104/"
+    }
+  },
+  {
+    "claim_id": "61f2bc3c-9272-430a-8d24-970fedbdc989",
+    "short_id": "61f2bc3c",
+    "subject": "malaria",
+    "predicate": "prevents",
+    "object": "malaria in pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "at-risk pregnant women",
+        "value": 125000000.0,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:30979598",
+      "title": "An overview of malaria in pregnancy.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/30979598/"
+    }
+  },
+  {
+    "claim_id": "088a5d5d-7ea0-4668-ab46-ec78458bd663",
+    "short_id": "088a5d5d",
+    "subject": "malaria in pregnancy",
+    "predicate": "causes",
+    "object": "infant death",
+    "qualifiers": {
+      "population": {
+        "age_range": "pediatric",
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:30979598",
+      "title": "An overview of malaria in pregnancy.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/30979598/"
+    }
+  },
+  {
+    "claim_id": "0eb5125f-d025-4981-82a0-f04e1abdb251",
+    "short_id": "0eb5125f",
+    "subject": "malaria in pregnancy",
+    "predicate": "causes",
+    "object": "infant morbidity",
+    "qualifiers": {
+      "population": {
+        "age_range": "pediatric",
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:30979598",
+      "title": "An overview of malaria in pregnancy.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/30979598/"
+    }
+  },
+  {
+    "claim_id": "a3d8960c-3346-4223-92ab-f5bc9cbda28a",
+    "short_id": "a3d8960c",
+    "subject": "malaria in pregnancy",
+    "predicate": "causes",
+    "object": "fetal death",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:30979598",
+      "title": "An overview of malaria in pregnancy.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/30979598/"
+    }
+  },
+  {
+    "claim_id": "121428bb-fdeb-4aea-92e4-4f09de562d8a",
+    "short_id": "121428bb",
+    "subject": "malaria in pregnancy",
+    "predicate": "causes",
+    "object": "maternal death",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:30979598",
+      "title": "An overview of malaria in pregnancy.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/30979598/"
+    }
+  },
+  {
+    "claim_id": "33934556-9330-4dc0-bb61-4e73f5df0e99",
+    "short_id": "33934556",
+    "subject": "malaria in pregnancy",
+    "predicate": "causes",
+    "object": "low birth weight",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:30979598",
+      "title": "An overview of malaria in pregnancy.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/30979598/"
+    }
+  },
+  {
+    "claim_id": "46ecdf14-0a36-48d5-b1ea-7e3fe4049659",
+    "short_id": "46ecdf14",
+    "subject": "malaria in pregnancy",
+    "predicate": "causes",
+    "object": "stillbirth",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:30979598",
+      "title": "An overview of malaria in pregnancy.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/30979598/"
+    }
+  },
+  {
+    "claim_id": "9729a31a-699c-4d04-aad4-120269783645",
+    "short_id": "9729a31a",
+    "subject": "malaria in pregnancy",
+    "predicate": "causes",
+    "object": "maternal anemia",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:30979598",
+      "title": "An overview of malaria in pregnancy.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/30979598/"
+    }
+  },
+  {
+    "claim_id": "861aa3a8-7e3b-4896-9a7b-0112e6bec408",
+    "short_id": "861aa3a8",
+    "subject": "chemoprophylaxis",
+    "predicate": "prevents",
+    "object": "malaria in returning travelers",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "traveler"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  },
+  {
+    "claim_id": "cd05f44f-e343-418a-8019-5f257ab503d3",
+    "short_id": "cd05f44f",
+    "subject": "chloroquine",
+    "predicate": "prevents",
+    "object": "malaria in pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "reproductive age",
+        "pregnancy": "second_third_trimester",
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "chloroquine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:28213434",
+      "title": "Malaria during Pregnancy.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/28213434/"
+    }
+  },
+  {
+    "claim_id": "279ca30e-fa3f-472a-8635-3abfa3a10401",
+    "short_id": "279ca30e",
+    "subject": "mosquito bite avoidance",
+    "predicate": "prevents",
+    "object": "malaria in pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": "United States",
+        "immune_status": "naive",
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "non_endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37769318",
+      "title": "Malaria and Pregnancy.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37769318/"
+    }
+  },
+  {
+    "claim_id": "4d896193-2907-46ac-a89c-3e1623a3e5e0",
+    "short_id": "4d896193",
+    "subject": "chemoprophylaxis",
+    "predicate": "prevents",
+    "object": "malaria in pregnant travelers",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": null,
+        "immune_status": "naive",
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "traveler"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37769318",
+      "title": "Malaria and Pregnancy.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37769318/"
+    }
+  },
+  {
+    "claim_id": "0190c9cf-3724-407a-afd4-eff13d71017e",
+    "short_id": "0190c9cf",
+    "subject": "intermittent preventive treatment",
+    "predicate": "prevents",
+    "object": "malaria in pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": null,
+        "immune_status": "semi-immune",
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37769318",
+      "title": "Malaria and Pregnancy.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37769318/"
+    }
+  },
+  {
+    "claim_id": "6afa782b-3837-48b0-931a-24a6be14a662",
+    "short_id": "6afa782b",
+    "subject": "insecticide-treated bed nets",
+    "predicate": "prevents",
+    "object": "malaria in pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": null,
+        "immune_status": "semi-immune",
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37769318",
+      "title": "Malaria and Pregnancy.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37769318/"
+    }
+  },
+  {
+    "claim_id": "be6168f8-a203-43da-b6b2-1d29cfcaaea4",
+    "short_id": "be6168f8",
+    "subject": "malaria in pregnancy",
+    "predicate": "causes",
+    "object": "preterm birth",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37769318",
+      "title": "Malaria and Pregnancy.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37769318/"
+    }
+  },
+  {
+    "claim_id": "ef78b5e0-3864-4c53-81dc-a10446e199e6",
+    "short_id": "ef78b5e0",
+    "subject": "malaria in pregnancy",
+    "predicate": "causes",
+    "object": "pregnancy loss",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37769318",
+      "title": "Malaria and Pregnancy.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37769318/"
+    }
+  },
+  {
+    "claim_id": "7eeeb08b-ff2a-4aba-9c70-ba5aee830315",
+    "short_id": "7eeeb08b",
+    "subject": "malaria in pregnancy",
+    "predicate": "causes",
+    "object": "low birth weight",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37769318",
+      "title": "Malaria and Pregnancy.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37769318/"
+    }
+  },
+  {
+    "claim_id": "107042fb-0ef4-491e-82db-5607ca7a1ac3",
+    "short_id": "107042fb",
+    "subject": "artemisinins",
+    "predicate": "treats",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:32359872",
+      "title": "K13, the Cytostome, and Artemisinin Resistance.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/32359872/"
+    }
+  },
+  {
+    "claim_id": "3e234e14-7171-4b61-a943-06550a97086d",
+    "short_id": "3e234e14",
+    "subject": "Plasmodium falciparum",
+    "predicate": "causes",
+    "object": "malaria in sub-Saharan Africa",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:38552654",
+      "title": "The emergence of artemisinin partial resistance in Africa: how do we respond?",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38552654/"
+    }
+  },
+  {
+    "claim_id": "d4422528-dfef-4b3a-a18b-697d7240cb1e",
+    "short_id": "d4422528",
+    "subject": "Cipargamin",
+    "predicate": "treats",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "Cipargamin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:40523953",
+      "title": "Malaria: past, present, and future.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/40523953/"
+    }
+  },
+  {
+    "claim_id": "c0884199-054c-468d-81ff-465ebe4674fe",
+    "short_id": "c0884199",
+    "subject": "Imatinib",
+    "predicate": "treats",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "Imatinib",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:40523953",
+      "title": "Malaria: past, present, and future.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/40523953/"
+    }
+  },
+  {
+    "claim_id": "f10307fa-a213-4976-906f-d0dfa5725275",
+    "short_id": "f10307fa",
+    "subject": "Sevuparin",
+    "predicate": "treats",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "Sevuparin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:40523953",
+      "title": "Malaria: past, present, and future.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/40523953/"
+    }
+  },
+  {
+    "claim_id": "d967ce1a-ee1d-4270-9e26-4bc4a26c65e6",
+    "short_id": "d967ce1a",
+    "subject": "Primaquine",
+    "predicate": "treats",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "Primaquine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:40523953",
+      "title": "Malaria: past, present, and future.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/40523953/"
+    }
+  },
+  {
+    "claim_id": "c96cdd16-0f94-4f3d-84ea-def7380250da",
+    "short_id": "c96cdd16",
+    "subject": "Atovaquone-Proguanil",
+    "predicate": "treats",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "Atovaquone-Proguanil",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:40523953",
+      "title": "Malaria: past, present, and future.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/40523953/"
+    }
+  },
+  {
+    "claim_id": "abfc416f-17dd-4b4c-ad0e-4e44e7627eb1",
+    "short_id": "abfc416f",
+    "subject": "Artemether-Lumefantrine",
+    "predicate": "treats",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "Artemether-Lumefantrine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:40523953",
+      "title": "Malaria: past, present, and future.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/40523953/"
+    }
+  },
+  {
+    "claim_id": "960c7e26-80bb-4945-a089-e3a6e53eb0d3",
+    "short_id": "960c7e26",
+    "subject": "Plasmodium parasites",
+    "predicate": "causes",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:40523953",
+      "title": "Malaria: past, present, and future.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/40523953/"
+    }
+  },
+  {
+    "claim_id": "bbd5f17e-e11d-44a1-b6ca-321f9c59b06b",
+    "short_id": "bbd5f17e",
+    "subject": "AS01-adjuvanted vaccine",
+    "predicate": "prevents",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "AS01",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:39042099",
+      "title": "Adjuvant system AS01: from mode of action to effective vaccines.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/39042099/"
+    }
+  },
+  {
+    "claim_id": "4a6a325a-9c4a-43b5-99d5-2a48b6c5157d",
+    "short_id": "4a6a325a",
+    "subject": "sulfadoxine-pyrimethamine",
+    "predicate": "prevents",
+    "object": "malaria in pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": "Mali",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "sulfadoxine-pyrimethamine",
+        "mg_per_kg": null,
+        "frequency": "per antenatal visit",
+        "duration": "3 or more doses during pregnancy"
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:30969162",
+      "title": "Factors Associated with Intermittent Preventive Treatment of Malaria During Pregnancy in Mali.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/30969162/"
+    }
+  },
+  {
+    "claim_id": "bddafdba-0111-4a56-bb45-764800d26e09",
+    "short_id": "bddafdba",
+    "subject": "seasonal malaria chemoprevention",
+    "predicate": "prevents",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "pediatric",
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:35331231",
+      "title": "Malaria chemoprevention and drug resistance: a review of the literature and policy implications.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35331231/"
+    }
+  },
+  {
+    "claim_id": "a31655bc-be06-49c4-a096-02e6ab541ba0",
+    "short_id": "a31655bc",
+    "subject": "intermittent preventive treatment in infants",
+    "predicate": "prevents",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "pediatric",
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:35331231",
+      "title": "Malaria chemoprevention and drug resistance: a review of the literature and policy implications.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35331231/"
+    }
+  },
+  {
+    "claim_id": "bce71231-bca5-4988-a332-8af1e2970e25",
+    "short_id": "bce71231",
+    "subject": "intermittent preventive treatment in pregnancy",
+    "predicate": "prevents",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:35331231",
+      "title": "Malaria chemoprevention and drug resistance: a review of the literature and policy implications.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35331231/"
+    }
+  },
+  {
+    "claim_id": "81fe36f2-adec-4dbd-a5b0-03a38fa10a6e",
+    "short_id": "81fe36f2",
+    "subject": "artemisinin-based combination therapy",
+    "predicate": "treats",
+    "object": "malaria in later pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinin-based combination therapy",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:35916532",
+      "title": "Pregnancy and malaria: the perfect storm.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35916532/"
+    }
+  },
+  {
+    "claim_id": "104556aa-ae8c-462e-8c28-c95d6f15c7d5",
+    "short_id": "104556aa",
+    "subject": "sulfadoxine-pyrimethamine plus azithromycin",
+    "predicate": "prevents",
+    "object": "malaria in pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": "Papua New Guinea",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "sulfadoxine-pyrimethamine + azithromycin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "sulfadoxine-pyrimethamine alone",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:29395997",
+      "title": "Prevention of malaria in pregnancy.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/29395997/"
+    }
+  },
+  {
+    "claim_id": "adad8461-f376-4934-a384-a8087d069827",
+    "short_id": "adad8461",
+    "subject": "insecticide-treated nets",
+    "predicate": "prevents",
+    "object": "malaria in pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:29395997",
+      "title": "Prevention of malaria in pregnancy.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/29395997/"
+    }
+  },
+  {
+    "claim_id": "595047a3-a2d3-49be-9c1d-3c792751213e",
+    "short_id": "595047a3",
+    "subject": "dihydroartemisinin-piperaquine",
+    "predicate": "prevents",
+    "object": "malaria in pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "dihydroartemisinin-piperaquine",
+        "mg_per_kg": null,
+        "frequency": "monthly",
+        "duration": null
+      },
+      "comparator": "sulfadoxine-pyrimethamine",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:29395997",
+      "title": "Prevention of malaria in pregnancy.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/29395997/"
+    }
+  },
+  {
+    "claim_id": "8237ce61-b7ef-49dc-a1e2-13a63872f536",
+    "short_id": "8237ce61",
+    "subject": "sulfadoxine-pyrimethamine IPTp",
+    "predicate": "prevents",
+    "object": "malaria in pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "sulfadoxine-pyrimethamine",
+        "mg_per_kg": null,
+        "frequency": "monthly or three-course",
+        "duration": null
+      },
+      "comparator": "two-course sulfadoxine-pyrimethamine",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:29395997",
+      "title": "Prevention of malaria in pregnancy.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/29395997/"
+    }
+  },
+  {
+    "claim_id": "5e26c9a9-a923-4042-b309-1e92d697d5b7",
+    "short_id": "5e26c9a9",
+    "subject": "dihydroartemisinin-piperaquine",
+    "predicate": "prevents",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "pediatric",
+        "pregnancy": "second_third_trimester",
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "dihydroartemisinin-piperaquine",
+        "mg_per_kg": null,
+        "frequency": "intermittent",
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:35688778",
+      "title": "Pharmacokinetic considerations in seasonal malaria chemoprevention.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35688778/"
+    }
+  },
+  {
+    "claim_id": "b7b0932e-f103-4a14-b7e7-a71b3872c6e2",
+    "short_id": "b7b0932e",
+    "subject": "sulfadoxine-pyrimethamine plus amodiaquine",
+    "predicate": "prevents",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "3 months to 5 years",
+        "pregnancy": null,
+        "region": "Sahel",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "sulfadoxine-pyrimethamine plus amodiaquine",
+        "mg_per_kg": null,
+        "frequency": "monthly",
+        "duration": "rainy season"
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:35688778",
+      "title": "Pharmacokinetic considerations in seasonal malaria chemoprevention.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35688778/"
+    }
+  },
+  {
+    "claim_id": "82181d8f-d76d-4e98-8a8c-8ebef34ad950",
+    "short_id": "82181d8f",
+    "subject": "thick and thin blood smear",
+    "predicate": "diagnoses",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Netherlands",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "non_endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:31424703",
+      "title": "[Not Available].",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/31424703/"
+    }
+  },
+  {
+    "claim_id": "536ab898-06f3-4d24-9ad7-dd47337fc87b",
+    "short_id": "536ab898",
+    "subject": "Plasmodium vivax",
+    "predicate": "causes",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "India",
+        "immune_status": "non-immune",
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:28357581",
+      "title": "Malaria: An Update.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/28357581/"
+    }
+  },
+  {
+    "claim_id": "778beb56-71cf-4d13-9d4b-ff58bd293a16",
+    "short_id": "778beb56",
+    "subject": "Plasmodium falciparum",
+    "predicate": "causes",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "India",
+        "immune_status": "non-immune",
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:28357581",
+      "title": "Malaria: An Update.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/28357581/"
+    }
+  },
+  {
+    "claim_id": "49a620e1-ed67-4179-89ec-35269d3a19c3",
+    "short_id": "49a620e1",
+    "subject": "chemoprophylaxis",
+    "predicate": "prevents",
+    "object": "malaria in military personnel",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": null,
+        "region": null,
+        "immune_status": "naive",
+        "comorbidities": [
+          "military personnel"
+        ]
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "traveler"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:24109136",
+      "title": "Malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/24109136/"
+    }
+  },
+  {
+    "claim_id": "8c9e86d9-aef5-4ba1-adca-eebb3528cc47",
+    "short_id": "8c9e86d9",
+    "subject": "chemoprophylaxis",
+    "predicate": "prevents",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": "naive",
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "traveler"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:36126008",
+      "title": "Malaria: Prevention, Diagnosis, and Treatment.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/36126008/"
+    }
+  },
+  {
+    "claim_id": "bddeb72d-8f3f-4253-9bc9-a14062cb859c",
+    "short_id": "bddeb72d",
+    "subject": "chemoprophylaxis",
+    "predicate": "prevents",
+    "object": "malaria in travelers",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": "naive",
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "traveler"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "% US malaria cases not taking chemoprophylaxis",
+        "value": 71.7,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:35916842",
+      "title": "Diagnosis, Treatment, and Prevention of Malaria in the US: A Review.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35916842/"
+    }
+  },
+  {
+    "claim_id": "ff5b3255-078b-43f5-8b62-9db0ec06ed09",
+    "short_id": "ff5b3255",
+    "subject": "malaria",
+    "predicate": "causes",
+    "object": "death worldwide",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "worldwide",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "case fatality rate (%)",
+        "value": 0.26,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:35916842",
+      "title": "Diagnosis, Treatment, and Prevention of Malaria in the US: A Review.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35916842/"
+    }
+  },
+  {
+    "claim_id": "d81551c5-7ddc-4729-8eef-f1d00b3f298c",
+    "short_id": "d81551c5",
+    "subject": "malaria",
+    "predicate": "causes",
+    "object": "death",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "US",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "traveler"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "case fatality rate (%)",
+        "value": 0.3,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:35916842",
+      "title": "Diagnosis, Treatment, and Prevention of Malaria in the US: A Review.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35916842/"
+    }
+  },
+  {
+    "claim_id": "fd09c5e9-3436-4cd3-b192-c5c6cb16156b",
+    "short_id": "fd09c5e9",
+    "subject": "sulfadoxine-pyrimethamine",
+    "predicate": "prevents",
+    "object": "malaria in pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": "Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "sulfadoxine-pyrimethamine",
+        "mg_per_kg": null,
+        "frequency": "intermittent",
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:23953767",
+      "title": "Malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/23953767/"
+    }
+  },
+  {
+    "claim_id": "f61511e1-3a40-4ca1-b96f-2810572e75a6",
+    "short_id": "f61511e1",
+    "subject": "rapid diagnostic tests",
+    "predicate": "diagnoses",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "microscopy",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:23953767",
+      "title": "Malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/23953767/"
+    }
+  },
+  {
+    "claim_id": "c9a1507b-cb76-48e1-bd72-97db97ffca07",
+    "short_id": "c9a1507b",
+    "subject": "artemisinin combination therapy",
+    "predicate": "treats",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinin combination",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:23953767",
+      "title": "Malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/23953767/"
+    }
+  },
+  {
+    "claim_id": "f8d17229-53c4-4cbe-b99b-191608bcd320",
+    "short_id": "f8d17229",
+    "subject": "insecticide-treated bednets",
+    "predicate": "prevents",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:23953767",
+      "title": "Malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/23953767/"
+    }
+  },
+  {
+    "claim_id": "5afb1888-2964-4792-8bea-fe7d0d20a612",
+    "short_id": "5afb1888",
+    "subject": "sulphadoxine-pyrimethamine",
+    "predicate": "prevents",
+    "object": "malaria in pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "sulphadoxine-pyrimethamine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "meta_analysis",
+    "status": "auto_promoted",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:31050803",
+      "title": "A systematic review and meta-analysis of dihydroartemisinin-piperaquine versus sulphadoxine-pyrimethamine for malaria prevention in pregnancy.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/31050803/"
+    }
+  },
+  {
+    "claim_id": "4b9fdfb6-cacb-493f-8241-b3b68794f357",
+    "short_id": "4b9fdfb6",
+    "subject": "dihydroartemisinin-piperaquine",
+    "predicate": "prevents",
+    "object": "malaria in infancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "8 weeks to 2 years",
+        "pregnancy": null,
+        "region": "Tororo, Uganda",
+        "immune_status": "naive",
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "dihydroartemisinin-piperaquine",
+        "mg_per_kg": null,
+        "frequency": "every 12 weeks",
+        "duration": "8 weeks to 2 years of age"
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "incidence (episodes per person-year, SP8w arm)",
+        "value": 0.24,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "RCT",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:30016328",
+      "title": "Dihydroartemisinin-piperaquine for intermittent preventive treatment of malaria during pregnancy and risk of malaria in early childhood: A randomized controlled trial.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/30016328/"
+    }
+  },
+  {
+    "claim_id": "9c6b107c-a065-4a1a-b900-076880454455",
+    "short_id": "9c6b107c",
+    "subject": "sulphadoxine-pyrimethamine IPTp",
+    "predicate": "prevents",
+    "object": "malaria in pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "sulphadoxine-pyrimethamine",
+        "mg_per_kg": null,
+        "frequency": "intermittent",
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "meta_analysis",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:39324693",
+      "title": "Intermittent preventive treatment regimens for malaria in HIV-positive pregnant women.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/39324693/"
+    }
+  },
+  {
+    "claim_id": "936d54b1-b325-4ef3-8d9a-d9c0b21480ad",
+    "short_id": "936d54b1",
+    "subject": "dihydroartemisinin-piperaquine",
+    "predicate": "prevents",
+    "object": "malaria in young children",
+    "qualifiers": {
+      "population": {
+        "age_range": "2-24 months",
+        "pregnancy": null,
+        "region": "Uganda",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "dihydroartemisinin-piperaquine",
+        "mg_per_kg": null,
+        "frequency": "every 4 weeks",
+        "duration": "2 to 24 months of age"
+      },
+      "comparator": "DP every 12 weeks",
+      "effect_size": {
+        "metric": "protective efficacy",
+        "value": 95.0,
+        "ci_low": 84.0,
+        "ci_high": 99.0
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "RCT",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:34795281",
+      "title": "Identifying an optimal dihydroartemisinin-piperaquine dosing regimen for malaria prevention in young Ugandan children.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/34795281/"
+    }
+  },
+  {
+    "claim_id": "2c250a44-ef77-4a0e-8966-6df8ea0252d9",
+    "short_id": "2c250a44",
+    "subject": "sulfadoxine-pyrimethamine",
+    "predicate": "prevents",
+    "object": "malaria in infants",
+    "qualifiers": {
+      "population": {
+        "age_range": "pediatric",
+        "pregnancy": null,
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "sulfadoxine-pyrimethamine",
+        "mg_per_kg": null,
+        "frequency": "intermittent",
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "meta_analysis",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:36321557",
+      "title": "Folic acid supplementation and malaria susceptibility and severity among people taking antifolate antimalarial drugs in endemic areas.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/36321557/"
+    }
+  },
+  {
+    "claim_id": "9355967f-6144-4cc4-b749-7828bd5afe0c",
+    "short_id": "9355967f",
+    "subject": "sulfadoxine-pyrimethamine",
+    "predicate": "prevents",
+    "object": "malaria in pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "sulfadoxine-pyrimethamine",
+        "mg_per_kg": null,
+        "frequency": "intermittent",
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "meta_analysis",
+    "status": "auto_promoted",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:36321557",
+      "title": "Folic acid supplementation and malaria susceptibility and severity among people taking antifolate antimalarial drugs in endemic areas.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/36321557/"
+    }
+  },
+  {
+    "claim_id": "5c75235f-c993-476a-9e6a-b81b5cd90d0b",
+    "short_id": "5c75235f",
+    "subject": "malaria",
+    "predicate": "causes",
+    "object": "death in children under 5",
+    "qualifiers": {
+      "population": {
+        "age_range": "<5 years",
+        "pregnancy": null,
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "proportion of 409,000 global malaria deaths in 2019",
+        "value": 67.0,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "meta_analysis",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:36321557",
+      "title": "Folic acid supplementation and malaria susceptibility and severity among people taking antifolate antimalarial drugs in endemic areas.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/36321557/"
+    }
+  },
+  {
+    "claim_id": "ce7540a2-a481-4117-9a0b-41d4eb361882",
+    "short_id": "ce7540a2",
+    "subject": "Plasmodium",
+    "predicate": "causes",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37060004",
+      "title": "Malaria therapeutics: are we close enough?",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37060004/"
+    }
+  },
+  {
+    "claim_id": "44076d58-68e0-426b-b20c-323a5986c7e8",
+    "short_id": "44076d58",
+    "subject": "Plasmodium",
+    "predicate": "causes",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "<5 years",
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "annual deaths (2015)",
+        "value": 429000.0,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:29361963",
+      "title": "Diagnostic tools in childhood malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/29361963/"
+    }
+  },
+  {
+    "claim_id": "f268f6ea-c05a-48ea-b2a5-7c86555bcd82",
+    "short_id": "f268f6ea",
+    "subject": "artemisinin-based combination therapies",
+    "predicate": "treats",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinin-based combination therapy",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "malaria-related deaths",
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:28770814",
+      "title": "Malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/28770814/"
+    }
+  },
+  {
+    "claim_id": "7163fec1-756e-4bbb-91f9-ea6b58e28b63",
+    "short_id": "7163fec1",
+    "subject": "insecticide spraying",
+    "predicate": "prevents",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:28770814",
+      "title": "Malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/28770814/"
+    }
+  },
+  {
+    "claim_id": "7c8c484b-0e78-41ac-b254-cb9dfacb3ab5",
+    "short_id": "7c8c484b",
+    "subject": "insecticide-treated bed nets",
+    "predicate": "prevents",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:28770814",
+      "title": "Malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/28770814/"
+    }
+  },
+  {
+    "claim_id": "8f0c1e6d-3e5d-4879-8ffa-c37ee72fbbe9",
+    "short_id": "8f0c1e6d",
+    "subject": "Plasmodium vivax",
+    "predicate": "causes",
+    "object": "malaria in humans",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:28770814",
+      "title": "Malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/28770814/"
+    }
+  },
+  {
+    "claim_id": "e6654da6-0e40-4eaa-8331-ebb817b3bb05",
+    "short_id": "e6654da6",
+    "subject": "Plasmodium falciparum",
+    "predicate": "causes",
+    "object": "malaria in humans",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:28770814",
+      "title": "Malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/28770814/"
+    }
+  },
+  {
+    "claim_id": "bba1d3b2-822c-47d3-9233-28018eeb1a41",
+    "short_id": "bba1d3b2",
+    "subject": "Plasmodium ovale",
+    "predicate": "causes",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:17459775",
+      "title": "Plasmodium malariae and Plasmodium ovale--the \"bashful\" malaria parasites.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/17459775/"
+    }
+  },
+  {
+    "claim_id": "eec1071a-ad14-446e-9f80-c6b643e6dcd6",
+    "short_id": "eec1071a",
+    "subject": "Plasmodium malariae",
+    "predicate": "causes",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:17459775",
+      "title": "Plasmodium malariae and Plasmodium ovale--the \"bashful\" malaria parasites.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/17459775/"
+    }
+  },
+  {
+    "claim_id": "dd18f73c-3677-4313-b3a8-7da4b2d5535b",
+    "short_id": "dd18f73c",
+    "subject": "Plasmodium knowlesi",
+    "predicate": "causes",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Southeast Asia",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:27707609",
+      "title": "The Treatment of Plasmodium knowlesi Malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/27707609/"
+    }
+  },
+  {
+    "claim_id": "c7f61af5-44a9-4ed8-be96-4b57d6144f47",
+    "short_id": "c7f61af5",
+    "subject": "Plasmodium vivax",
+    "predicate": "causes",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "outside Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:28490540",
+      "title": "The Biology of Plasmodium vivax.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/28490540/"
+    }
+  },
+  {
+    "claim_id": "bb2068c8-fa33-44ae-8ecb-9b2afeaf2dfe",
+    "short_id": "bb2068c8",
+    "subject": "tafenoquine",
+    "predicate": "prevents",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "not_pregnant",
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "tafenoquine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "meta_analysis",
+    "status": "auto_promoted",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:33306921",
+      "title": "Tafenoquine: a toxicity overview.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/33306921/"
+    }
+  },
+  {
+    "claim_id": "e42614fb-dedd-4728-b7a1-da9d1737a557",
+    "short_id": "e42614fb",
+    "subject": "chemoprophylaxis",
+    "predicate": "prevents",
+    "object": "malaria in returning travelers",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "UK",
+        "immune_status": "naive",
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "traveler"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  },
+  {
+    "claim_id": "086a2961-89fc-4b74-aefe-4237433f9e57",
+    "short_id": "086a2961",
+    "subject": "sulfadoxine-pyrimethamine",
+    "predicate": "prevents",
+    "object": "malaria in pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": "northern Nigeria",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "sulfadoxine-pyrimethamine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:41372349",
+      "title": "Molecular epidemiology of Plasmodium falciparum drug resistance and vaccine targets in high-transmission settings in Africa.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/41372349/"
+    }
+  },
+  {
+    "claim_id": "2f203d2f-9a79-4102-9812-55179d249e47",
+    "short_id": "2f203d2f",
+    "subject": "Plasmodium falciparum infection",
+    "predicate": "causes",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:33193447",
+      "title": "Naturally Acquired Humoral Immunity Against Plasmodium falciparum Malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/33193447/"
+    }
+  },
+  {
+    "claim_id": "eeab6a01-5bb5-4e99-b4f5-8881aa9c8879",
+    "short_id": "eeab6a01",
+    "subject": "vector and parasite control strategies",
+    "predicate": "prevents",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "India",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "2015 baseline",
+      "effect_size": {
+        "metric": "NVBDCP case decline 2015-2022",
+        "value": 85.0,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:38772359",
+      "title": "Spatiotemporal Epidemiology of Malaria in India from 2007 to 2022.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38772359/"
+    }
+  },
+  {
+    "claim_id": "e632ee03-71fb-4156-a56c-db6079d2972b",
+    "short_id": "e632ee03",
+    "subject": "malaria",
+    "predicate": "affects",
+    "object": "Mizoram population",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Mizoram, India",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "2007 caseload",
+      "effect_size": {
+        "metric": "caseload trend 2007 vs 2022",
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:38772359",
+      "title": "Spatiotemporal Epidemiology of Malaria in India from 2007 to 2022.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38772359/"
+    }
+  },
+  {
+    "claim_id": "3e18b4e4-c6c3-43ac-a93a-309301c208bb",
+    "short_id": "3e18b4e4",
+    "subject": "malaria",
+    "predicate": "affects",
+    "object": "India population (WHO estimate)",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "India",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "NVBDCP report",
+      "effect_size": {
+        "metric": "WHO estimated cases (2015)",
+        "value": 11930000.0,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:38772359",
+      "title": "Spatiotemporal Epidemiology of Malaria in India from 2007 to 2022.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38772359/"
+    }
+  },
+  {
+    "claim_id": "46afc788-f026-4aae-bd83-292d6d131589",
+    "short_id": "46afc788",
+    "subject": "malaria",
+    "predicate": "affects",
+    "object": "India population",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "India",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "NVBDCP 2015 caseload",
+      "effect_size": {
+        "metric": "NVBDCP reported cases (2022)",
+        "value": 180000.0,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:38772359",
+      "title": "Spatiotemporal Epidemiology of Malaria in India from 2007 to 2022.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38772359/"
+    }
+  },
+  {
+    "claim_id": "773a009b-b4a2-4547-b37e-50750b88de20",
+    "short_id": "773a009b",
+    "subject": "sulfadoxine-pyrimethamine",
+    "predicate": "prevents",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "sulfadoxine-pyrimethamine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:38761813",
+      "title": "Plasmodium ovale spp dhfr mutations associated with reduced susceptibility to pyrimethamine in sub-Saharan Africa: a\u00a0retrospective genetic epidemiology and functional study.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38761813/"
+    }
+  },
+  {
+    "claim_id": "eda535c4-2334-47e4-b7f1-e323174ff3ba",
+    "short_id": "eda535c4",
+    "subject": "Plasmodium vivax",
+    "predicate": "causes",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "worldwide outside Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "global ranking of malaria cause",
+        "value": 2.0,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:28490540",
+      "title": "The Biology of Plasmodium vivax.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/28490540/"
+    }
+  },
+  {
+    "claim_id": "d8716cb3-2050-4b8d-8d8d-e871a0a2490b",
+    "short_id": "d8716cb3",
+    "subject": "tafenoquine",
+    "predicate": "prevents",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "not_pregnant",
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "tafenoquine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "meta_analysis",
+    "status": "auto_promoted",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:33306921",
+      "title": "Tafenoquine: a toxicity overview.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/33306921/"
+    }
+  },
+  {
+    "claim_id": "931b8553-b120-4729-94d2-f2ce4d235fe8",
+    "short_id": "931b8553",
+    "subject": "Plasmodium vivax",
+    "predicate": "causes",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "share of global malaria cases 2019 (%)",
+        "value": 2.8,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:34166786",
+      "title": "Plasmodium vivax pre-erythrocytic vaccines.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/34166786/"
+    }
+  },
+  {
+    "claim_id": "d412a89a-fcb4-4499-80d1-c636911860f6",
+    "short_id": "d412a89a",
+    "subject": "Plasmodium falciparum",
+    "predicate": "causes",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "global malaria cases 2019",
+        "value": 229000000.0,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:34166786",
+      "title": "Plasmodium vivax pre-erythrocytic vaccines.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/34166786/"
+    }
+  },
+  {
+    "claim_id": "15aa34e8-dfe6-435d-822f-dcc2e5c78cab",
+    "short_id": "15aa34e8",
+    "subject": "chemoprophylaxis",
+    "predicate": "prevents",
+    "object": "malaria in travelers to endemic areas",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": "naive",
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "traveler"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  },
+  {
+    "claim_id": "4eb249e9-8d7d-4d78-99e9-ecee16cce574",
+    "short_id": "4eb249e9",
+    "subject": "artemisinin-based combination therapy",
+    "predicate": "treats",
+    "object": "malaria in pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "pregnant",
+        "pregnancy": "second_third_trimester",
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinin-based combination therapy",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:35916532",
+      "title": "Pregnancy and malaria: the perfect storm.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35916532/"
+    }
+  },
+  {
+    "claim_id": "8b19b278-ce42-4d68-b358-bd5054944f09",
+    "short_id": "8b19b278",
+    "subject": "artemisinins",
+    "predicate": "treats",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinins",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:38552654",
+      "title": "The emergence of artemisinin partial resistance in Africa: how do we respond?",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38552654/"
+    }
+  },
+  {
+    "claim_id": "64c7b5cc-14c9-4e28-b8d4-428815c39a2f",
+    "short_id": "64c7b5cc",
+    "subject": "Plasmodium falciparum",
+    "predicate": "causes",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:38552654",
+      "title": "The emergence of artemisinin partial resistance in Africa: how do we respond?",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38552654/"
+    }
+  },
+  {
+    "claim_id": "98460364-b684-4bd3-b5e0-3a7fc440752a",
+    "short_id": "98460364",
+    "subject": "Azadirachta indica",
+    "predicate": "treats",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "Azadirachta indica",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:38358164",
+      "title": "Alternative first-line malaria treatment.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38358164/"
+    }
+  },
+  {
+    "claim_id": "ca4ae4a8-f208-41f4-8fd7-29af26c6c424",
+    "short_id": "ca4ae4a8",
+    "subject": "artemisinin-based combination therapy",
+    "predicate": "treats",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinin-based combination therapy",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:38358164",
+      "title": "Alternative first-line malaria treatment.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38358164/"
+    }
+  },
+  {
+    "claim_id": "86fd49b7-165a-496a-99e9-f129184f6a51",
+    "short_id": "86fd49b7",
+    "subject": "RTS,S/AS01",
+    "predicate": "prevents",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "pediatric",
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "RTS,S/AS01",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "efficacy",
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:34347570",
+      "title": "Novel malaria vaccines.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/34347570/"
+    }
+  },
+  {
+    "claim_id": "11f8479d-c603-4ffc-a448-84b378a8f3f4",
+    "short_id": "11f8479d",
+    "subject": "UGT1A1 inhibition",
+    "predicate": "prevents",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:40504905",
+      "title": "A metabolite-based resistance mechanism against malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/40504905/"
+    }
+  },
+  {
+    "claim_id": "c2024dda-b947-45f7-a872-07036c8c255c",
+    "short_id": "c2024dda",
+    "subject": "Plasmodium parasites",
+    "predicate": "causes",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37728713",
+      "title": "Malaria Vaccines: Progress to Date.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37728713/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-13T19:05:13.408270+00:00
+
+
+===== STDOUT =====
+---
+type: medication
+drug_class: antimalarial-therapy
+tags: [malaria/treatment, malaria/prevention, malaria/pregnancy, malaria/pediatric, malaria/chemoprophylaxis]
+evidence_grade_max: meta_analysis
+claim_count: 121
+last_regen: 2026-05-13T19:05:13Z
+---
+
+# Antimalarial Therapy
+
+**Therapeutic category:** Antiparasitic / Antiprotozoal
+**Drug group:** Antimalarials (multi-class)
+**Drug class:** Artemisinins · 4-aminoquinolines · 8-aminoquinolines · Antifolates · Spiroindolones · Atovaquone-proguanil
+**Controlled substance:** No
+
+> _Note: source entity is the disease "malaria"; this note synthesises the antimalarial-therapy class implied by the claim corpus. Per-agent notes (e.g. [[artemether-lumefantrine]], [[sulfadoxine-pyrimethamine]], [[tafenoquine]]) supersede where present._
+
+## Overview
+
+Antimalarials prevent and treat [[plasmodium]] infection across blood, liver, and hypnozoite stages. Class spans schizonticides (artemisinins, ACTs), tissue-stage agents (primaquine, tafenoquine), and chemopreventives (SP, DP). ACT is WHO-recommended first-line for uncomplicated falciparum [c:c9a1507b][c:f268f6ea].
+
+## Indication (Why is this medication prescribed?)
+
+- Treatment of uncomplicated and severe malaria due to [[plasmodium-falciparum]] [c:54e6a8a6][c:e6654da6], [[plasmodium-vivax]] [c:d428a14f][c:8f0c1e6d], [[plasmodium-ovale]] [c:bba1d3b2], [[plasmodium-malariae]] [c:eec1071a], [[plasmodium-knowlesi]] [c:dd18f73c]
+- Chemoprophylaxis in non-immune travelers [c:8c9e86d9][c:bddeb72d][c:15aa34e8] and military personnel [c:49a620e1]
+- IPTp (intermittent preventive treatment in pregnancy) [c:0190c9cf][c:bce71231]
+- IPTi and seasonal malaria chemoprevention (SMC) in children [c:bddafdba][c:a31655bc]
+- Treatment of [[malaria-in-pregnancy]] across trimesters [c:f3e0d13f][c:81fe36f2][c:4eb249e9]
+- Radical cure of relapsing vivax/ovale (8-aminoquinolines) [c:d967ce1a][c:bb2068c8]
+
+## Mechanism of Action (How does it work?)
+
+Class-dependent. [[artemisinins]] activated by parasite heme → reactive carbon-centred radicals → alkylate parasite proteins → blood-stage parasite death [c:107042fb][c:8b19b278]. 8-aminoquinolines ([[primaquine]], [[tafenoquine]]) clear liver-stage hypnozoites [c:d967ce1a][c:bb2068c8]. Antifolates ([[sulfadoxine-pyrimethamine]]) inhibit parasite DHFR/DHPS [c:0d5db98e][c:773a009b]. [[cipargamin]] targets PfATP4 sodium homeostasis [c:d4422528]. [[atovaquone-proguanil]] blocks mitochondrial cytochrome bc1 [c:c96cdd16].
+
+```mermaid
+flowchart LR
+  A[Sporozoite bite] --> B[Liver stage]
+  B -->|8-AQ kills hypnozoite| X[Radical cure]
+  B --> C[Blood stage]
+  C -->|Artemisinin radicals| D[Parasite clearance]
+  C -->|Antifolate DHFR block| D
+```
+
+## Dosage and Administration
+
+_No mg/kg dose claims in current corpus._ Regimen-level statements:
+
+| Regimen | Population | Frequency | Source |
+|---|---|---|---|
+| DP IPTi | Infants 8 wk–2 yr, Uganda | every 12 weeks | [c:4b9fdfb6] |
+| DP prophylaxis | Children 2–24 mo, Uganda | every 4 weeks (95% PE) | [c:936d54b1] |
+| SP+AQ SMC | Children 3 mo–5 yr, Sahel | monthly, rainy season | [c:b7b0932e] |
+| SP IPTp (3+ doses) | 2nd/3rd trimester, sub-Saharan Africa | per ANC visit | [c:4a6a325a][c:8237ce61] |
+| DP IPTp | 2nd/3rd trimester | monthly | [c:595047a3] |
+| Artemether-lumefantrine | 1st-trimester pregnancy | outpatient | [c:f3e0d13f] |
+| ACT | Later pregnancy | outpatient | [c:81fe36f2][c:4eb249e9] |
+
+## Contraindications (When not to use it)
+
+- **Tafenoquine** — pregnancy (restricted to non-pregnant adults) [c:bb2068c8][c:d8716cb3]; G6PD deficiency (relative; screen first)
+- **Chloroquine** — chloroquine-resistant falciparum zones; pregnancy prophylaxis evidence weak [c:cd05f44f] _(pending review)_
+- **Sulfadoxine-pyrimethamine** — first-trimester pregnancy (corpus supports 2nd/3rd only) [c:fd09c5e9][c:5afb1888]
+
+## Warnings and Precautions
+
+- **Artemisinin partial resistance** emerging in [[plasmodium-falciparum]] across sub-Saharan Africa [c:3e234e14][c:64c7b5cc][c:8b19b278]
+- **SP resistance** via Pf-dhfr/dhps mutations reduces IPTp efficacy [c:773a009b][c:086a2961]
+- **Tafenoquine** — toxicity profile requires monitoring [c:bb2068c8]
+- **Pregnancy malaria** drives maternal anaemia [c:9729a31a], low birth weight [c:33934556][c:7eeeb08b], preterm birth [c:928a06ed][c:be6168f8], stillbirth [c:46ecdf14], fetal/maternal death [c:a3d8960c][c:121428bb] — under-treatment risk severe
+- **Children <5** in sub-Saharan Africa account for 67% of global malaria deaths [c:5c75235f]; case-fatality ~0.26% worldwide [c:ff5b3255]
+
+## Side Effects
+
+_Corpus light on adverse-event detail._
+- **Serious:** tafenoquine toxicity (haemolysis risk in G6PD-deficient) [c:bb2068c8]
+- _No further frequency-stratified AE claims in current corpus._
+
+## Drug Interactions
+
+- **SP + azithromycin** — combined IPTp regimen vs SP alone, additive antiparasitic effect, low certainty [c:104556aa] _(pending review)_
+- **SP + folic acid** — supplementation may alter antifolate susceptibility [c:2c250a44][c:9355967f]
+- _No further pharmacokinetic interaction claims in current corpus._
+
+## Storage and Stability
+
+_No storage or stability claims in current corpus._
+
+---
+*Last regenerated: 2026-05-13T19:05:13Z. Source claims: 121. Evidence mix: 8 meta_analysis · 2 RCT · 111 expert_opinion.*

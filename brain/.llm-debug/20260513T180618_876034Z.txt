@@ -1,0 +1,383 @@
+===== SYSTEM =====
+OUTPUT REQUIREMENT: Return VALID JSON ONLY. Your entire response must be parseable by json.loads(). First character of your output must be `{` or `[`. No prose. No explanations. No markdown fences. No apologies. If the requested data is unavailable, return the schema with empty/null values, still as valid JSON. Tools are intentionally disabled — do not request access to them.
+
+/# Student extractor — qualified claims from a PubMed abstract
+
+You are extracting **atomic, qualified medical claims** from a malaria-focused biomedical abstract.
+
+## Output format
+
+Return a JSON array. Each element is one qualified claim.
+
+```json
+[
+  {
+    "subject": "string — entity name (drug, organism, gene, syndrome, intervention, vector, diagnostic test, complication, lifecycle stage)",
+    "predicate": "one of: treats | causes | resists | requires | contraindicates | prevents | co_occurs | recommends | diagnoses | transmits | complicates | classifies_as | affects | has_lifecycle_stage",
+    "object": "string — entity or value",
+    "qualifiers": {
+      "population": {
+        "age_range": "e.g. adults | pediatric | <5 years | pregnant | null",
+        "pregnancy": "first_trimester | second_third_trimester | not_pregnant | null",
+        "region": "geographic region — e.g. Greater Mekong | West Africa | sub-Saharan Africa | null",
+        "immune_status": "naive | semi-immune | immunocompromised | null",
+        "comorbidities": ["list of strings or empty"]
+      },
+      "setting": {
+        "care_level": "outpatient | inpatient | community | null",
+        "endemic_status": "endemic | non_endemic | traveler | null"
+      },
+      "dose_regimen": {
+        "drug": "string or null",
+        "mg_per_kg": "number or null",
+        "frequency": "string or null",
+        "duration": "string or null"
+      },
+      "comparator": "what the intervention was compared against — string or null",
+      "effect_size": {
+        "metric": "e.g. day-3 positivity rate | parasite clearance time | hazard ratio | null",
+        "value": "number or null",
+        "ci_low": "number or null",
+        "ci_high": "number or null"
+      }
+    },
+    "certainty": "high | moderate | low | very_low",
+    "evidence_note": "one short sentence on why this certainty (sample size, design quality, etc.)"
+  }
+]
+```
+
+## Rules
+
+1. **Atomic.** Each claim is one subject-predicate-object triple. If an abstract states "X treats Y AND X causes Z", emit two claims.
+2. **Qualified.** Populate `qualifiers` from what the abstract explicitly states. Leave NULL if not stated — do NOT invent values.
+3. **Predicates.** Use only the listed enum values. Map free-text to the closest:
+   - "is associated with" / "linked to" / "shown to be effective for" → `treats` if therapeutic, `prevents` if prophylactic
+   - "induces resistance" / "selects for resistance" / "associated with treatment failure" → `resists` (when subject = parasite/pathogen, object = drug)
+   - "should not be given to" / "avoid in" → `contraindicates`
+   - WHO/CDC/national-program statements like "is recommended for" → `recommends`
+   - "RDT detects" / "microscopy identifies" / "PCR confirms" / "sensitivity X% for" → `diagnoses` (subject = test/sign, object = condition/species)
+   - "is transmitted by" / "Anopheles X is a vector for" / "vectored by" → `transmits` (subject = vector, object = pathogen)
+   - "complicated by" / "leads to (clinical sequela)" / "progresses to" → `complicates` (subject = complication, object = parent condition)
+   - "is a subtype of" / "belongs to genus" / "classified as" → `classifies_as`
+   - "prevalence X% in region Y" / "kills N people/year in Z" / "incidence rate" / "burden of disease" → `affects` (subject = condition, object = population/region; populate effect_size with the numeric burden)
+   - "ring stage" / "schizont" / "gametocyte" / "exo-erythrocytic phase" / "sporogonic cycle" → `has_lifecycle_stage` (subject = pathogen, object = stage name)
+4. **Subject vs object.** For resistance claims, subject is the parasite/pathogen, object is the drug. For treatment, subject is the drug/intervention, object is the disease/population.
+5. **Certainty mapping:**
+   - `high`: large RCT or meta-analysis with consistent results, or current WHO guideline
+   - `moderate`: cohort study, smaller RCT, well-designed observational
+   - `low`: case-control, single-site observational, conflicting evidence
+   - `very_low`: case report, expert opinion, in-vitro only, mechanistic inference
+6. **Skip methodology, NOT epidemiology.** Skip methodology ("We enrolled 1241 patients", "Abstracts were screened by two reviewers") and bare meta-commentary ("Further research is needed", "More studies needed"). KEEP epidemiology facts (regional burden, mortality, prevalence, age-specific incidence, vector distribution) as `affects` or `transmits` claims with population/region qualifiers populated and numeric values in `effect_size`. Textbook-grade coverage requires epi.
+7. **No claims is a valid output.** If the abstract is purely descriptive epidemiology with no actionable medical claim, return `[]`.
+
+## DO NOT
+
+- DO NOT summarize the abstract.
+- DO NOT return a `{"title": ..., "methods": [...], "key_findings": [...]}` paper-summary object. That is wrong.
+- DO NOT wrap claims in any object key. The top-level value must be a JSON array `[ ... ]`.
+- DO NOT return an array of strings like `["Drug X treats Y", "Drug Z prevents W"]`. Each element MUST be a full JSON object with the keys: `subject`, `predicate`, `object`, `qualifiers`, `certainty`, `evidence_note`.
+- DO NOT invent facts not in the abstract.
+
+## More wrong examples
+
+```json
+["Artemisinin treats malaria", "Chloroquine resistance rising"]
+```
+
+```json
+{"claims": ["..."]}
+```
+
+Both wrong. Each claim must be a full object as shown in the schema above.
+
+## Negative example (WRONG)
+
+```json
+{"title": "...", "key_findings": [{"finding": "..."}], "conclusion": "..."}
+```
+
+## Positive example (CORRECT)
+
+```json
+[
+  {
+    "subject": "artemether-lumefantrine",
+    "predicate": "treats",
+    "object": "uncomplicated P. falciparum malaria",
+    "qualifiers": {
+      "population": {"age_range": "adults", "pregnancy": null, "region": "sub-Saharan Africa", "immune_status": null, "comorbidities": []},
+      "setting": {"care_level": "outpatient", "endemic_status": "endemic"},
+      "dose_regimen": {"drug": "artemether-lumefantrine", "mg_per_kg": null, "frequency": "twice daily", "duration": "3 days"},
+      "comparator": "dihydroartemisinin-piperaquine",
+      "effect_size": {"metric": "day-28 PCR-corrected cure rate", "value": 96.2, "ci_low": 94.1, "ci_high": 97.8}
+    },
+    "certainty": "high",
+    "evidence_note": "Multi-site RCT, n=1241, day-28 PCR-corrected efficacy."
+  }
+]
+```
+
+## More positive examples (textbook breadth)
+
+Diagnostic test claim:
+
+```json
+{
+  "subject": "histidine-rich protein 2 RDT",
+  "predicate": "diagnoses",
+  "object": "Plasmodium falciparum infection",
+  "qualifiers": {
+    "population": {"age_range": null, "pregnancy": null, "region": "sub-Saharan Africa", "immune_status": null, "comorbidities": []},
+    "setting": {"care_level": "community", "endemic_status": "endemic"},
+    "dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": null},
+    "comparator": "microscopy reference",
+    "effect_size": {"metric": "sensitivity", "value": 95.0, "ci_low": 92.0, "ci_high": 97.0}
+  },
+  "certainty": "high",
+  "evidence_note": "WHO field-evaluation meta-analysis across 14 countries."
+}
+```
+
+Epidemiology claim:
+
+```json
+{
+  "subject": "Plasmodium falciparum",
+  "predicate": "affects",
+  "object": "children under 5 in sub-Saharan Africa",
+  "qualifiers": {
+    "population": {"age_range": "<5 years", "pregnancy": null, "region": "sub-Saharan Africa", "immune_status": "semi-immune", "comorbidities": []},
+    "setting": {"care_level": "community", "endemic_status": "endemic"},
+    "dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": null},
+    "comparator": null,
+    "effect_size": {"metric": "annual mortality (deaths/year)", "value": 470000, "ci_low": 430000, "ci_high": 510000}
+  },
+  "certainty": "high",
+  "evidence_note": "WHO World Malaria Report 2023 burden estimate."
+}
+```
+
+Vector / transmission claim:
+
+```json
+{
+  "subject": "Anopheles gambiae",
+  "predicate": "transmits",
+  "object": "Plasmodium falciparum",
+  "qualifiers": {
+    "population": {"age_range": null, "pregnancy": null, "region": "sub-Saharan Africa", "immune_status": null, "comorbidities": []},
+    "setting": {"care_level": null, "endemic_status": "endemic"},
+    "dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": null},
+    "comparator": null,
+    "effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+  },
+  "certainty": "high",
+  "evidence_note": "Established vector biology; multiple entomological surveys."
+}
+```
+
+Complication claim:
+
+```json
+{
+  "subject": "cerebral malaria",
+  "predicate": "complicates",
+  "object": "severe Plasmodium falciparum infection",
+  "qualifiers": {
+    "population": {"age_range": "<5 years", "pregnancy": null, "region": "sub-Saharan Africa", "immune_status": "semi-immune", "comorbidities": []},
+    "setting": {"care_level": "inpatient", "endemic_status": "endemic"},
+    "dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": null},
+    "comparator": null,
+    "effect_size": {"metric": "case-fatality rate", "value": 18.0, "ci_low": 15.0, "ci_high": 22.0}
+  },
+  "certainty": "high",
+  "evidence_note": "Multi-centre African pediatric severe-malaria cohort."
+}
+```
+
+Lifecycle stage claim:
+
+```json
+{
+  "subject": "Plasmodium falciparum",
+  "predicate": "has_lifecycle_stage",
+  "object": "ring stage",
+  "qualifiers": {
+    "population": {"age_range": null, "pregnancy": null, "region": null, "immune_status": null, "comorbidities": []},
+    "setting": {"care_level": null, "endemic_status": null},
+    "dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": null},
+    "comparator": null,
+    "effect_size": {"metric": "intra-erythrocytic duration (hours)", "value": 24.0, "ci_low": null, "ci_high": null}
+  },
+  "certainty": "high",
+  "evidence_note": "Established parasitology; intra-erythrocytic cycle ~48h, ring stage first 24h."
+}
+```
+
+Classification claim:
+
+```json
+{
+  "subject": "Plasmodium knowlesi",
+  "predicate": "classifies_as",
+  "object": "zoonotic Plasmodium species",
+  "qualifiers": {
+    "population": {"age_range": null, "pregnancy": null, "region": "Southeast Asia", "immune_status": null, "comorbidities": []},
+    "setting": {"care_level": null, "endemic_status": "endemic"},
+    "dose_regimen": {"drug": null, "mg_per_kg": null, "frequency": null, "duration": null},
+    "comparator": null,
+    "effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+  },
+  "certainty": "high",
+  "evidence_note": "Reservoir host: long-tailed and pig-tailed macaques; established taxonomy."
+}
+```
+
+## Output
+
+Return ONLY the JSON array. First character of your response must be `[`. No prose before or after. If no qualified claims exist, return `[]`.
+
+
+===== USER =====
+# Title
+Dihydroartemisinin-piperaquine plus sulfadoxine-pyrimethamine versus either drug alone for intermittent preventive treatment of malaria in pregnancy: A double-blind, randomized, controlled phase 3 trial from Uganda.
+
+# Abstract
+BACKGROUND: To mitigate adverse consequences of malaria in pregnancy, the World Health Organization recommends intermittent preventive treatment of malaria in pregnancy (IPTp) with sulfadoxine-pyrimethamine. However, the effectiveness of IPTp with sulfadoxine-pyrimethamine has been threatened by widespread Plasmodium falciparum resistance, especially in East and Southern Africa. For IPTp, dihydroartemisinin-piperaquine has shown superior antimalarial effects compared to sulfadoxine-pyrimethamine, but sulfadoxine-pyrimethamine has been associated with improved birth outcomes compared to dihydroartemisinin-piperaquine. We hypothesized that a combination of both dihydroartemisinin-piperaquine and sulfadoxine-pyrimethamine would provide superior birth outcomes compared to either drug alone.
+
+METHODS AND FINDINGS: We conducted a double-blinded, randomized, controlled trial of 2,757 pregnant women in Uganda, where resistance of malaria parasites to sulfadoxine-pyrimethamine is widespread. Women were randomly assigned (1:1:1) to monthly IPTp with sulfadoxine-pyrimethamine, dihydroartemisinin-piperaquine, or dihydroartemisinin-piperaquine plus sulfadoxine-pyrimethamine. The primary outcome was the risk of a composite adverse birth outcome defined as any of the following: spontaneous abortion, stillbirth, low birthweight (LBW, < 2,500 g), preterm delivery (<37 weeks), small-for-gestational age, or neonatal death. Secondary outcomes included specific individual adverse birth outcomes, measures of malaria during pregnancy, and safety/tolerability. Combining dihydroartemisinin-piperaquine plus sulfadoxine-pyrimethamine did not reduce the risk of a composite adverse birth outcome compared to dihydroartemisinin-piperaquine (30.0% versus 30.9%, relative risk (RR) 0.97 [95% CI 0.84-1.12]; p = 0.70) or sulfadoxine-pyrimethamine (30.0% versus 26.4%, RR 1.14 [95% CI 0.98-1.33]; p = 0.10). The risk of a composite adverse birth outcome was higher with dihydroartemisinin-piperaquine compared to sulfadoxine-pyrimethamine (30.9% versus 26.4%, RR 1.17 [95% CI 1.01-1.36]; p = 0.04). Considering individual adverse birth outcomes, combining dihydroartemisinin-piperaquine plus sulfadoxine-pyrimethamine was associated with a higher risk of small-for-gestational age (23.4% versus 18.7%, RR 1.25 [95% CI 1.04-1.51]; p = 0.02) and low birthweight (8.6% versus 5.8%, RR 1.48 [95 CI 1.04-2.12]; p = 0.03) compared to sulfadoxine-pyrimethamine and a higher risk of preterm delivery (5.3% versus 3.1%, RR 1.73 [95% CI 1.07-2.79]; p = 0.03) compared to dihydroartemisinin-piperaquine. During pregnancy, compared to sulfadoxine-pyrimethamine, dihydroartemisinin-piperaquine was associated with a 94% reduction in the incidence of symptomatic malaria (0.46 versus 0.03 episodes per person-year, incidence rate ratio 0.06 [95% CI 0.03-0.12]; p < 0.001) and a 97% reduction in the risk of microscopic parasitemia (17.7% versus 0.6%, RR 0.03 [95% CI 0.02-0.05]; p < 0.001), but dihydroartemisinin-piperaquine plus sulfadoxine-pyrimethamine was not associated with improved malaria outcomes over dihydroartemisinin-piperaquine alone. There were no significant differences in the incidence of any grade 3-4 adverse events between the treatment arms. As this study was conducted in an area of high transmission intensity with widespread resistance to sulfadoxine-pyrimethamine, findings may not be generalizable to other settings.
+
+CONCLUSIONS: Despite the superior antimalarial activity of dihydroartemisinin-piperaquine, sulfadoxine-pyrimethamine alone was associated with improved birth outcomes. Combining dihydroartemisinin-piperaquine plus sulfadoxine-pyrimethamine for IPTp did not improve birth outcomes compared to either sulfadoxine-pyrimethamine or dihydroartemisinin-piperaquine alone.
+
+TRIAL REGISTRATION: ClinicalTrials.gov (NCT04336189; https://clinicaltrials.gov/study/NCT04336189).
+
+# Publication types
+Journal Article, Randomized Controlled Trial, Clinical Trial, Phase III, Comparative Study
+# Task
+Extract atomic qualified medical claims from the abstract above. Return a JSON ARRAY (not a paper-summary object). Each element MUST be an object with exactly these keys: subject, predicate, object, qualifiers, certainty, evidence_note.
+
+STRICT FIELD CONSTRAINTS:
+- `predicate` MUST be EXACTLY one of: treats, causes, resists, requires, contraindicates, prevents, co_occurs, recommends, supersedes. Map free-text relations to the closest enum. NO other values allowed. If you cannot map cleanly, drop the claim.
+- `certainty` MUST be EXACTLY one of: high, moderate, low, very_low. NO other values (no 'established', no 'low-to-moderate').
+- `qualifiers` MUST be an object with the nested shape: {population:{age_range, pregnancy, region, immune_status, comorbidities}, setting:{care_level, endemic_status}, dose_regimen:{drug, mg_per_kg, frequency, duration}, comparator, effect_size:{metric, value, ci_low, ci_high}}. Use null for unknown leaf values. DO NOT use a flat free-form qualifiers object.
+- `subject` and `object` MUST be non-empty strings.
+
+DO NOT summarize the paper. DO NOT return {"title":...,"key_findings":...}. DO NOT return an array of strings. If no qualified claims exist, return [].
+Your output MUST start with `[` and end with `]`. Output ONLY the JSON array, nothing else.
+
+===== STDOUT =====
+[
+  {
+    "subject": "sulfadoxine-pyrimethamine",
+    "predicate": "prevents",
+    "object": "adverse birth outcomes in malaria-exposed pregnancy",
+    "qualifiers": {
+      "population": {"age_range": "adults", "pregnancy": "second_third_trimester", "region": "Uganda", "immune_status": null, "comorbidities": []},
+      "setting": {"care_level": "outpatient", "endemic_status": "endemic"},
+      "dose_regimen": {"drug": "sulfadoxine-pyrimethamine", "mg_per_kg": null, "frequency": "monthly IPTp", "duration": null},
+      "comparator": "dihydroartemisinin-piperaquine",
+      "effect_size": {"metric": "composite adverse birth outcome risk (RR, DP vs SP)", "value": 1.17, "ci_low": 1.01, "ci_high": 1.36}
+    },
+    "certainty": "high",
+    "evidence_note": "Double-blind RCT, n=2757, phase 3 Uganda; SP arm 26.4% vs DP 30.9%, p=0.04."
+  },
+  {
+    "subject": "dihydroartemisinin-piperaquine",
+    "predicate": "prevents",
+    "object": "symptomatic Plasmodium falciparum malaria in pregnancy",
+    "qualifiers": {
+      "population": {"age_range": "adults", "pregnancy": "second_third_trimester", "region": "Uganda", "immune_status": null, "comorbidities": []},
+      "setting": {"care_level": "outpatient", "endemic_status": "endemic"},
+      "dose_regimen": {"drug": "dihydroartemisinin-piperaquine", "mg_per_kg": null, "frequency": "monthly IPTp", "duration": null},
+      "comparator": "sulfadoxine-pyrimethamine",
+      "effect_size": {"metric": "incidence rate ratio symptomatic malaria", "value": 0.06, "ci_low": 0.03, "ci_high": 0.12}
+    },
+    "certainty": "high",
+    "evidence_note": "RCT, n=2757; 94% reduction symptomatic malaria, p<0.001."
+  },
+  {
+    "subject": "dihydroartemisinin-piperaquine",
+    "predicate": "prevents",
+    "object": "microscopic Plasmodium falciparum parasitemia in pregnancy",
+    "qualifiers": {
+      "population": {"age_range": "adults", "pregnancy": "second_third_trimester", "region": "Uganda", "immune_status": null, "comorbidities": []},
+      "setting": {"care_level": "outpatient", "endemic_status": "endemic"},
+      "dose_regimen": {"drug": "dihydroartemisinin-piperaquine", "mg_per_kg": null, "frequency": "monthly IPTp", "duration": null},
+      "comparator": "sulfadoxine-pyrimethamine",
+      "effect_size": {"metric": "RR microscopic parasitemia", "value": 0.03, "ci_low": 0.02, "ci_high": 0.05}
+    },
+    "certainty": "high",
+    "evidence_note": "RCT, n=2757; 97% reduction microscopic parasitemia, p<0.001."
+  },
+  {
+    "subject": "Plasmodium falciparum",
+    "predicate": "resists",
+    "object": "sulfadoxine-pyrimethamine",
+    "qualifiers": {
+      "population": {"age_range": null, "pregnancy": null, "region": "East and Southern Africa", "immune_status": null, "comorbidities": []},
+      "setting": {"care_level": null, "endemic_status": "endemic"},
+      "dose_regimen": {"drug": "sulfadoxine-pyrimethamine", "mg_per_kg": null, "frequency": null, "duration": null},
+      "comparator": null,
+      "effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+    },
+    "certainty": "high",
+    "evidence_note": "Widespread P. falciparum SP resistance documented in East/Southern Africa per abstract background."
+  },
+  {
+    "subject": "dihydroartemisinin-piperaquine plus sulfadoxine-pyrimethamine",
+    "predicate": "causes",
+    "object": "small-for-gestational age",
+    "qualifiers": {
+      "population": {"age_range": "adults", "pregnancy": "second_third_trimester", "region": "Uganda", "immune_status": null, "comorbidities": []},
+      "setting": {"care_level": "outpatient", "endemic_status": "endemic"},
+      "dose_regimen": {"drug": "dihydroartemisinin-piperaquine + sulfadoxine-pyrimethamine", "mg_per_kg": null, "frequency": "monthly IPTp", "duration": null},
+      "comparator": "sulfadoxine-pyrimethamine alone",
+      "effect_size": {"metric": "RR small-for-gestational age", "value": 1.25, "ci_low": 1.04, "ci_high": 1.51}
+    },
+    "certainty": "moderate",
+    "evidence_note": "RCT secondary outcome; 23.4% vs 18.7%, p=0.02."
+  },
+  {
+    "subject": "dihydroartemisinin-piperaquine plus sulfadoxine-pyrimethamine",
+    "predicate": "causes",
+    "object": "low birthweight",
+    "qualifiers": {
+      "population": {"age_range": "adults", "pregnancy": "second_third_trimester", "region": "Uganda", "immune_status": null, "comorbidities": []},
+      "setting": {"care_level": "outpatient", "endemic_status": "endemic"},
+      "dose_regimen": {"drug": "dihydroartemisinin-piperaquine + sulfadoxine-pyrimethamine", "mg_per_kg": null, "frequency": "monthly IPTp", "duration": null},
+      "comparator": "sulfadoxine-pyrimethamine alone",
+      "effect_size": {"metric": "RR low birthweight (<2500 g)", "value": 1.48, "ci_low": 1.04, "ci_high": 2.12}
+    },
+    "certainty": "moderate",
+    "evidence_note": "RCT secondary outcome; 8.6% vs 5.8%, p=0.03."
+  },
+  {
+    "subject": "dihydroartemisinin-piperaquine plus sulfadoxine-pyrimethamine",
+    "predicate": "causes",
+    "object": "preterm delivery",
+    "qualifiers": {
+      "population": {"age_range": "adults", "pregnancy": "second_third_trimester", "region": "Uganda", "immune_status": null, "comorbidities": []},
+      "setting": {"care_level": "outpatient", "endemic_status": "endemic"},
+      "dose_regimen": {"drug": "dihydroartemisinin-piperaquine + sulfadoxine-pyrimethamine", "mg_per_kg": null, "frequency": "monthly IPTp", "duration": null},
+      "comparator": "dihydroartemisinin-piperaquine alone",
+      "effect_size": {"metric": "RR preterm delivery (<37 weeks)", "value": 1.73, "ci_low": 1.07, "ci_high": 2.79}
+    },
+    "certainty": "moderate",
+    "evidence_note": "RCT secondary outcome; 5.3% vs 3.1%, p=0.03."
+  },
+  {
+    "subject": "sulfadoxine-pyrimethamine",
+    "predicate": "recommends",
+    "object": "intermittent preventive treatment of malaria in pregnancy",
+    "qualifiers": {
+      "population": {"age_range": "adults", "pregnancy": "second_third_trimester", "region": "sub-Saharan Africa", "immune_status": null, "comorbidities": []},
+      "setting": {"care_level": "outpatient", "endemic_status": "endemic"},
+      "dose_regimen": {"drug": "sulfadoxine-pyrimethamine", "mg_per_kg": null, "frequency": "monthly", "duration": null},
+      "comparator": null,
+      "effect_size": {"metric": null, "value": null, "ci_low": null, "ci_high": null}
+    },
+    "certainty": "high",
+    "evidence_note": "Current WHO guideline for IPTp cited in abstract."
+  }
+]

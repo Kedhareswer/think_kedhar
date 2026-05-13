@@ -1,0 +1,313 @@
+===== SYSTEM =====
+# Concept note — Medication (Master-sheet Medications aligned)
+
+You are writing a single Markdown note about ONE medication (drug, biologic, or therapeutic agent). The headings match the Master-sheet "Medications" columns so an exporter can lift each section into the corresponding cell.
+
+You are given:
+- The drug name (generic).
+- A list of qualified claims about this drug, with predicate, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused medication note. Re-synthesize from the current claim set on every regeneration.
+
+## Output structure
+
+```
+---
+type: medication
+drug_class: <e.g. artemisinin-combination-therapy>
+tags: [<area/sub-area>, ...]            # e.g. malaria/treatment, malaria/severe
+evidence_grade_max: <meta_analysis|RCT|guideline|cohort|case_control|case_report|expert_opinion>
+claim_count: <int>
+last_regen: <ISO-8601 timestamp>
+---
+
+# <Generic name>
+
+**Therapeutic category:** <e.g. Antimalarial>
+**Drug group:** <e.g. Artemisinin combination therapy>
+**Drug class:** <e.g. Sesquiterpene endoperoxide>
+**Controlled substance:** <Yes — Schedule X · No>
+
+## Overview
+
+≤ 80 words plain-language description.
+
+## Indication (Why is this medication prescribed?)
+
+Bullet list of conditions/uses. Cite inline.
+
+## Mechanism of Action (How does it work?)
+
+Short paragraph. Cite mechanism claims explicitly.
+
+## Dosage and Administration
+
+Table or bullet list, organised by indication and population (adult / pediatric / pregnancy / renal-adjusted). Include dose, route, frequency, duration. Only state what claims support — never invent a dose.
+
+## Contraindications (When not to use it)
+
+Bullet list. Distinguish absolute from relative.
+
+## Warnings and Precautions
+
+Bullet list of black-box warnings, severe precautions, monitoring requirements.
+
+## Side Effects
+
+Bullet list grouped by frequency (common / serious / rare). Flag the ones with mortality risk.
+
+## Drug Interactions
+
+Bullet list. For each interaction, state effect direction (↑/↓ exposure, additive toxicity, etc.) and severity.
+
+## Storage and Stability
+
+Short paragraph or bullet list.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>. Evidence mix: <e.g. 6 RCT · 4 guideline · 2 cohort>.*
+```
+
+## Rules
+
+1. **Dose safety first.** If no claim supports a dose, write `_No dose claims in current corpus._` rather than guess. This is a hard constraint.
+2. **No hallucination** (fact-checker). Every statement traces to a claim_id; disagreements flagged with both ids.
+3. **Cite inline** (academic-researcher). `[c:<8char-claim-id>]` after each statement. Note evidence_grade when load-bearing.
+4. **Concision** (technical-writer). ≤ 800 words total.
+5. **Population qualifiers are load-bearing.** Always preserve population/setting qualifiers when surfacing dose, contraindication, or warning claims.
+6. **Brand names and prices** are out of scope for this note — they live in the Master sheet's per-country columns and are sourced separately.
+7. **Status awareness.** `(pending review)` inline for non-promoted; supersedence by replacement.
+8. **Output ONLY the Markdown.** No code fences, no preamble, no postamble.
+
+## Obsidian-friendly output (required)
+
+1. **YAML frontmatter** at the very top per the schema in the Output structure block. `type: medication` is fixed for this prompt.
+2. **Wikilink cross-references** for indications (conditions), partner/interacting drugs, target organisms, resistance genes on first mention per section. Kebab-case slugs (e.g. `[[uncomplicated-falciparum-malaria]]`, `[[lumefantrine]]`, `[[kelch13-c580y-mutation]]`). Never wikilink doses or generic verbs.
+3. **Mermaid diagrams** allowed for mechanism of action cascades (target → downstream → clinical effect) when the claim set supports 3+ mechanistic steps. Fenced ```mermaid``` block. Cite load-bearing claim with `[c:<id>]` adjacent.
+4. **Citations are sacred.** Every claim_id supporting a dose, contraindication, interaction, or efficacy statement must appear as `[c:<8char>]`. Never fabricate. Dropping a dose-supporting citation is a hard reject.
+
+
+===== USER =====
+# Entity
+increased malaria transmission risk
+
+# Surface variants
+increased malaria transmission risk
+
+# Entity type (classifier hint)
+medication
+
+# Claims (count=3)
+```json
+[
+  {
+    "claim_id": "2e7096d2-f061-464d-9567-1231bff6d678",
+    "short_id": "2e7096d2",
+    "subject": "reduced vector control funding",
+    "predicate": "causes",
+    "object": "increased malaria transmission risk",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:27367318",
+      "title": "Climate, environment and transmission of malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/27367318/"
+    }
+  },
+  {
+    "claim_id": "906e102d-2f9e-426b-ac3a-86cf9b3b218d",
+    "short_id": "906e102d",
+    "subject": "ecosystem change and reduced vector control funding",
+    "predicate": "causes",
+    "object": "increased malaria transmission risk",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:27367318",
+      "title": "Climate, environment and transmission of malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/27367318/"
+    }
+  },
+  {
+    "claim_id": "5a248841-60d4-41a1-acd9-af1ace3c8426",
+    "short_id": "5a248841",
+    "subject": "ecosystem change, political instability and reduced vector-control funding",
+    "predicate": "causes",
+    "object": "increased malaria transmission risk",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "temperature alone",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:27367318",
+      "title": "Climate, environment and transmission of malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/27367318/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-13T18:57:11.184616+00:00
+
+
+===== STDOUT =====
+---
+type: medication
+drug_class: not-applicable
+tags: [malaria/epidemiology, malaria/transmission]
+evidence_grade_max: expert_opinion
+claim_count: 3
+last_regen: 2026-05-13T18:57:11+00:00
+---
+
+# Increased malaria transmission risk
+
+**Therapeutic category:** Not applicable — entity is an epidemiological outcome, not a medication
+**Drug group:** _Not applicable._
+**Drug class:** _Not applicable._
+**Controlled substance:** _Not applicable._
+
+## Overview
+
+"Increased malaria transmission risk" is not a drug. It is a population-level outcome in [[endemic-malaria]] settings, driven by ecosystem change, political instability, and reduced vector-control funding [c:5a248841] (pending review). Current claim set contains no pharmacological agent — medication template fields below are intentionally empty.
+
+## Indication (Why is this medication prescribed?)
+
+_Not applicable — entity is not a therapeutic agent._
+
+Contextual drivers from corpus:
+- Reduced [[vector-control]] funding → ↑ transmission risk in endemic settings [c:2e7096d2] (pending review, low certainty, expert_opinion).
+- Ecosystem change + reduced vector-control funding → ↑ transmission risk in endemic settings [c:906e102d] (pending review, moderate certainty).
+- Ecosystem change + political instability + reduced vector-control funding → ↑ transmission risk, exceeding temperature alone as comparator [c:5a248841] (pending review, moderate certainty).
+
+## Mechanism of Action (How does it work?)
+
+_Not applicable._ No pharmacological mechanism. Driver cascade from claim corpus:
+
+```mermaid
+graph LR
+  A[ecosystem change] --> D[increased transmission risk]
+  B[political instability] --> D
+  C[reduced vector-control funding] --> D
+  D --> E[higher case incidence in endemic regions]
+```
+Multifactorial driver model exceeds temperature-only explanation [c:5a248841].
+
+## Dosage and Administration
+
+_No dose claims in current corpus._ Entity is not a medication.
+
+## Contraindications (When not to use it)
+
+_Not applicable._
+
+## Warnings and Precautions
+
+_Not applicable._ Public-health implication only: funding withdrawal in endemic zones predicted to raise transmission [c:2e7096d2] [c:906e102d].
+
+## Side Effects
+
+_Not applicable._
+
+## Drug Interactions
+
+_Not applicable._ No drug entity.
+
+## Storage and Stability
+
+_Not applicable._
+
+---
+*Last regenerated: 2026-05-13T18:57:11+00:00. Source claims: 3. Evidence mix: 3 expert_opinion (all pending review). Note: entity misclassified as medication — recommend reclassification to `epidemiological_outcome` or `risk_factor`.*

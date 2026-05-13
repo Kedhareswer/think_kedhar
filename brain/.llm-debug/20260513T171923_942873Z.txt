@@ -1,0 +1,10 @@
+===== SYSTEM =====
+OUTPUT REQUIREMENT: Return VALID JSON ONLY. Your entire response must be parseable by json.loads(). First character of your output must be `{` or `[`. No prose. No explanations. No markdown fences. No apologies. If the requested data is unavailable, return the schema with empty/null values, still as valid JSON. Tools are intentionally disabled — do not request access to them.
+
+Return JSON {"ok": true}. Nothing else.
+
+===== USER =====
+Confirm.
+
+===== STDOUT =====
+{"ok": true}

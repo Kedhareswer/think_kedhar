@@ -1,0 +1,1093 @@
+===== SYSTEM =====
+# Concept note — Medication (Master-sheet Medications aligned)
+
+You are writing a single Markdown note about ONE medication (drug, biologic, or therapeutic agent). The headings match the Master-sheet "Medications" columns so an exporter can lift each section into the corresponding cell.
+
+You are given:
+- The drug name (generic).
+- A list of qualified claims about this drug, with predicate, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused medication note. Re-synthesize from the current claim set on every regeneration.
+
+## Output structure
+
+```
+---
+type: medication
+drug_class: <e.g. artemisinin-combination-therapy>
+tags: [<area/sub-area>, ...]            # e.g. malaria/treatment, malaria/severe
+evidence_grade_max: <meta_analysis|RCT|guideline|cohort|case_control|case_report|expert_opinion>
+claim_count: <int>
+last_regen: <ISO-8601 timestamp>
+---
+
+# <Generic name>
+
+**Therapeutic category:** <e.g. Antimalarial>
+**Drug group:** <e.g. Artemisinin combination therapy>
+**Drug class:** <e.g. Sesquiterpene endoperoxide>
+**Controlled substance:** <Yes — Schedule X · No>
+
+## Overview
+
+≤ 80 words plain-language description.
+
+## Indication (Why is this medication prescribed?)
+
+Bullet list of conditions/uses. Cite inline.
+
+## Mechanism of Action (How does it work?)
+
+Short paragraph. Cite mechanism claims explicitly.
+
+## Dosage and Administration
+
+Table or bullet list, organised by indication and population (adult / pediatric / pregnancy / renal-adjusted). Include dose, route, frequency, duration. Only state what claims support — never invent a dose.
+
+## Contraindications (When not to use it)
+
+Bullet list. Distinguish absolute from relative.
+
+## Warnings and Precautions
+
+Bullet list of black-box warnings, severe precautions, monitoring requirements.
+
+## Side Effects
+
+Bullet list grouped by frequency (common / serious / rare). Flag the ones with mortality risk.
+
+## Drug Interactions
+
+Bullet list. For each interaction, state effect direction (↑/↓ exposure, additive toxicity, etc.) and severity.
+
+## Storage and Stability
+
+Short paragraph or bullet list.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>. Evidence mix: <e.g. 6 RCT · 4 guideline · 2 cohort>.*
+```
+
+## Rules
+
+1. **Dose safety first.** If no claim supports a dose, write `_No dose claims in current corpus._` rather than guess. This is a hard constraint.
+2. **No hallucination** (fact-checker). Every statement traces to a claim_id; disagreements flagged with both ids.
+3. **Cite inline** (academic-researcher). `[c:<8char-claim-id>]` after each statement. Note evidence_grade when load-bearing.
+4. **Concision** (technical-writer). ≤ 800 words total.
+5. **Population qualifiers are load-bearing.** Always preserve population/setting qualifiers when surfacing dose, contraindication, or warning claims.
+6. **Brand names and prices** are out of scope for this note — they live in the Master sheet's per-country columns and are sourced separately.
+7. **Status awareness.** `(pending review)` inline for non-promoted; supersedence by replacement.
+8. **Output ONLY the Markdown.** No code fences, no preamble, no postamble.
+
+## Obsidian-friendly output (required)
+
+1. **YAML frontmatter** at the very top per the schema in the Output structure block. `type: medication` is fixed for this prompt.
+2. **Wikilink cross-references** for indications (conditions), partner/interacting drugs, target organisms, resistance genes on first mention per section. Kebab-case slugs (e.g. `[[uncomplicated-falciparum-malaria]]`, `[[lumefantrine]]`, `[[kelch13-c580y-mutation]]`). Never wikilink doses or generic verbs.
+3. **Mermaid diagrams** allowed for mechanism of action cascades (target → downstream → clinical effect) when the claim set supports 3+ mechanistic steps. Fenced ```mermaid``` block. Cite load-bearing claim with `[c:<id>]` adjacent.
+4. **Citations are sacred.** Every claim_id supporting a dose, contraindication, interaction, or efficacy statement must appear as `[c:<8char>]`. Never fabricate. Dropping a dose-supporting citation is a hard reject.
+
+
+===== USER =====
+# Entity
+plasmodium falciparum malaria
+
+# Surface variants
+Plasmodium falciparum malaria, Plasmodium falciparum malaria in pregnancy
+
+# Entity type (classifier hint)
+medication
+
+# Claims (count=20)
+```json
+[
+  {
+    "claim_id": "3d7baa62-35f2-49d6-a7c8-bb2d1b3939ba",
+    "short_id": "3d7baa62",
+    "subject": "effective antimalarial treatment",
+    "predicate": "treats",
+    "object": "Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:40056919",
+      "title": "Mapping the global prevalence, incidence, and mortality of Plasmodium falciparum and Plasmodium vivax malaria, 2000-22: a spatial and temporal modelling study.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/40056919/"
+    }
+  },
+  {
+    "claim_id": "d0e31868-6c20-4263-a683-33be4bcc3da1",
+    "short_id": "d0e31868",
+    "subject": "RTS,S/AS01",
+    "predicate": "prevents",
+    "object": "Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "pediatric",
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "RTS,S/AS01",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "efficacy",
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:34347570",
+      "title": "Novel malaria vaccines.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/34347570/"
+    }
+  },
+  {
+    "claim_id": "6e789e2d-e2b6-4140-990d-4dab08e6b5b6",
+    "short_id": "6e789e2d",
+    "subject": "doxycycline",
+    "predicate": "prevents",
+    "object": "Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": "naive",
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "traveler"
+      },
+      "dose_regimen": {
+        "drug": "doxycycline",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:30995310",
+      "title": "Geographic expansion of artemisinin resistance.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/30995310/"
+    }
+  },
+  {
+    "claim_id": "433f6ee2-596a-42ed-8734-e927a63de061",
+    "short_id": "433f6ee2",
+    "subject": "atovaquone-proguanil",
+    "predicate": "prevents",
+    "object": "Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": "naive",
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "traveler"
+      },
+      "dose_regimen": {
+        "drug": "atovaquone-proguanil",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:30995310",
+      "title": "Geographic expansion of artemisinin resistance.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/30995310/"
+    }
+  },
+  {
+    "claim_id": "27565d0d-bddc-46fc-b98d-65b4170f293c",
+    "short_id": "27565d0d",
+    "subject": "artemisinins",
+    "predicate": "treats",
+    "object": "Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinins",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:38552654",
+      "title": "The emergence of artemisinin partial resistance in Africa: how do we respond?",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38552654/"
+    }
+  },
+  {
+    "claim_id": "4a7a09a5-f9d3-4b13-a1c9-ccd20be20c16",
+    "short_id": "4a7a09a5",
+    "subject": "chloroquine",
+    "predicate": "treats",
+    "object": "Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "chloroquine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:32905757",
+      "title": "Molecular Mechanisms of Drug Resistance in Plasmodium falciparum Malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/32905757/"
+    }
+  },
+  {
+    "claim_id": "1606204e-2592-41bf-8eb3-0f7410feacbc",
+    "short_id": "1606204e",
+    "subject": "RTS,S/AS01",
+    "predicate": "prevents",
+    "object": "Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": ">5 months",
+        "pregnancy": null,
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "RTS,S/AS01",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37525687",
+      "title": "[Vaccination against malaria].",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37525687/"
+    }
+  },
+  {
+    "claim_id": "ad387568-6fa7-4879-b157-84ceae1c6e13",
+    "short_id": "ad387568",
+    "subject": "Plasmodium falciparum malaria",
+    "predicate": "causes",
+    "object": "mortality in tropical and subtropical regions",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "tropical and subtropical regions",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "annual deaths (2021)",
+        "value": 600000.0,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:38216923",
+      "title": "A perspective on Oxford's R21/Matrix-M\u2122 malaria vaccine and the future of global eradication efforts.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38216923/"
+    }
+  },
+  {
+    "claim_id": "910efe0b-fb41-42e6-8089-409b13b1d3a3",
+    "short_id": "910efe0b",
+    "subject": "R21/Matrix-M malaria vaccine",
+    "predicate": "prevents",
+    "object": "Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "<3 years",
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "R21/Matrix-M",
+        "mg_per_kg": null,
+        "frequency": "low-dose",
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "vaccine efficacy",
+        "value": 77.0,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:38216923",
+      "title": "A perspective on Oxford's R21/Matrix-M\u2122 malaria vaccine and the future of global eradication efforts.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38216923/"
+    }
+  },
+  {
+    "claim_id": "e61096eb-76d8-4543-a37e-414fbc7b9a51",
+    "short_id": "e61096eb",
+    "subject": "Plasmodium falciparum malaria",
+    "predicate": "causes",
+    "object": "mortality",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "annual deaths",
+        "value": 600000.0,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:39025972",
+      "title": "Malaria vaccines: a new era of prevention and control.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/39025972/"
+    }
+  },
+  {
+    "claim_id": "f69236c5-e77e-4330-bd61-9d052b514ff7",
+    "short_id": "f69236c5",
+    "subject": "RTS,S malaria vaccine",
+    "predicate": "prevents",
+    "object": "Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "\u22655 months",
+        "pregnancy": null,
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "RTS,S/AS01",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "no vaccine",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37086747",
+      "title": "RTS,S/AS01 malaria vaccine-proven safe and effective?",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37086747/"
+    }
+  },
+  {
+    "claim_id": "9962037e-6252-47f3-8a81-ea4434813262",
+    "short_id": "9962037e",
+    "subject": "seasonal malaria chemoprevention",
+    "predicate": "prevents",
+    "object": "Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "<5 years",
+        "pregnancy": null,
+        "region": "Sahel",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "community",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "sulfadoxine-pyrimethamine plus amodiaquine",
+        "mg_per_kg": null,
+        "frequency": "monthly",
+        "duration": "4 courses per transmission season"
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "children reached in 2020",
+        "value": 11800000.0,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37403183",
+      "title": "Seasonal malaria chemoprevention in Africa and China's upgraded role as a contributor: a scoping review.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37403183/"
+    }
+  },
+  {
+    "claim_id": "a1a99f4e-0162-4373-94ff-5eeb989bc7a1",
+    "short_id": "a1a99f4e",
+    "subject": "dihydroartemisinin-piperaquine",
+    "predicate": "treats",
+    "object": "Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "South East Asia",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "dihydroartemisinin-piperaquine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "other ACTs",
+      "effect_size": {
+        "metric": "recrudescence/clinical failure/parasitological failure (recent years, artemisinin-resistant regions)",
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "meta_analysis",
+    "status": "auto_promoted",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:31015034",
+      "title": "Efficacy and resistance of different artemisinin-based combination therapies: a systematic review and network meta-analysis.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/31015034/"
+    }
+  },
+  {
+    "claim_id": "7d0210ab-6cc2-4426-994f-a748eee020d1",
+    "short_id": "7d0210ab",
+    "subject": "dihydroartemisinin-piperaquine",
+    "predicate": "treats",
+    "object": "Plasmodium falciparum malaria in pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "second_third_trimester",
+        "region": "Uganda",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "dihydroartemisinin-piperaquine",
+        "mg_per_kg": null,
+        "frequency": "monthly",
+        "duration": null
+      },
+      "comparator": "sulfadoxine-pyrimethamine",
+      "effect_size": {
+        "metric": "incidence rate ratio of symptomatic malaria",
+        "value": 0.06,
+        "ci_low": 0.03,
+        "ci_high": 0.12
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "RCT",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:40966190",
+      "title": "Dihydroartemisinin-piperaquine plus sulfadoxine-pyrimethamine versus either drug alone for intermittent preventive treatment of malaria in pregnancy: A double-blind, randomized, controlled phase 3 trial from Uganda.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/40966190/"
+    }
+  },
+  {
+    "claim_id": "1b9f2f02-a4e2-487c-83ed-7a26c9376f2a",
+    "short_id": "1b9f2f02",
+    "subject": "MMV1557817",
+    "predicate": "treats",
+    "object": "Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "MMV1557817",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "inhibitory potency vs PfA-M1/M17",
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "low",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:38717141",
+      "title": "On-target, dual aminopeptidase inhibition provides cross-species antimalarial activity.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38717141/"
+    }
+  },
+  {
+    "claim_id": "20091eef-361d-4b2e-96f6-1498b0040a5d",
+    "short_id": "20091eef",
+    "subject": "artemisinin derivatives",
+    "predicate": "treats",
+    "object": "Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinin derivatives",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:32656850",
+      "title": "Advances and roadblocks in the treatment of malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/32656850/"
+    }
+  },
+  {
+    "claim_id": "86998bea-032d-4dc3-ae14-146ad8f2a002",
+    "short_id": "86998bea",
+    "subject": "RTS,S/AS01 malaria vaccine",
+    "predicate": "prevents",
+    "object": "Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "\u22655 months",
+        "pregnancy": null,
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "RTS,S/AS01",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37086747",
+      "title": "RTS,S/AS01 malaria vaccine-proven safe and effective?",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37086747/"
+    }
+  },
+  {
+    "claim_id": "9939ff9f-4f59-43ce-823e-12e08ba5a23a",
+    "short_id": "9939ff9f",
+    "subject": "PfSPZ-CVac",
+    "predicate": "prevents",
+    "object": "Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "PfSPZ-CVac (chemoattenuated sporozoite)",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37728713",
+      "title": "Malaria Vaccines: Progress to Date.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37728713/"
+    }
+  },
+  {
+    "claim_id": "1e1263ae-4e57-4a14-b77e-6819fe8094b2",
+    "short_id": "1e1263ae",
+    "subject": "PfSPZ Vaccine",
+    "predicate": "prevents",
+    "object": "Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "PfSPZ Vaccine (irradiated sporozoite)",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37728713",
+      "title": "Malaria Vaccines: Progress to Date.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37728713/"
+    }
+  },
+  {
+    "claim_id": "672b5689-8b30-4dd9-8477-a7577485ba32",
+    "short_id": "672b5689",
+    "subject": "R21",
+    "predicate": "prevents",
+    "object": "Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "R21",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "efficacy",
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:37728713",
+      "title": "Malaria Vaccines: Progress to Date.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37728713/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-13T19:23:10.231962+00:00
+
+
+===== STDOUT =====
+---
+type: medication
+drug_class: antimalarials
+tags: [malaria/treatment, malaria/prevention, malaria/severe, malaria/pregnancy]
+evidence_grade_max: RCT
+claim_count: 20
+last_regen: 2026-05-13T19:23:10Z
+---
+
+# Plasmodium falciparum malaria — Antimalarial therapeutic class note
+
+**Therapeutic category:** Antimalarial (treatment + chemoprevention + vaccines)
+**Drug group:** Mixed — ACTs, 4-aminoquinolines, antifolates, tetracyclines, atovaquone-proguanil, pre-erythrocytic vaccines, sporozoite vaccines, investigational aminopeptidase inhibitors
+**Drug class:** Class-level note (entity is disease, not single agent)
+**Controlled substance:** No
+
+> Note: Source entity is the disease [[plasmodium-falciparum-malaria]]. Claim set spans multiple agents. Treated here as therapeutic-class summary keyed to that disease, per master-sheet "Medications" column.
+
+## Overview
+
+[[plasmodium-falciparum-malaria]] caused ~600 000 deaths/yr in 2021 across tropical and subtropical regions [c:ad387568][c:e61096eb]. Effective antimalarial treatment exists in endemic [[sub-saharan-africa]] outpatient settings [c:3d7baa62]. Therapy splits into (a) treatment with [[artemisinin]]-based regimens, (b) chemoprevention for travellers, children, and pregnant women, (c) pre-erythrocytic vaccines.
+
+## Indication (Why is this medication prescribed?)
+
+- Acute uncomplicated P. falciparum infection — [[artemisinins]] [c:27565d0d], [[artemisinin-derivatives]] [c:20091eef], [[dihydroartemisinin-piperaquine]] in South East Asia [c:a1a99f4e], historical [[chloroquine]] (now widely resistant) [c:4a7a09a5].
+- Intermittent preventive treatment in pregnancy — [[dihydroartemisinin-piperaquine]] monthly, second/third trimester, Uganda [c:7d0210ab].
+- Seasonal malaria chemoprevention in children <5 yr, Sahel — [[sulfadoxine-pyrimethamine]] + [[amodiaquine]] [c:9962037e].
+- Traveller chemoprophylaxis (non-immune) — [[doxycycline]] [c:6e789e2d], [[atovaquone-proguanil]] [c:433f6ee2].
+- Pediatric prevention in endemic regions — [[rts-s-as01]] vaccine ≥5 mo [c:d0e31868][c:1606204e][c:f69236c5][c:86998bea]; [[r21-matrix-m]] in <3 yr [c:910efe0b][c:672b5689]; [[pfspz-vaccine]] and [[pfspz-cvac]] investigational [c:1e1263ae][c:9939ff9f].
+- Investigational treatment — [[mmv1557817]] (dual PfA-M1/M17 aminopeptidase inhibitor) [c:1b9f2f02].
+
+## Mechanism of Action (How does it work?)
+
+```mermaid
+graph LR
+  A[Artemisinin endoperoxide] --> B[Fe2+-heme cleavage in parasite digestive vacuole]
+  B --> C[Free radical alkylation of parasite proteins/lipids]
+  C --> D[Asexual blood-stage parasite kill]
+  E[RTS,S/AS01 CSP antigen] --> F[Anti-circumsporozoite antibodies]
+  F --> G[Sporozoite hepatocyte invasion blocked]
+  H[MMV1557817] --> I[PfA-M1/M17 aminopeptidase inhibition]
+  I --> J[Hemoglobin digestion arrested]
+```
+
+[[artemisinin]] derivatives are first-line schizonticides for blood-stage parasites [c:27565d0d][c:20091eef]. [[rts-s-as01]] and [[r21-matrix-m]] target pre-erythrocytic circumsporozoite protein [c:d0e31868][c:910efe0b]. [[mmv1557817]] inhibits parasite aminopeptidases PfA-M1/M17 [c:1b9f2f02].
+
+## Dosage and Administration
+
+| Indication | Agent | Population | Regimen |
+|---|---|---|---|
+| IPTp | dihydroartemisinin-piperaquine | adults, 2nd/3rd trimester | monthly [c:7d0210ab] |
+| SMC | SP + amodiaquine | <5 yr, Sahel | monthly × 4 courses per transmission season [c:9962037e] |
+| Pediatric prevention | R21/Matrix-M | <3 yr endemic | low-dose schedule [c:910efe0b] |
+
+_No mg/kg dose claims in current corpus for ACTs, chloroquine, doxycycline, atovaquone-proguanil, RTS,S, PfSPZ, or MMV1557817._
+
+## Contraindications (When not to use it)
+
+_No contraindication claims in current corpus._
+
+## Warnings and Precautions
+
+- Artemisinin partial resistance now emerging in [[africa]] — monitor parasite clearance [c:27565d0d] (pending review).
+- [[dihydroartemisinin-piperaquine]] efficacy reduced in artemisinin-resistant [[south-east-asia]] regions vs other ACTs (recrudescence/clinical/parasitological failure) [c:a1a99f4e].
+- [[chloroquine]] resistance widespread — historical agent only [c:4a7a09a5].
+
+## Side Effects
+
+_No adverse-event claims in current corpus._
+
+## Drug Interactions
+
+- IPTp combination: dihydroartemisinin-piperaquine + [[sulfadoxine-pyrimethamine]] — DHA-PQ monotherapy IRR 0.06 (95% CI 0.03–0.12) vs SP for symptomatic malaria; additive/superior protection [c:7d0210ab] (RCT).
+- SMC combination: sulfadoxine-pyrimethamine + amodiaquine — fixed seasonal pairing [c:9962037e].
+
+_No CYP/QT/transporter interaction claims in current corpus._
+
+## Storage and Stability
+
+_No storage claims in current corpus._
+
+---
+*Last regenerated: 2026-05-13T19:23:10Z. Source claims: 20. Evidence mix: 1 RCT · 1 meta-analysis · 18 expert_opinion. Note: entity is a disease; treated as antimalarial-class summary. All claims except c:a1a99f4e and c:7d0210ab are pending_review.*

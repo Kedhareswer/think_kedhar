@@ -1,0 +1,664 @@
+===== SYSTEM =====
+# Concept note — Medication (Master-sheet Medications aligned)
+
+You are writing a single Markdown note about ONE medication (drug, biologic, or therapeutic agent). The headings match the Master-sheet "Medications" columns so an exporter can lift each section into the corresponding cell.
+
+You are given:
+- The drug name (generic).
+- A list of qualified claims about this drug, with predicate, qualifiers, certainty, evidence grade, source, and current/superseded status.
+
+Write a focused medication note. Re-synthesize from the current claim set on every regeneration.
+
+## Output structure
+
+```
+---
+type: medication
+drug_class: <e.g. artemisinin-combination-therapy>
+tags: [<area/sub-area>, ...]            # e.g. malaria/treatment, malaria/severe
+evidence_grade_max: <meta_analysis|RCT|guideline|cohort|case_control|case_report|expert_opinion>
+claim_count: <int>
+last_regen: <ISO-8601 timestamp>
+---
+
+# <Generic name>
+
+**Therapeutic category:** <e.g. Antimalarial>
+**Drug group:** <e.g. Artemisinin combination therapy>
+**Drug class:** <e.g. Sesquiterpene endoperoxide>
+**Controlled substance:** <Yes — Schedule X · No>
+
+## Overview
+
+≤ 80 words plain-language description.
+
+## Indication (Why is this medication prescribed?)
+
+Bullet list of conditions/uses. Cite inline.
+
+## Mechanism of Action (How does it work?)
+
+Short paragraph. Cite mechanism claims explicitly.
+
+## Dosage and Administration
+
+Table or bullet list, organised by indication and population (adult / pediatric / pregnancy / renal-adjusted). Include dose, route, frequency, duration. Only state what claims support — never invent a dose.
+
+## Contraindications (When not to use it)
+
+Bullet list. Distinguish absolute from relative.
+
+## Warnings and Precautions
+
+Bullet list of black-box warnings, severe precautions, monitoring requirements.
+
+## Side Effects
+
+Bullet list grouped by frequency (common / serious / rare). Flag the ones with mortality risk.
+
+## Drug Interactions
+
+Bullet list. For each interaction, state effect direction (↑/↓ exposure, additive toxicity, etc.) and severity.
+
+## Storage and Stability
+
+Short paragraph or bullet list.
+
+---
+*Last regenerated: <ISO timestamp>. Source claims: <count>. Evidence mix: <e.g. 6 RCT · 4 guideline · 2 cohort>.*
+```
+
+## Rules
+
+1. **Dose safety first.** If no claim supports a dose, write `_No dose claims in current corpus._` rather than guess. This is a hard constraint.
+2. **No hallucination** (fact-checker). Every statement traces to a claim_id; disagreements flagged with both ids.
+3. **Cite inline** (academic-researcher). `[c:<8char-claim-id>]` after each statement. Note evidence_grade when load-bearing.
+4. **Concision** (technical-writer). ≤ 800 words total.
+5. **Population qualifiers are load-bearing.** Always preserve population/setting qualifiers when surfacing dose, contraindication, or warning claims.
+6. **Brand names and prices** are out of scope for this note — they live in the Master sheet's per-country columns and are sourced separately.
+7. **Status awareness.** `(pending review)` inline for non-promoted; supersedence by replacement.
+8. **Output ONLY the Markdown.** No code fences, no preamble, no postamble.
+
+## Obsidian-friendly output (required)
+
+1. **YAML frontmatter** at the very top per the schema in the Output structure block. `type: medication` is fixed for this prompt.
+2. **Wikilink cross-references** for indications (conditions), partner/interacting drugs, target organisms, resistance genes on first mention per section. Kebab-case slugs (e.g. `[[uncomplicated-falciparum-malaria]]`, `[[lumefantrine]]`, `[[kelch13-c580y-mutation]]`). Never wikilink doses or generic verbs.
+3. **Mermaid diagrams** allowed for mechanism of action cascades (target → downstream → clinical effect) when the claim set supports 3+ mechanistic steps. Fenced ```mermaid``` block. Cite load-bearing claim with `[c:<id>]` adjacent.
+4. **Citations are sacred.** Every claim_id supporting a dose, contraindication, interaction, or efficacy statement must appear as `[c:<8char>]`. Never fabricate. Dropping a dose-supporting citation is a hard reject.
+
+
+===== USER =====
+# Entity
+artemisinin combination therapy
+
+# Surface variants
+artemisinin combination therapy
+
+# Entity type (classifier hint)
+medication
+
+# Claims (count=11)
+```json
+[
+  {
+    "claim_id": "fdb3b053-2b21-4845-b52a-c77964ca13dc",
+    "short_id": "fdb3b053",
+    "subject": "artemisinin combination therapy",
+    "predicate": "treats",
+    "object": "uncomplicated malaria in children",
+    "qualifiers": {
+      "population": {
+        "age_range": "pediatric",
+        "pregnancy": null,
+        "region": "UK imported",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "non_endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemether-lumefantrine or dihydroartemisinin-piperaquine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  },
+  {
+    "claim_id": "4dff220d-2779-4249-9dae-e7f7fe424f4c",
+    "short_id": "4dff220d",
+    "subject": "artemisinin combination therapy",
+    "predicate": "treats",
+    "object": "uncomplicated Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": null,
+        "region": "UK imported",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "non_endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  },
+  {
+    "claim_id": "2a84058c-4206-4dff-ab06-60778f595c92",
+    "short_id": "2a84058c",
+    "subject": "artemisinin combination therapy",
+    "predicate": "treats",
+    "object": "uncomplicated Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "artemisinin combination therapy",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "parasite clearance time",
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:24109136",
+      "title": "Malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/24109136/"
+    }
+  },
+  {
+    "claim_id": "742491c3-9614-4688-ac47-f265db0d1ad1",
+    "short_id": "742491c3",
+    "subject": "artemisinin combination therapy",
+    "predicate": "contraindicates",
+    "object": "first-trimester pregnancy",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": "first_trimester",
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "artemisinin combination therapy",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:36126008",
+      "title": "Malaria: Prevention, Diagnosis, and Treatment.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/36126008/"
+    }
+  },
+  {
+    "claim_id": "78bdcecf-63d7-4688-a843-6a109b5969de",
+    "short_id": "78bdcecf",
+    "subject": "artemisinin combination therapy",
+    "predicate": "treats",
+    "object": "uncomplicated malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": "second_third_trimester",
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "artemisinin combination therapy",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:36126008",
+      "title": "Malaria: Prevention, Diagnosis, and Treatment.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/36126008/"
+    }
+  },
+  {
+    "claim_id": "c9a1507b-cb76-48e1-bd72-97db97ffca07",
+    "short_id": "c9a1507b",
+    "subject": "artemisinin combination therapy",
+    "predicate": "treats",
+    "object": "malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinin combination",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:23953767",
+      "title": "Malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/23953767/"
+    }
+  },
+  {
+    "claim_id": "36f33bd0-541a-4362-9961-ef82c7692fa4",
+    "short_id": "36f33bd0",
+    "subject": "artemisinin combination therapy",
+    "predicate": "treats",
+    "object": "uncomplicated P. falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": null,
+        "region": "UK",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "traveler"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  },
+  {
+    "claim_id": "8b9ee584-45d4-459a-86f3-1b41031b6919",
+    "short_id": "8b9ee584",
+    "subject": "artemisinin combination therapy",
+    "predicate": "treats",
+    "object": "uncomplicated Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "adults",
+        "pregnancy": null,
+        "region": "UK (imported)",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "traveler"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  },
+  {
+    "claim_id": "ac0f2ed7-03cf-4d55-baa8-e88dc385318a",
+    "short_id": "ac0f2ed7",
+    "subject": "artemisinin combination therapy",
+    "predicate": "recommends",
+    "object": "uncomplicated Plasmodium knowlesi malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Southeast Asia",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinin combination therapy",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "chloroquine",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:34620385",
+      "title": "Clinical management of Plasmodium knowlesi malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/34620385/"
+    }
+  },
+  {
+    "claim_id": "95ce9a06-84e2-416a-8000-8debbc51ef37",
+    "short_id": "95ce9a06",
+    "subject": "artemisinin combination therapy",
+    "predicate": "treats",
+    "object": "uncomplicated Plasmodium knowlesi malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Southeast Asia",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinin combination therapy",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "chloroquine",
+      "effect_size": {
+        "metric": "parasite clearance time",
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:34620385",
+      "title": "Clinical management of Plasmodium knowlesi malaria.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/34620385/"
+    }
+  },
+  {
+    "claim_id": "90099f0b-d397-4416-ae53-ee52423f8e16",
+    "short_id": "90099f0b",
+    "subject": "artemisinin combination therapy",
+    "predicate": "treats",
+    "object": "uncomplicated malaria in children",
+    "qualifiers": {
+      "population": {
+        "age_range": "pediatric",
+        "pregnancy": null,
+        "region": "UK (imported)",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "non_endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemether-lumefantrine or dihydroartemisinin-piperaquine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "status": "pending_review",
+    "supersedes_id": null,
+    "valid_from": null,
+    "valid_until": null,
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26880088",
+      "title": "UK malaria treatment guidelines 2016.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26880088/"
+    }
+  }
+]
+```
+
+# Now
+2026-05-13T18:32:55.893790+00:00
+
+
+===== STDOUT =====
+---
+type: medication
+drug_class: artemisinin-combination-therapy
+tags: [malaria/treatment, malaria/uncomplicated, antimalarial]
+evidence_grade_max: expert_opinion
+claim_count: 11
+last_regen: 2026-05-13T18:32:55Z
+---
+
+# Artemisinin Combination Therapy (ACT)
+
+**Therapeutic category:** Antimalarial
+**Drug group:** Artemisinin combination therapy
+**Drug class:** Sesquiterpene endoperoxide + partner schizonticide
+**Controlled substance:** No
+
+## Overview
+
+ACT pairs fast-acting artemisinin derivative with longer-acting partner drug. Standard of care for uncomplicated *Plasmodium falciparum* malaria worldwide. Partner drug clears residual parasites, delays resistance. Common regimens: artemether-lumefantrine, dihydroartemisinin-piperaquine.
+
+## Indication (Why is this medication prescribed?)
+
+- Uncomplicated [[plasmodium-falciparum-malaria]] in adults, including UK imported/traveler cases (inpatient) [c:4dff220d] [c:36f33bd0] [c:8b9ee584] (pending review)
+- Uncomplicated [[falciparum-malaria]] in children, UK imported — artemether-lumefantrine or dihydroartemisinin-piperaquine [c:fdb3b053] [c:90099f0b] (pending review)
+- Uncomplicated *P. falciparum* malaria, outpatient, measured by parasite clearance time [c:2a84058c] (pending review)
+- Uncomplicated [[plasmodium-knowlesi-malaria]] in Southeast Asia, preferred over [[chloroquine]] [c:ac0f2ed7] [c:95ce9a06] (pending review, moderate certainty)
+- Malaria in endemic settings [c:c9a1507b] (pending review)
+- Uncomplicated malaria in second/third trimester pregnancy [c:78bdcecf] (pending review)
+
+## Mechanism of Action (How does it work?)
+
+Artemisinin endoperoxide bridge cleaved by parasite heme iron → reactive radicals → alkylate parasite proteins/lipids → rapid asexual blood-stage kill. Partner drug (lumefantrine, piperaquine) sustains schizonticidal pressure after short artemisinin half-life clears. _No mechanism claims in current corpus — description above is contextual only._
+
+## Dosage and Administration
+
+_No dose claims in current corpus._ Regimen names referenced (artemether-lumefantrine, dihydroartemisinin-piperaquine) [c:fdb3b053] [c:90099f0b] but no mg/kg, frequency, or duration in claim set.
+
+## Contraindications (When not to use it)
+
+- **Absolute:** [[first-trimester-pregnancy]] — adults, outpatient setting [c:742491c3] (pending review)
+
+## Warnings and Precautions
+
+_No warning claims in current corpus._
+
+## Side Effects
+
+_No side-effect claims in current corpus._
+
+## Drug Interactions
+
+_No interaction claims in current corpus._ Comparator [[chloroquine]] noted for *P. knowlesi* (preference, not interaction) [c:ac0f2ed7] [c:95ce9a06].
+
+## Storage and Stability
+
+_No storage claims in current corpus._
+
+---
+*Last regenerated: 2026-05-13T18:32:55Z. Source claims: 11. Evidence mix: 11 expert_opinion (all pending review).*
