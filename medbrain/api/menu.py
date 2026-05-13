@@ -57,8 +57,12 @@ def _concept_md_path(entity_key: str) -> str | None:
     label = entity_key
     p = config.CONCEPTS_DIR / f"{slugify(label)}.md"
     if p.exists():
+        # Concepts now live under STUDENT_DIR; emit a path relative to the
+        # workspace root so CDS consumers get a stable, human-readable
+        # locator (e.g. "student/concepts/chloroquine.md") regardless of
+        # absolute filesystem layout.
         try:
-            return str(p.relative_to(config.BRAIN_DIR)).replace("\\", "/")
+            return str(p.relative_to(config.ROOT_DIR)).replace("\\", "/")
         except ValueError:
             return str(p)
     return None

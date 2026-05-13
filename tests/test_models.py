@@ -13,8 +13,12 @@ import pytest
 @pytest.fixture
 def tmp_brain(monkeypatch: pytest.MonkeyPatch) -> Path:
     tmp = Path(tempfile.mkdtemp(prefix="medbrain-test-"))
-    monkeypatch.setenv("BRAIN_DIR", str(tmp))
-    # Reload modules so they pick up new BRAIN_DIR.
+    monkeypatch.setenv("MEDBRAIN_ROOT", str(tmp))
+    monkeypatch.setenv("STUDENT_DIR", str(tmp / "student"))
+    monkeypatch.setenv("BRAIN_DIR", str(tmp / "brain"))
+    monkeypatch.setenv("DREAM_DIR", str(tmp / "dream"))
+    monkeypatch.setenv("EXPORTS_DIR", str(tmp / "exports"))
+    # Reload modules so they pick up new paths.
     import importlib
 
     import medbrain.config as config_mod
@@ -30,21 +34,24 @@ def test_init_creates_schema_and_dirs(tmp_brain: Path) -> None:
         BRAIN_DIR,
         CONCEPTS_DIR,
         DB_PATH,
-        DERIVATIVE_DIR,
+        FLASHCARDS_DIR,
         GRAPH_DIR,
+        MEMORY_DIR,
         NOTES_DIR,
+        STUDENT_DIR,
     )
     from medbrain.db import init_schema
 
     init_schema()
 
+    assert STUDENT_DIR.exists()
     assert BRAIN_DIR.exists()
     assert CONCEPTS_DIR.exists()
     assert NOTES_DIR.exists()
     assert (NOTES_DIR / "treatment").exists()
     assert (NOTES_DIR / "resistance").exists()
-    assert DERIVATIVE_DIR.exists()
-    assert (DERIVATIVE_DIR / "flashcards").exists()
+    assert MEMORY_DIR.exists()
+    assert FLASHCARDS_DIR.exists()
     assert GRAPH_DIR.exists()
     assert DB_PATH.exists()
 

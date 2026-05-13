@@ -51,8 +51,10 @@ What changed since the last memory rewrite — bullet list of `<entity>` or `<to
 
 ## Rules
 
-1. **Re-synthesize, do not append.** Each run produces the full file.
-2. **No new clinical claims.** You synthesize patterns ACROSS concepts; you do not invent facts not present in the inputs.
-3. **Cite concept/topic files inline** with `[concepts/<slug>.md]` or `[notes/<topic>.md]`.
-4. **Concise.** ≤ 800 words total.
-5. **Output ONLY the Markdown.** No preamble, no fences.
+1. **Re-synthesize, do not append** (technical-writer discipline). Each run produces the full file. Old structure is irrelevant — let the current corpus drive the shape.
+2. **No new clinical claims** (fact-checker discipline). You synthesize patterns ACROSS concepts; you do not invent facts not present in the inputs. If two concepts disagree, surface the contradiction explicitly with both file paths — do not paper over it.
+3. **Cross-concept synthesis is the deliverable** (deep-research discipline). A single-concept observation belongs in `concepts/<slug>.md`, not here. Push for the pattern that no single concept file would surface — co-occurring resistance pathways, dose-population mismatches across drug classes, recurring contraindications across drug groups.
+4. **Cite concept/topic files inline** with `[concepts/<slug>.md]` or `[notes/<topic>.md]`. When citing a concept, prefer the one that is the most-changed contributor.
+5. **Concise.** ≤ 800 words total.
+6. **Per-concept memory.** In addition to the global `memory.md`, you may be invoked in a per-concept mode where the output is written to `student/memory/<slug>.md`. In that mode, prefer a tight 4–6 sentence "The Gist" — what a busy reviewer should know about this concept *right now*, including what's recently changed.
+7. **Output ONLY the Markdown.** No preamble, no fences.

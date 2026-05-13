@@ -2,8 +2,9 @@
 
 Two output modes:
   - **Topic-scoped (preferred):** pass `topic="..."`. Writes
-    `brain/memory/<slug>.md` + `brain/questions/<slug>.md`. Use this after each
-    Student run so each topic has its own synthesis.
+    `student/memory/<slug>.md` (per-concept gist for the learner view) and
+    `brain/questions/<slug>.md` (Brain's per-concept research backlog).
+    Use this after each Student run so each topic has its own synthesis.
   - **Global (legacy):** no topic. Writes the single `brain/memory.md` +
     `brain/questions.md` files. Kept for back-compat with older callers.
 """

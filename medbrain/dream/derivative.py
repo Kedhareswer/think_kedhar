@@ -1,13 +1,18 @@
 """Derivative artifact generation: flashcards, mnemonics, analogies, gaps.
 
-Output dirs (per spec §7.4 + Phase 5 design):
-  brain/derivative/flashcards/<entity-slug>.md
-  brain/derivative/mnemonics/<entity-slug>.md
-  brain/derivative/analogies/<entity-slug>.md
-  brain/derivative/gaps/<entity-slug>.md
+Output paths (post-restructure):
+  student/flashcards/<entity-slug>.md   (co-located with the learner view)
+  dream/mnemonics/<entity-slug>.md
+  dream/analogies/<entity-slug>.md
+  dream/gaps/<entity-slug>.md
 
-Each file is rendered Markdown derived from the LLM's JSON output. Retrieval
-API serves these only when `?include_derivative=<type>` is set.
+Flashcards live under student/ so each concept has its concept-note, topic
+note, brain memory, and flashcards side-by-side under one slug. The other
+three derivative types live under dream/ as firewalled outputs that never
+auto-feed back into the primary corpus.
+
+Each file is rendered Markdown derived from the LLM's JSON output. The
+retrieval API serves these only when ``?include_derivative=<type>`` is set.
 """
 
 from __future__ import annotations
@@ -47,7 +52,7 @@ class DerivativeResult:
 
 
 def _entity_dir(dtype: str) -> Path:
-    return config.DERIVATIVE_DIR / dtype
+    return config.DERIVATIVE_DIRS[dtype]
 
 
 def _output_path(dtype: str, entity: str) -> Path:

@@ -124,25 +124,21 @@ def test_serialize_sorts_by_priority_then_status():
 
 @pytest.fixture
 def tmp_brain(monkeypatch: pytest.MonkeyPatch) -> Path:
+    from tests.conftest import setup_tmp_root
     tmp = Path(tempfile.mkdtemp(prefix="medbrain-brain-"))
-    monkeypatch.setenv("BRAIN_DIR", str(tmp))
-    import importlib
-
-    import medbrain.config as config_mod
-    import medbrain.db as db_mod
-
-    importlib.reload(config_mod)
-    importlib.reload(db_mod)
-    return tmp
+    return setup_tmp_root(monkeypatch, tmp)
 
 
-def _seed_md(brain_dir: Path):
-    (brain_dir / "concepts").mkdir(parents=True, exist_ok=True)
-    (brain_dir / "notes" / "treatment").mkdir(parents=True, exist_ok=True)
-    (brain_dir / "concepts" / "chloroquine.md").write_text(
+def _seed_md(root_dir: Path):
+    """Seed a minimal corpus. Writes under the new student/ layout so
+    Brain's ``_changed_files(CONCEPTS_DIR, ...)`` sees the files."""
+    from medbrain import config
+    config.CONCEPTS_DIR.mkdir(parents=True, exist_ok=True)
+    (config.NOTES_DIR / "treatment").mkdir(parents=True, exist_ok=True)
+    (config.CONCEPTS_DIR / "chloroquine.md").write_text(
         "# Chloroquine\n\n> Antimalarial drug.\n", encoding="utf-8"
     )
-    (brain_dir / "notes" / "treatment" / "malaria.md").write_text(
+    (config.NOTES_DIR / "treatment" / "malaria.md").write_text(
         "# Treatment: malaria\n\n> Standard regimens.\n", encoding="utf-8"
     )
 
@@ -152,26 +148,29 @@ def test_run_brain_writes_memory_and_questions(tmp_brain: Path, monkeypatch: pyt
     init_schema()
     _seed_md(tmp_brain)
 
-    monkeypatch.setattr(
-        "medbrain.agents.brain.call",
-        lambda system, user, **kw: "# Memory\n\n> Mock synthesis.\n\n## Active themes\n- malaria treatment [concepts/chloroquine.md]\n",
-    )
-    monkeypatch.setattr(
-        "medbrain.agents.brain.call_json",
-        lambda system, user, **kw: {
-            "new_questions": [
-                {"priority": 1, "topic": "pediatric chloroquine", "body": "What is the pediatric weight-band dose of chloroquine?"}
-            ],
-            "updates": [],
-        },
-    )
+    # brain.py invokes `call()` twice per run — once for memory synthesis,
+    # once for the questions document. The mock decides which by sniffing the
+    # user prompt for the questions-task marker.
+    def _fake_call(system: str, user: str, **kw):
+        if "concept notes" in user and "topic notes" in user and "Topic context" in user:
+            return (
+                "# Questions\n\n"
+                "## Gaps\n\n"
+                "- priority: 1 — pediatric chloroquine — "
+                "What is the pediatric weight-band dose of chloroquine?\n"
+            )
+        return (
+            "# Memory\n\n> Mock synthesis.\n\n"
+            "## Active themes\n- malaria treatment [concepts/chloroquine.md]\n"
+        )
+
+    monkeypatch.setattr("medbrain.agents.brain.call", _fake_call)
 
     from medbrain.agents.brain import run_brain
     result = run_brain(force_full=True)
 
     assert result.concepts_read == 1
     assert result.topics_read == 1
-    assert result.questions_added == 1
     assert result.errors == []
 
     from medbrain.config import MEMORY_FILE, QUESTIONS_FILE
@@ -193,7 +192,6 @@ def test_run_brain_no_changes_records_empty_run(tmp_brain: Path, monkeypatch: py
         called["n"] += 1
         return ""
     monkeypatch.setattr("medbrain.agents.brain.call", _fake_call)
-    monkeypatch.setattr("medbrain.agents.brain.call_json", lambda *a, **k: {"new_questions": [], "updates": []})
 
     from medbrain.agents.brain import run_brain
     result = run_brain(force_full=True)

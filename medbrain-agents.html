@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>MedBrain — Agents & Plan</title>
+<style>
+  :root{
+    --bg:#fafaf9;
+    --ink:#111418;
+    --muted:#6b7280;
+    --dim:#9ca3af;
+    --line:#e5e7eb;
+    --line2:#d1d5db;
+    --panel:#ffffff;
+    --student:#2563eb;
+    --brain:#7c3aed;
+    --graph:#059669;
+    --dream:#db2777;
+    --mono:ui-monospace,"JetBrains Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+  body{max-width:1080px;margin:0 auto;padding:36px 24px 64px}
+
+  header{margin-bottom:24px}
+  h1{font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:.22em;margin:0;text-transform:uppercase}
+  .lede{font-size:14px;color:var(--muted);margin-top:8px;max-width:640px;line-height:1.6}
+
+  .tabs{display:flex;gap:2px;margin:22px 0 16px;border-bottom:1px solid var(--line)}
+  .tab{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;background:transparent;border:0;color:var(--muted);padding:10px 14px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+  .tab:hover{color:var(--ink)}
+  .tab.active{color:var(--ink);border-bottom-color:var(--ink)}
+
+  .view{display:none}
+  .view.active{display:block}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
+  .panel svg{display:block;width:100%;height:auto}
+
+  /* shared svg styles */
+  .n-bg{fill:#ffffff;stroke:var(--line2);stroke-width:1}
+  .n-bg.s{stroke:var(--student);stroke-width:1.6}
+  .n-bg.b{stroke:var(--brain);stroke-width:1.6}
+  .n-bg.g{stroke:var(--graph);stroke-width:1.6}
+  .n-bg.d{stroke:var(--dream);stroke-width:1.6}
+  .role{font-family:var(--mono);font-size:9px;letter-spacing:.16em;fill:var(--muted)}
+  .name{font-family:var(--mono);font-size:14px;letter-spacing:.1em;font-weight:600;fill:var(--ink)}
+  .name.s{fill:var(--student)} .name.b{fill:var(--brain)} .name.g{fill:var(--graph)} .name.d{fill:var(--dream)}
+  .cad{font-family:var(--mono);font-size:9px;letter-spacing:.12em;fill:var(--dim)}
+  .desc{font-family:var(--sans);font-size:11px;fill:var(--muted)}
+  .store{fill:#f9fafb;stroke:var(--line2);stroke-width:1;stroke-dasharray:3 3}
+  .store-name{font-family:var(--mono);font-size:10px;letter-spacing:.1em;fill:var(--ink);font-weight:600}
+  .store-sub{font-family:var(--mono);font-size:9px;letter-spacing:.06em;fill:var(--muted)}
+  .wire{fill:none;stroke:#b0b6bf;stroke-width:1.2}
+  .wire.dash{stroke:var(--student);stroke-dasharray:4 3;opacity:.7}
+  .wire-lbl{font-family:var(--mono);font-size:9px;letter-spacing:.08em;fill:var(--muted)}
+  .icon path,.icon circle,.icon rect,.icon line,.icon polyline,.icon polygon{fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+
+  /* loop circular diagrams */
+  .loops-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+  .loop-card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;border-top:3px solid var(--line2)}
+  .loop-card.s{border-top-color:var(--student)}
+  .loop-card.b{border-top-color:var(--brain)}
+  .loop-card.g{border-top-color:var(--graph)}
+  .loop-card.d{border-top-color:var(--dream)}
+  .loop-head{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+  .loop-head h3{margin:0;font-family:var(--mono);font-size:13px;letter-spacing:.16em;font-weight:600}
+  .loop-card.s h3{color:var(--student)} .loop-card.b h3{color:var(--brain)} .loop-card.g h3{color:var(--graph)} .loop-card.d h3{color:var(--dream)}
+  .loop-cad{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--muted);margin-bottom:10px}
+  .loop-svg-wrap{display:flex;justify-content:center;padding:6px 0}
+  .loop-svg{width:100%;max-width:440px;height:auto;display:block}
+  .step-circle{fill:#ffffff;stroke-width:1.2}
+  .step-circle.s{stroke:var(--student)} .step-circle.b{stroke:var(--brain)} .step-circle.g{stroke:var(--graph)} .step-circle.d{stroke:var(--dream)}
+  .step-num{font-family:var(--mono);font-size:11px;font-weight:600;text-anchor:middle;dominant-baseline:central}
+  .step-num.s{fill:var(--student)} .step-num.b{fill:var(--brain)} .step-num.g{fill:var(--graph)} .step-num.d{fill:var(--dream)}
+  .step-label{font-family:var(--mono);font-size:9.5px;fill:var(--ink);text-anchor:middle;letter-spacing:.02em}
+  .arc-wire{fill:none;stroke-width:1;opacity:.55}
+  .arc-wire.s{stroke:var(--student)} .arc-wire.b{stroke:var(--brain)} .arc-wire.g{stroke:var(--graph)} .arc-wire.d{stroke:var(--dream)}
+  .center-icon{stroke-width:1.5;fill:none}
+  .center-icon.s{stroke:var(--student)} .center-icon.b{stroke:var(--brain)} .center-icon.g{stroke:var(--graph)} .center-icon.d{stroke:var(--dream)}
+
+  .loop-foot{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);font-family:var(--mono);font-size:11px;color:var(--muted);line-height:1.55}
+  .loop-foot b{color:var(--ink);font-weight:500}
+
+  /* plan */
+  .phases{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .phase{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+  .phase .num{font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--muted)}
+  .phase .title{font-family:var(--mono);font-size:14px;letter-spacing:.08em;font-weight:600;margin-top:6px}
+  .phase .body{font-size:12.5px;color:var(--muted);margin-top:8px;line-height:1.55}
+  .phase .deps{margin-top:10px;font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.04em}
+
+  footer{margin-top:32px;color:var(--dim);font-size:11px;font-family:var(--mono);letter-spacing:.12em;text-align:center}
+  footer b{color:var(--muted);font-weight:500}
+
+  @media (max-width:760px){.loops-grid,.phases{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>MedBrain · Agents & Plan</h1>
+  <div class="lede">Perpetually-learning medical knowledge base. Four agents on independent loops, communicating through SQL and a markdown corpus. SQL is source of truth; everything else is a derived view.</div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" data-view="arch">Architecture</button>
+  <button class="tab" data-view="loops">Agent loops</button>
+  <button class="tab" data-view="plan">Build plan</button>
+</div>
+
+<!-- ============ ARCHITECTURE — three explicit loops ============ -->
+<div class="view active" id="view-arch">
+  <div class="panel">
+    <svg viewBox="0 0 1040 720" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0,0 L10,5 L0,10 z" fill="#b0b6bf"/>
+        </marker>
+        <marker id="arrS" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--student)"/>
+        </marker>
+        <marker id="arrG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--graph)"/>
+        </marker>
+        <marker id="arrD" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--dream)"/>
+        </marker>
+      </defs>
+
+      <!-- SOURCES -->
+      <text x="40" y="34" class="role">SOURCES</text>
+      <text x="40" y="56" class="store-sub">PubMed eutils · WHO guidelines</text>
+      <path class="wire" d="M 90 70 L 90 130" marker-end="url(#arr)"/>
+
+      <!-- STUDENT -->
+      <g>
+        <rect class="n-bg s" x="40" y="130" width="240" height="130" rx="10"/>
+        <g class="icon" stroke="var(--student)" transform="translate(56,148)">
+          <path d="M0 4 C 8 0, 16 0, 22 4 L 22 22 C 16 18, 8 18, 0 22 Z"/>
+          <path d="M22 4 C 28 0, 36 0, 44 4 L 44 22 C 36 18, 28 18, 22 22"/>
+          <line x1="22" y1="4" x2="22" y2="22"/>
+        </g>
+        <text x="112" y="158" class="role">AGENT · RESEARCHER</text>
+        <text x="112" y="182" class="name s">STUDENT</text>
+        <text x="112" y="200" class="cad">CONTINUOUS · PER PAPER</text>
+        <text x="56" y="228" class="desc">Fetches PubMed, extracts qualified claims,</text>
+        <text x="56" y="244" class="desc">regenerates concepts + notes.</text>
+      </g>
+
+      <!-- Student writes -->
+      <path class="wire" d="M 280 170 L 410 170" marker-end="url(#arr)"/>
+      <path class="wire" d="M 280 230 L 410 400" marker-end="url(#arr)"/>
+
+      <!-- brain.db -->
+      <g>
+        <rect class="store" x="410" y="140" width="200" height="80" rx="6"/>
+        <g stroke="#6b7280" fill="none" stroke-width="1.4" transform="translate(424,155)">
+          <ellipse cx="10" cy="3" rx="10" ry="3"/>
+          <path d="M0 3 V 20 a10 3 0 0 0 20 0 V 3"/>
+          <path d="M0 11 a10 3 0 0 0 20 0"/>
+        </g>
+        <text x="510" y="167" class="store-name" text-anchor="middle">brain.db</text>
+        <text x="510" y="187" class="store-sub" text-anchor="middle">claims · sources · evidence</text>
+        <text x="510" y="203" class="store-sub" text-anchor="middle">dirty_tracker · salience</text>
+      </g>
+
+      <!-- corpus/ -->
+      <g>
+        <rect class="store" x="410" y="370" width="200" height="80" rx="6"/>
+        <g stroke="#6b7280" fill="none" stroke-width="1.4" transform="translate(424,386)">
+          <rect x="0" y="0" width="14" height="18" rx="1"/>
+          <rect x="4" y="4" width="14" height="18" rx="1"/>
+          <line x1="8" y1="9" x2="16" y2="9"/>
+          <line x1="8" y1="13" x2="16" y2="13"/>
+          <line x1="8" y1="17" x2="14" y2="17"/>
+        </g>
+        <text x="510" y="398" class="store-name" text-anchor="middle">corpus/</text>
+        <text x="510" y="418" class="store-sub" text-anchor="middle">concepts · notes · memory</text>
+        <text x="510" y="434" class="store-sub" text-anchor="middle">questions.md</text>
+      </g>
+
+      <!-- store → brain, graphify -->
+      <path class="wire" d="M 610 170 L 740 160" marker-end="url(#arr)"/>
+      <path class="wire" d="M 610 200 L 740 350" marker-end="url(#arr)"/>
+      <path class="wire" d="M 610 400 L 740 200" marker-end="url(#arr)"/>
+      <path class="wire" d="M 610 420 L 740 380" marker-end="url(#arr)"/>
+
+      <!-- BRAIN -->
+      <g>
+        <rect class="n-bg b" x="740" y="120" width="240" height="130" rx="10"/>
+        <g class="icon" stroke="var(--brain)" transform="translate(756,138)">
+          <path d="M11 0 C 5 0, 2 4, 4 9 C 0 12, 2 18, 7 18 C 8 22, 14 22, 15 18"/>
+          <path d="M21 0 C 27 0, 30 4, 28 9 C 32 12, 30 18, 25 18 C 24 22, 18 22, 17 18"/>
+          <line x1="16" y1="2" x2="16" y2="22"/>
+        </g>
+        <text x="794" y="148" class="role">AGENT · SYNTHESIZER</text>
+        <text x="794" y="172" class="name b">BRAIN</text>
+        <text x="794" y="190" class="cad">HOURLY</text>
+        <text x="756" y="218" class="desc">Cross-links concepts, writes memory.md</text>
+        <text x="756" y="234" class="desc">and questions.md backlog.</text>
+      </g>
+
+      <!-- GRAPHIFY -->
+      <g>
+        <rect class="n-bg g" x="740" y="330" width="240" height="120" rx="10"/>
+        <g class="icon" stroke="var(--graph)" transform="translate(756,346)">
+          <circle cx="4" cy="4" r="3"/><circle cx="28" cy="4" r="3"/>
+          <circle cx="16" cy="16" r="3"/>
+          <circle cx="4" cy="28" r="3"/><circle cx="28" cy="28" r="3"/>
+          <line x1="6.5" y1="6" x2="14" y2="14"/>
+          <line x1="25.5" y1="6" x2="18" y2="14"/>
+          <line x1="14" y1="18" x2="6.5" y2="26"/>
+          <line x1="18" y1="18" x2="25.5" y2="26"/>
+        </g>
+        <text x="794" y="358" class="role">AGENT · GRAPH BUILDER</text>
+        <text x="794" y="382" class="name g">GRAPHIFY</text>
+        <text x="794" y="400" class="cad">HOURLY · +15 MIN</text>
+        <text x="756" y="428" class="desc">Rebuilds graph from .md, exposes</text>
+        <text x="756" y="444" class="desc">8-primitive retrieval menu.</text>
+      </g>
+
+      <!-- CDS -->
+      <g>
+        <rect class="n-bg" x="740" y="500" width="260" height="100" rx="10"/>
+        <g class="icon" stroke="#374151" transform="translate(756,516)">
+          <path d="M0 0 v6 a6 6 0 0 0 12 0 v -6"/>
+          <path d="M6 12 v8 a6 6 0 0 0 12 0 v -4"/>
+          <circle cx="18" cy="14" r="2.5"/>
+        </g>
+        <text x="794" y="524" class="role">EXTERNAL CONSUMER</text>
+        <text x="794" y="548" class="name">CDS</text>
+        <text x="794" y="566" class="cad">RAG · 8 RETRIEVAL PRIMITIVES</text>
+        <text x="756" y="590" class="desc">lookup · neighborhood · path · scoped · …</text>
+      </g>
+      <path class="wire" d="M 870 450 L 870 500" marker-end="url(#arr)"/>
+
+      <!-- DREAM -->
+      <g>
+        <rect class="n-bg d" x="40" y="520" width="280" height="120" rx="10"/>
+        <g class="icon" stroke="var(--dream)" transform="translate(56,538)">
+          <path d="M22 4 a14 14 0 1 0 0 22 a11 11 0 0 1 0 -22 Z"/>
+          <path d="M30 6 l1 3 l3 1 l-3 1 l-1 3 l-1 -3 l-3 -1 l3 -1 z"/>
+        </g>
+        <text x="112" y="548" class="role">AGENT · COMPACTOR</text>
+        <text x="112" y="572" class="name d">DREAM</text>
+        <text x="112" y="590" class="cad">WEEKLY · SUN 23:00</text>
+        <text x="56" y="618" class="desc">Compacts corpus in-place, generates derivative</text>
+        <text x="56" y="634" class="desc">artifacts, decays cold claims to archive.</text>
+      </g>
+
+      <!-- derivative -->
+      <g>
+        <rect class="store" x="370" y="530" width="200" height="64" rx="6"/>
+        <g stroke="#6b7280" fill="none" stroke-width="1.4" transform="translate(384,544)">
+          <rect x="0" y="0" width="14" height="18" rx="1"/>
+          <line x1="2" y1="4" x2="11" y2="4"/>
+          <line x1="2" y1="8" x2="11" y2="8"/>
+          <line x1="2" y1="12" x2="8" y2="12"/>
+        </g>
+        <text x="470" y="556" class="store-name" text-anchor="middle">derivative/</text>
+        <text x="470" y="574" class="store-sub" text-anchor="middle">flashcards · mnemonics</text>
+        <text x="470" y="588" class="store-sub" text-anchor="middle">analogies · gaps (firewalled)</text>
+      </g>
+
+      <!-- archive -->
+      <g>
+        <rect class="store" x="370" y="610" width="200" height="56" rx="6"/>
+        <g stroke="#6b7280" fill="none" stroke-width="1.4" transform="translate(384,624)">
+          <path d="M0 4 h14 v14 h-14 z"/>
+          <path d="M0 4 v-2 h14 v2"/>
+          <line x1="5" y1="11" x2="9" y2="11"/>
+        </g>
+        <text x="470" y="634" class="store-name" text-anchor="middle">archive/</text>
+        <text x="470" y="652" class="store-sub" text-anchor="middle">decayed claims (never deleted)</text>
+      </g>
+
+      <!-- ===== LOOP 1: ACTIVE LEARNING (Student ⇄ Brain via questions.md) ===== -->
+      <!-- forward: student → corpus → brain already shown.
+           feedback: brain → questions.md → student -->
+      <path class="wire dash" d="M 740 145 Q 510 30 160 130" marker-end="url(#arrS)"/>
+      <text x="380" y="22" class="wire-lbl" fill="var(--student)">loop ① active learning · questions.md → Student backlog</text>
+
+      <!-- ===== LOOP 2: COMPACTION (Dream ⇄ corpus) ===== -->
+      <!-- corpus → dream (read) -->
+      <path class="wire" stroke="var(--dream)" stroke-width="1.3" d="M 460 450 Q 360 490 280 528" marker-end="url(#arrD)"/>
+      <text x="312" y="478" class="wire-lbl" fill="var(--dream)">read</text>
+      <!-- dream → corpus (rewrite, fewer tokens) -->
+      <path class="wire" stroke="var(--dream)" stroke-width="1.3" stroke-dasharray="4 3" d="M 220 520 Q 280 470 410 440" marker-end="url(#arrD)"/>
+      <text x="240" y="498" class="wire-lbl" fill="var(--dream)">rewrite</text>
+      <!-- dream → derivative -->
+      <path class="wire" stroke="var(--dream)" stroke-width="1.3" d="M 320 570 L 370 560" marker-end="url(#arrD)"/>
+      <!-- dream → archive (decay) -->
+      <path class="wire" stroke="var(--dream)" stroke-width="1.3" d="M 320 614 L 370 624" marker-end="url(#arrD)"/>
+      <!-- loop label -->
+      <text x="232" y="464" class="wire-lbl" fill="var(--dream)" style="font-weight:600">loop ② compaction</text>
+
+      <!-- derivative → CDS (opt-in, firewalled) -->
+      <path class="wire" stroke="#9ca3af" stroke-dasharray="2 3" d="M 570 555 Q 700 540 740 540" marker-end="url(#arr)"/>
+      <text x="610" y="534" class="wire-lbl">opt-in (derivative_included=true)</text>
+
+      <!-- ===== LOOP 3: RETRIEVAL (corpus → graph → CDS) ===== -->
+      <text x="700" y="312" class="wire-lbl" fill="var(--graph)" style="font-weight:600">loop ③ retrieval</text>
+    </svg>
+  </div>
+  <div class="legend" style="margin-top:10px;padding:10px 4px 2px;display:flex;gap:18px;flex-wrap:wrap;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted)">
+    <span style="color:var(--student)">① active learning — Brain → questions.md → Student</span>
+    <span style="color:var(--dream)">② compaction — corpus ⇄ Dream → derivative + archive</span>
+    <span style="color:var(--graph)">③ retrieval — corpus → Graphify → CDS</span>
+  </div>
+</div>
+
+<!-- ============ AGENT LOOPS — each is a real circular loop ============ -->
+<div class="view" id="view-loops">
+  <div class="loops-grid">
+
+    <!-- STUDENT loop -->
+    <div class="loop-card s">
+      <div class="loop-head">
+        <svg width="20" height="20" viewBox="0 0 24 24" class="icon"><g stroke="var(--student)"><path d="M2 6 C 6 4, 10 4, 12 6 L 12 20 C 10 18, 6 18, 2 20 Z"/><path d="M12 6 C 14 4, 18 4, 22 6 L 22 20 C 18 18, 14 18, 12 20"/></g></svg>
+        <h3>STUDENT</h3>
+      </div>
+      <div class="loop-cad">CONTINUOUS · PER PAPER</div>
+      <div class="loop-svg-wrap">
+        <svg class="loop-svg" viewBox="0 0 440 360" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <marker id="arrS" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--student)"/></marker>
+          </defs>
+          <!-- ring -->
+          <circle cx="220" cy="180" r="120" class="arc-wire s"/>
+          <!-- center icon + label -->
+          <g class="center-icon s" transform="translate(200,164)">
+            <path d="M2 4 C 8 0, 16 0, 20 4 L 20 22 C 16 18, 8 18, 2 22 Z"/>
+            <path d="M20 4 C 24 0, 32 0, 38 4 L 38 22 C 32 18, 24 18, 20 22"/>
+          </g>
+          <text x="220" y="216" class="step-label" font-size="10" fill="var(--muted)">STUDENT</text>
+          <!-- 7 steps -->
+          <!-- 1 top -->
+          <circle cx="220" cy="60" r="16" class="step-circle s"/><text x="220" y="60" class="step-num s">1</text>
+          <text x="220" y="34" class="step-label">plan session</text>
+          <!-- 2 top-right -->
+          <circle cx="313" cy="105" r="16" class="step-circle s"/><text x="313" y="105" class="step-num s">2</text>
+          <text x="335" y="100" class="step-label" text-anchor="start">esearch + fetch</text>
+          <!-- 3 right -->
+          <circle cx="337" cy="201" r="16" class="step-circle s"/><text x="337" y="201" class="step-num s">3</text>
+          <text x="359" y="205" class="step-label" text-anchor="start">extract claims</text>
+          <!-- 4 bottom-right -->
+          <circle cx="278" cy="284" r="16" class="step-circle s"/><text x="278" y="284" class="step-num s">4</text>
+          <text x="300" y="298" class="step-label" text-anchor="start">novelty check</text>
+          <!-- 5 bottom-left -->
+          <circle cx="163" cy="284" r="16" class="step-circle s"/><text x="163" y="284" class="step-num s">5</text>
+          <text x="141" y="298" class="step-label" text-anchor="end">promote / queue</text>
+          <!-- 6 left -->
+          <circle cx="103" cy="201" r="16" class="step-circle s"/><text x="103" y="201" class="step-num s">6</text>
+          <text x="81" y="205" class="step-label" text-anchor="end">mark dirty</text>
+          <!-- 7 top-left -->
+          <circle cx="127" cy="105" r="16" class="step-circle s"/><text x="127" y="105" class="step-num s">7</text>
+          <text x="105" y="100" class="step-label" text-anchor="end">regen .md</text>
+          <!-- arrows between steps -->
+          <path class="arc-wire s" d="M 236 64 A 120 120 0 0 1 302 95" marker-end="url(#arrS)"/>
+          <path class="arc-wire s" d="M 325 116 A 120 120 0 0 1 336 184" marker-end="url(#arrS)"/>
+          <path class="arc-wire s" d="M 333 217 A 120 120 0 0 1 290 275" marker-end="url(#arrS)"/>
+          <path class="arc-wire s" d="M 262 287 A 120 120 0 0 1 179 287" marker-end="url(#arrS)"/>
+          <path class="arc-wire s" d="M 150 277 A 120 120 0 0 1 108 217" marker-end="url(#arrS)"/>
+          <path class="arc-wire s" d="M 104 184 A 120 120 0 0 1 115 116" marker-end="url(#arrS)"/>
+          <path class="arc-wire s" d="M 138 95 A 120 120 0 0 1 204 64" marker-end="url(#arrS)"/>
+        </svg>
+      </div>
+      <div class="loop-foot">trigger · <b>topic arg</b> · <b>queue</b> · top open question from <b>questions.md</b></div>
+    </div>
+
+    <!-- BRAIN loop -->
+    <div class="loop-card b">
+      <div class="loop-head">
+        <svg width="20" height="20" viewBox="0 0 32 32" class="icon"><g stroke="var(--brain)"><path d="M11 2 C 5 2, 2 6, 4 11 C 0 14, 2 20, 7 20 C 8 24, 14 24, 15 20"/><path d="M21 2 C 27 2, 30 6, 28 11 C 32 14, 30 20, 25 20 C 24 24, 18 24, 17 20"/><line x1="16" y1="4" x2="16" y2="24"/></g></svg>
+        <h3>BRAIN</h3>
+      </div>
+      <div class="loop-cad">HOURLY</div>
+      <div class="loop-svg-wrap">
+        <svg class="loop-svg" viewBox="0 0 440 360" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <marker id="arrB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--brain)"/></marker>
+          </defs>
+          <circle cx="220" cy="180" r="120" class="arc-wire b"/>
+          <g class="center-icon b" transform="translate(204,160)">
+            <path d="M11 0 C 5 0, 2 4, 4 9 C 0 12, 2 18, 7 18 C 8 22, 14 22, 15 18"/>
+            <path d="M21 0 C 27 0, 30 4, 28 9 C 32 12, 30 18, 25 18 C 24 22, 18 22, 17 18"/>
+            <line x1="16" y1="2" x2="16" y2="22"/>
+          </g>
+          <text x="220" y="216" class="step-label" font-size="10" fill="var(--muted)">BRAIN</text>
+          <!-- 6 steps at 60° -->
+          <!-- 1 top -->
+          <circle cx="220" cy="60" r="16" class="step-circle b"/><text x="220" y="60" class="step-num b">1</text>
+          <text x="220" y="34" class="step-label">read dirty</text>
+          <!-- 2 top-right -->
+          <circle cx="324" cy="120" r="16" class="step-circle b"/><text x="324" y="120" class="step-num b">2</text>
+          <text x="346" y="115" class="step-label" text-anchor="start">re-read .md</text>
+          <!-- 3 bottom-right -->
+          <circle cx="324" cy="240" r="16" class="step-circle b"/><text x="324" y="240" class="step-num b">3</text>
+          <text x="346" y="245" class="step-label" text-anchor="start">synthesize</text>
+          <!-- 4 bottom -->
+          <circle cx="220" cy="300" r="16" class="step-circle b"/><text x="220" y="300" class="step-num b">4</text>
+          <text x="220" y="328" class="step-label">write memory.md</text>
+          <!-- 5 bottom-left -->
+          <circle cx="116" cy="240" r="16" class="step-circle b"/><text x="116" y="240" class="step-num b">5</text>
+          <text x="94" y="245" class="step-label" text-anchor="end">questions.md</text>
+          <!-- 6 top-left -->
+          <circle cx="116" cy="120" r="16" class="step-circle b"/><text x="116" y="120" class="step-num b">6</text>
+          <text x="94" y="115" class="step-label" text-anchor="end">clear tracker</text>
+          <path class="arc-wire b" d="M 236 64 A 120 120 0 0 1 313 110" marker-end="url(#arrB)"/>
+          <path class="arc-wire b" d="M 336 130 A 120 120 0 0 1 336 222" marker-end="url(#arrB)"/>
+          <path class="arc-wire b" d="M 313 250 A 120 120 0 0 1 236 295" marker-end="url(#arrB)"/>
+          <path class="arc-wire b" d="M 204 296 A 120 120 0 0 1 127 250" marker-end="url(#arrB)"/>
+          <path class="arc-wire b" d="M 104 222 A 120 120 0 0 1 104 130" marker-end="url(#arrB)"/>
+          <path class="arc-wire b" d="M 127 110 A 120 120 0 0 1 204 64" marker-end="url(#arrB)"/>
+        </svg>
+      </div>
+      <div class="loop-foot">trigger · <b>hourly cron</b> · dirty-count threshold</div>
+    </div>
+
+    <!-- GRAPHIFY loop -->
+    <div class="loop-card g">
+      <div class="loop-head">
+        <svg width="20" height="20" viewBox="0 0 32 32" class="icon"><g stroke="var(--graph)"><circle cx="4" cy="4" r="3"/><circle cx="28" cy="4" r="3"/><circle cx="16" cy="16" r="3"/><circle cx="4" cy="28" r="3"/><circle cx="28" cy="28" r="3"/><line x1="7" y1="6" x2="14" y2="14"/><line x1="25" y1="6" x2="18" y2="14"/><line x1="14" y1="18" x2="7" y2="26"/><line x1="18" y1="18" x2="25" y2="26"/></g></svg>
+        <h3>GRAPHIFY</h3>
+      </div>
+      <div class="loop-cad">HOURLY · 15 MIN AFTER BRAIN</div>
+      <div class="loop-svg-wrap">
+        <svg class="loop-svg" viewBox="0 0 440 360" preserveAspectRatio="xMidYMid meet">
+          <defs><marker id="arrG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--graph)"/></marker></defs>
+          <circle cx="220" cy="180" r="120" class="arc-wire g"/>
+          <g class="center-icon g" transform="translate(204,164)">
+            <circle cx="4" cy="4" r="3"/><circle cx="28" cy="4" r="3"/><circle cx="16" cy="16" r="3"/><circle cx="4" cy="28" r="3"/><circle cx="28" cy="28" r="3"/>
+            <line x1="7" y1="6" x2="14" y2="14"/><line x1="25" y1="6" x2="18" y2="14"/><line x1="14" y1="18" x2="7" y2="26"/><line x1="18" y1="18" x2="25" y2="26"/>
+          </g>
+          <text x="220" y="220" class="step-label" font-size="10" fill="var(--muted)">GRAPHIFY</text>
+          <!-- 5 steps at 72° -->
+          <!-- 1 top -->
+          <circle cx="220" cy="60" r="16" class="step-circle g"/><text x="220" y="60" class="step-num g">1</text>
+          <text x="220" y="34" class="step-label">read .md corpus</text>
+          <!-- 2 right-upper -->
+          <circle cx="334" cy="143" r="16" class="step-circle g"/><text x="334" y="143" class="step-num g">2</text>
+          <text x="356" y="143" class="step-label" text-anchor="start">build graph</text>
+          <!-- 3 right-lower -->
+          <circle cx="290" cy="275" r="16" class="step-circle g"/><text x="290" y="275" class="step-num g">3</text>
+          <text x="312" y="289" class="step-label" text-anchor="start">decorate w/ SQL</text>
+          <!-- 4 left-lower -->
+          <circle cx="150" cy="275" r="16" class="step-circle g"/><text x="150" y="275" class="step-num g">4</text>
+          <text x="128" y="289" class="step-label" text-anchor="end">atomic replace</text>
+          <!-- 5 left-upper -->
+          <circle cx="106" cy="143" r="16" class="step-circle g"/><text x="106" y="143" class="step-num g">5</text>
+          <text x="84" y="143" class="step-label" text-anchor="end">serve menu</text>
+          <path class="arc-wire g" d="M 240 64 A 120 120 0 0 1 322 130" marker-end="url(#arrG)"/>
+          <path class="arc-wire g" d="M 339 159 A 120 120 0 0 1 302 266" marker-end="url(#arrG)"/>
+          <path class="arc-wire g" d="M 273 286 A 120 120 0 0 1 167 286" marker-end="url(#arrG)"/>
+          <path class="arc-wire g" d="M 138 266 A 120 120 0 0 1 101 159" marker-end="url(#arrG)"/>
+          <path class="arc-wire g" d="M 118 130 A 120 120 0 0 1 200 64" marker-end="url(#arrG)"/>
+        </svg>
+      </div>
+      <div class="loop-foot">trigger · <b>cron +15m</b> · keep last-known-good on failure</div>
+    </div>
+
+    <!-- DREAM loop -->
+    <div class="loop-card d">
+      <div class="loop-head">
+        <svg width="20" height="20" viewBox="0 0 32 32" class="icon"><g stroke="var(--dream)"><path d="M22 4 a14 14 0 1 0 0 22 a11 11 0 0 1 0 -22 Z"/><path d="M28 4 l1 3 l3 1 l-3 1 l-1 3 l-1 -3 l-3 -1 l3 -1 z"/></g></svg>
+        <h3>DREAM</h3>
+      </div>
+      <div class="loop-cad">WEEKLY · SUN 23:00</div>
+      <div class="loop-svg-wrap">
+        <svg class="loop-svg" viewBox="0 0 440 360" preserveAspectRatio="xMidYMid meet">
+          <defs><marker id="arrD" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--dream)"/></marker></defs>
+          <circle cx="220" cy="180" r="120" class="arc-wire d"/>
+          <g class="center-icon d" transform="translate(202,160)">
+            <path d="M22 4 a14 14 0 1 0 0 22 a11 11 0 0 1 0 -22 Z"/>
+            <path d="M30 6 l1 3 l3 1 l-3 1 l-1 3 l-1 -3 l-3 -1 l3 -1 z"/>
+          </g>
+          <text x="220" y="216" class="step-label" font-size="10" fill="var(--muted)">DREAM</text>
+          <!-- 6 steps at 60° -->
+          <circle cx="220" cy="60" r="16" class="step-circle d"/><text x="220" y="60" class="step-num d">1</text>
+          <text x="220" y="34" class="step-label">branch from main</text>
+          <circle cx="324" cy="120" r="16" class="step-circle d"/><text x="324" y="120" class="step-num d">2</text>
+          <text x="346" y="115" class="step-label" text-anchor="start">read all .md</text>
+          <circle cx="324" cy="240" r="16" class="step-circle d"/><text x="324" y="240" class="step-num d">3</text>
+          <text x="346" y="245" class="step-label" text-anchor="start">rewrite tight</text>
+          <circle cx="220" cy="300" r="16" class="step-circle d"/><text x="220" y="300" class="step-num d">4</text>
+          <text x="220" y="328" class="step-label">derivative/</text>
+          <circle cx="116" cy="240" r="16" class="step-circle d"/><text x="116" y="240" class="step-num d">5</text>
+          <text x="94" y="245" class="step-label" text-anchor="end">decay → archive</text>
+          <circle cx="116" cy="120" r="16" class="step-circle d"/><text x="116" y="120" class="step-num d">6</text>
+          <text x="94" y="115" class="step-label" text-anchor="end">QA + merge</text>
+          <path class="arc-wire d" d="M 236 64 A 120 120 0 0 1 313 110" marker-end="url(#arrD)"/>
+          <path class="arc-wire d" d="M 336 130 A 120 120 0 0 1 336 222" marker-end="url(#arrD)"/>
+          <path class="arc-wire d" d="M 313 250 A 120 120 0 0 1 236 295" marker-end="url(#arrD)"/>
+          <path class="arc-wire d" d="M 204 296 A 120 120 0 0 1 127 250" marker-end="url(#arrD)"/>
+          <path class="arc-wire d" d="M 104 222 A 120 120 0 0 1 104 130" marker-end="url(#arrD)"/>
+          <path class="arc-wire d" d="M 127 110 A 120 120 0 0 1 204 64" marker-end="url(#arrD)"/>
+        </svg>
+      </div>
+      <div class="loop-foot">trigger · <b>weekly cron</b> · or .md token-count threshold</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ PLAN ============ -->
+<div class="view" id="view-plan">
+  <div class="phases">
+    <div class="phase"><div class="num">PHASE 1</div><div class="title">Schema</div><div class="body">Migrate heartbeat → qualified-claim schema. Backfill existing claims with NULL qualifiers.</div><div class="deps">models.py · db.py · init_db.py</div></div>
+    <div class="phase"><div class="num">PHASE 2</div><div class="title">Student</div><div class="body">Per-PMID inner loop. Atomic regeneration of concepts/*.md and notes/*.md per dirty entity.</div><div class="deps">agents/student.py · regen/</div></div>
+    <div class="phase"><div class="num">PHASE 3</div><div class="title">Brain</div><div class="body">Hourly synthesis agent. Emits memory.md and questions.md from the dirty_tracker.</div><div class="deps">agents/brain.py · prompts/brain.md</div></div>
+    <div class="phase"><div class="num">PHASE 4</div><div class="title">Graphify + menu</div><div class="body">Graph rebuild + 8 named retrieval primitives exposed over JSON.</div><div class="deps">agents/graphify.py · api/</div></div>
+    <div class="phase"><div class="num">PHASE 5</div><div class="title">Dream</div><div class="body">Weekly compaction + derivative generation + salience-based archival (firewalled).</div><div class="deps">agents/dream.py · dream/</div></div>
+    <div class="phase"><div class="num">PHASE 6</div><div class="title">Active loop</div><div class="body">Student pulls top open priority from questions.md and treats it as a research topic.</div><div class="deps">agents/active_learner.py</div></div>
+  </div>
+</div>
+
+<footer><b>brain.db</b> is source of truth · markdown is a derived view · graph is derived from markdown</footer>
+
+<script>
+  document.querySelectorAll('.tab').forEach(t=>{
+    t.addEventListener('click',()=>{
+      document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+      document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+      t.classList.add('active');
+      document.getElementById('view-'+t.dataset.view).classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

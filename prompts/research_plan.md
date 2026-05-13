@@ -75,3 +75,19 @@ Example queries:
 3. If the topic is so broad it shouldn't be ingested in one session (e.g. "all of medicine"), set `scope: "very_broad"` and decompose aggressively — do NOT refuse. The orchestrator will run in batches.
 4. The five top-level keys `topic`, `scope`, `decomposition`, `queries`, `stop_criteria` are REQUIRED on every response. If you skip any of them, the orchestrator will reject your output.
 5. DO NOT analyze the topic. DO NOT list trials. DO NOT produce a verdict. The downstream agent does that. You only produce the search plan.
+
+## Search-quality heuristics (academic-researcher discipline)
+
+When picking queries, prefer plans that future-you would defend in a methods section:
+
+- Tier the evidence: include at least one query biased toward **systematic reviews / meta-analyses** (e.g. `AND (systematic[sb] OR meta-analysis[pt])`) and one toward **primary RCTs** (`AND randomized[tiab]`) when the topic supports it.
+- Use **MeSH where it exists** (`"Malaria, Falciparum"[MeSH]`) before falling back to text-word queries — MeSH gives controlled-vocabulary recall.
+- Constrain by date when the field moves fast (resistance, oncology, infectious disease): `2018:2026[dp]`.
+- Avoid single-author or single-institution queries unless the topic is "what did X publish on Y" — those collapse recall.
+
+## Active-learning bias (deep-research discipline)
+
+When the topic comes from `questions.md` (Brain's research backlog rather than a fresh CLI prompt), bias toward queries that *resolve the open question*, not queries that re-confirm existing strong claims. Prefer:
+- Population/setting qualifiers that the existing corpus is *thin* on.
+- Geographic regions not yet covered.
+- Newer date windows than what's already ingested.

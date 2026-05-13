@@ -85,22 +85,20 @@ def test_topic_mapping_supersedes_emits_nothing():
 
 @pytest.fixture
 def tmp_brain(monkeypatch: pytest.MonkeyPatch) -> Path:
+    from tests.conftest import setup_tmp_root
     tmp = Path(tempfile.mkdtemp(prefix="medbrain-regen-"))
-    monkeypatch.setenv("BRAIN_DIR", str(tmp))
-    import importlib
-
-    import medbrain.config as config_mod
-    import medbrain.db as db_mod
-
-    importlib.reload(config_mod)
-    importlib.reload(db_mod)
-    return tmp
+    return setup_tmp_root(monkeypatch, tmp)
 
 
 def test_regenerate_concept_writes_file(tmp_brain: Path, monkeypatch: pytest.MonkeyPatch):
     """End-to-end: insert a claim, mock LLM, regenerate, assert file exists."""
     from medbrain.db import init_schema, session_scope
     from medbrain.models import Claim, DirtyTracker, Source
+
+    # Coordinator skips entities with fewer than REGEN_MIN_CLAIMS claims; the
+    # test inserts one claim by design, so lower the floor for this test only.
+    import medbrain.regen.coordinator as coord
+    monkeypatch.setattr(coord, "REGEN_MIN_CLAIMS", 1)
 
     init_schema()
 

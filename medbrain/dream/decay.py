@@ -10,7 +10,7 @@ Phase B (decay): for entities whose `last_accessed` is older than UNREAD_THRESHO
 
 Phase C (archive): entities whose `grace_score <= ARCHIVE_FLOOR`:
   - All claims for that entity (subject OR object match) are dumped to
-    brain/archive/claims_<UTC-iso>.jsonl
+    dream/archive/claims_<UTC-iso>.jsonl
   - Claims are DELETEd from `claims` (and EvidenceLedger rows for them).
   - Salience row is also removed.
 

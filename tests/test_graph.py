@@ -11,16 +11,9 @@ import pytest
 
 @pytest.fixture
 def tmp_brain(monkeypatch: pytest.MonkeyPatch) -> Path:
+    from tests.conftest import setup_tmp_root
     tmp = Path(tempfile.mkdtemp(prefix="medbrain-graph-"))
-    monkeypatch.setenv("BRAIN_DIR", str(tmp))
-    import importlib
-
-    import medbrain.config as config_mod
-    import medbrain.db as db_mod
-
-    importlib.reload(config_mod)
-    importlib.reload(db_mod)
-    return tmp
+    return setup_tmp_root(monkeypatch, tmp)
 
 
 def _seed_claims(tmp_brain: Path) -> None:

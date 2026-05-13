@@ -3,8 +3,9 @@
 Recommended usage:
     python scripts/brain.py --topic "artemisinin resistance"
 
-Writes per-topic synthesis to brain/memory/<slug>.md and a classified
-question list (Answerable / Gaps) to brain/questions/<slug>.md.
+Writes per-topic synthesis to student/memory/<slug>.md (so the learner view
+co-locates concept, notes, memory, and flashcards under one slug) and a
+classified question list (Answerable / Gaps) to brain/questions/<slug>.md.
 
 Without --topic, writes to the legacy global brain/memory.md and
 brain/questions.md files.
@@ -25,7 +26,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run the Brain agent (synthesis + question classifier)")
     parser.add_argument(
         "--topic",
-        help="Topic name. Output files written to brain/memory/<slug>.md and brain/questions/<slug>.md.",
+        help="Topic name. Output files written to student/memory/<slug>.md and brain/questions/<slug>.md.",
     )
     parser.add_argument(
         "--full",

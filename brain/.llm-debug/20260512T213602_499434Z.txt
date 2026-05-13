@@ -1,0 +1,268 @@
+===== SYSTEM =====
+OUTPUT REQUIREMENT: Return VALID JSON ONLY. Your entire response must be parseable by json.loads(). First character of your output must be `{` or `[`. No prose. No explanations. No markdown fences. No apologies. If the requested data is unavailable, return the schema with empty/null values, still as valid JSON. Tools are intentionally disabled — do not request access to them.
+
+# Master sheet — Condition row
+
+You are filling ONE row of the **Conditions** sheet of `Master sheet.xlsx`, a clinical reference used by Nigerian healthcare providers and reviewed by physicians before publication.
+
+Your job: take the supplied claims and concept .md for one condition and emit a single JSON object whose keys are the Master-sheet column names. Each value is the prose that lands in that cell.
+
+## Style — match the existing sheet exactly
+
+The reference Master sheet is written for a **mixed audience** — a layperson with a high-school education AND a clinician scanning for the right answer. Both must come away with the right mental model.
+
+- **Plain language first.** Define a medical term parenthetically the first time it appears (e.g. "high blood pressure (hypertension)"), then use it freely.
+- **No throat-clearing.** Start cells with substance. Skip "It is important to note that…", "Generally speaking…", "This condition is characterised by…". Just state it.
+- **Dual depth.** A 4–10 sentence paragraph or a short paragraph + a bullet list, depending on the cell. See per-column guidance below.
+- **No bullet pollution.** Reserve bullets for genuine lists (symptoms, risk factors, complications, drugs). Use prose for narrative cells (Overview, Outlook).
+- **Active voice.** "Doctors diagnose…" not "It is diagnosed by…".
+- **Cite the source** at the end of the `Sources` cell using the same terse style as the reference: `MedlinePlus | Cleveland Clinic | Mayo Clinic` — no hyperlinks unless the claim set carries a URL.
+
+## Exact output schema — JSON only
+
+Return ONE JSON object. Keys MUST be exactly these strings, in this order. No extra keys. No missing keys (use empty string `""` only if the claim set genuinely doesn't support that cell — DO NOT invent content).
+
+```json
+{
+  "Completed": "Yes",
+  "Reviewed": "No",
+  "System": "<one of: Cardiovascular System (Heart and Blood Vessels) | Respiratory System | Digestive System (Gastrointestinal) | Nervous System | Endocrine System | Urinary System | Musculoskeletal System | Reproductive System | Integumentary System (Skin) | Hematologic / Immune System | Infectious Disease | Mental Health | Oncology | Other>",
+  "Condition": "<canonical condition name>",
+  "Overview": "<4–8 sentence plain-language paragraph: what it is, what's happening in the body, how common, who gets it>",
+  "Symptoms": "<short intro sentence + bullet list of symptoms, separated by linebreaks. Group by typical vs severe if the claim set supports it>",
+  "When to See a Doctor": "<bullet list of red flags. Start each bullet with an imperative: 'Seek emergency care immediately if…', 'See your doctor promptly when…'>",
+  "Causes": "<paragraph or bulleted list: organisms / mutations / triggers / exposures. Explain the pathogenesis in plain language>",
+  "Risk Factors": "<intro sentence + bullets. Separate modifiable from non-modifiable when the claim set supports it>",
+  "Complications": "<intro sentence + bullets of downstream consequences. Note severity (e.g. 'can be life-threatening')>",
+  "Prevention": "<intro sentence + bullets. Cover vaccines, prophylaxis, behaviour change, screening>",
+  "Diagnosis": "<paragraph or bullets. Cover: clinical exam, lab tests, imaging, biopsy. Mention sensitivity/specificity only if a claim provides it>",
+  "Treatment": "<paragraph + bullets. Lifestyle, medication classes (don't list specific brand names — those live on Medications sheet), procedures, supportive care>",
+  "Outlook/Prognosis": "<3–6 sentences in prose. Natural history, mortality with/without treatment, what good outcome looks like>",
+  "The Gist": "<2–3 sentence summary in the simplest possible language — for someone who skipped the rest. Often starts 'X means…' or 'X is when…'>",
+  "Tags": "<comma-separated keywords for search; lowercase, include common synonyms>",
+  "Sources": "<source citations exactly as the reference sheet formats them — terse names joined by pipes, e.g. 'MedlinePlus | Cleveland Clinic | Mayo Clinic'. If the claim set has PubMed PMIDs, format as 'PubMed:PMID1, PubMed:PMID2' joined by pipes>"
+}
+```
+
+## Hard rules
+
+1. **JSON only.** First character is `{`, last character is `}`. No prose before or after. No markdown fence around the whole reply.
+2. **No invented facts.** Every clinical assertion must trace back to a claim or the concept .md. If the claim set is thin on a column, leave it empty (`""`) — never make up dose ranges, mortality numbers, or treatment options.
+3. **No drug-specific dosing.** Specific drug doses live on the Medications sheet, not Conditions. On Conditions, refer to drug **classes** ("ACE inhibitors", "artemisinin-based combination therapy") not specific brands or mg-amounts.
+4. **The Gist is the shortest cell.** If The Gist runs longer than Overview, you've failed.
+5. **Sources cell uses the reference style.** Look at the supplied "Reference style examples" — match that format.
+
+## Reference style examples (verbatim from Master sheet.xlsx)
+
+> **Overview (Hypertension):** Hypertension, also called high blood pressure, is a condition where the force of blood pushing against your artery walls is consistently too high. Over time, this extra pressure can damage your blood vessels and lead to serious health problems, including heart disease, stroke, and kidney failure. It is one of the most common conditions worldwide, affecting nearly half of all adults, yet many people don't know they have it because it usually causes no symptoms.
+
+> **The Gist (Hypertension):** Hypertension, or high blood pressure, means the force of blood pushing against your artery walls is too high. It usually has no symptoms but can damage your heart, brain, kidneys, and eyes over time. Diagnosis is by repeated blood pressure readings, and treatment combines lifestyle changes with medicines.
+
+> **Symptoms (Heart failure):** Symptoms of heart failure often begin slowly and may only occur when you're active. As the condition worsens, symptoms can appear even at rest.
+> - Shortness of breath, especially when lying down or with activity
+> - Fatigue and weakness
+> - Swelling in your ankles, feet, and legs (edema)
+> - Rapid or irregular heartbeat
+> - Persistent cough or wheezing with white or pink mucus
+
+Match that register. Match that rhythm. Match that punctuation.
+
+
+===== USER =====
+# Entity slug
+plasmodium-falciparum-isolates
+
+# Concept .md (existing)
+
+## Concept Note: Low CNV Prevalence in *P. falciparum* — Southern Angola
+
+**Entity:** *Plasmodium falciparum* isolates
+**Source:** PMID:39794826 | Lubango, southern Angola | Hospital, endemic setting
+
+---
+
+### Core Finding
+
+Two resistance-associated copy number variants (CNVs) screened in *P. falciparum* isolates from Lubango:
+
+| Gene | CNV Type | Prevalence |
+|------|----------|------------|
+| *pfmdr1* | Increased copy number | **8.9%** |
+| *pfpm2* | Increased copy number | **9.8%** |
+
+Both rates low. Pattern consistent with study title: *"Low prevalence of CNV in pfmdr1 and pfpm2."*
+
+---
+
+### Clinical Relevance
+
+- **pfmdr1** amplification → reduced sensitivity to **lumefantrine** (artemether-lumefantrine partner drug); also linked to **mefloquine** resistance
+- **pfpm2** amplification → **piperaquine** resistance (dihydroartemisinin-piperaquine failure)
+- Low prevalence suggests current first-line regimens retain efficacy in this population — but not zero pressure
+
+---
+
+### Caveats
+
+- Evidence grade: **expert_opinion** (not RCT/observational cohort) — certainty **moderate**
+- No CIs reported → precision of 8.9%/9.8% estimates unknown
+- Hospital-only sample → may not reflect community-wide parasite pool
+- Both claims **pending_review**
+
+---
+
+### Synthesis
+
+Angola *P. falciparum* isolates in Lubango show low but non-negligible CNV in both *pfmdr1* and *pfpm2* (~9% each). No dominant amplification signal. Continued molecular surveillance warranted as artemisinin-based combination therapy scales.
+
+
+# Brain memory / gist (existing)
+
+(empty)
+
+# Claims (3)
+```json
+[
+  {
+    "claim_id": "18cd150b",
+    "subject": "Plasmodium falciparum isolates",
+    "predicate": "co_occurs",
+    "object": "pfmdr1 increased copy number variation",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Lubango, southern Angola",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "hospital",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "prevalence proportion",
+        "value": 0.089,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:39794826",
+      "title": "Low prevalence of copy number variation in pfmdr1 and pfpm2 in Plasmodium falciparum isolates from southern Angola."
+    }
+  },
+  {
+    "claim_id": "f2f92bf3",
+    "subject": "Plasmodium falciparum isolates",
+    "predicate": "co_occurs",
+    "object": "pfpm2 increased copy number variation",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Lubango, southern Angola",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "hospital",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "prevalence proportion",
+        "value": 0.098,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:39794826",
+      "title": "Low prevalence of copy number variation in pfmdr1 and pfpm2 in Plasmodium falciparum isolates from southern Angola."
+    }
+  },
+  {
+    "claim_id": "8c397b67",
+    "subject": "plasmepsin-2 single gene copy",
+    "predicate": "co_occurs",
+    "object": "dihydroartemisinin-piperaquine arm baseline Plasmodium falciparum isolates",
+    "qualifiers": {
+      "population": {
+        "age_range": "6 months to 10 years",
+        "pregnancy": null,
+        "region": "Uganda",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "dihydroartemisinin-piperaquine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": "proportion of day 0 DP arm samples with single plasmepsin-2 copy by qPCR",
+        "value": 100.0,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:34952573",
+      "title": "Efficacy and safety of artemether-lumefantrine and dihydroartemisinin-piperaquine for the treatment of uncomplicated Plasmodium falciparum malaria and prevalence of molecular markers associated with artemisinin and partner drug resistance in Uganda."
+    }
+  }
+]
+```
+
+
+===== STDOUT =====
+```json
+{
+  "Completed": "Yes",
+  "Reviewed": "No",
+  "System": "Infectious Disease",
+  "Condition": "Plasmodium falciparum Drug Resistance: pfmdr1 and pfpm2 Copy Number Variants",
+  "Overview": "Plasmodium falciparum is the deadliest malaria parasite, responsible for the vast majority of malaria deaths across sub-Saharan Africa. Drug resistance in this parasite arises when genetic changes allow it to survive antimalarial treatment. One key mechanism is copy number variation (CNV) — the abnormal duplication of specific parasite genes. Extra copies of the pfmdr1 gene reduce the parasite's sensitivity to lumefantrine and mefloquine, while extra copies of the pfpm2 gene (encoding the enzyme plasmepsin-2) drive resistance to piperaquine. A hospital study of P. falciparum isolates from Lubango, in southern Angola, found that 8.9% of samples carried increased pfmdr1 copy numbers and 9.8% carried increased pfpm2 copy numbers. These low rates suggest that the two main artemisinin-based combination therapies (ACTs) — artemether-lumefantrine and dihydroartemisinin-piperaquine — still retain efficacy in this population, though resistance pressure is not entirely absent. Ongoing molecular surveillance is essential to detect any upward trend before clinical treatment failures become widespread.",
+  "Symptoms": "",
+  "When to See a Doctor": "",
+  "Causes": "P. falciparum resistance emerges through natural selection: parasites that carry genetic amplifications conferring reduced drug sensitivity survive treatment, reproduce, and pass those traits to the next generation. For pfmdr1, extra gene copies increase production of a membrane transporter (P-glycoprotein homologue 1) that pumps lumefantrine and mefloquine out of the parasite cell, weakening their lethal effects. For pfpm2, extra copies raise levels of plasmepsin-2, an enzyme that helps the parasite neutralise piperaquine. Sustained drug pressure in high-transmission endemic settings — such as the hospital catchment area in Lubango, Angola — gradually selects for parasites carrying these amplifications. A separate Ugandan study in children aged 6 months to 10 years found that all baseline P. falciparum isolates in the dihydroartemisinin-piperaquine treatment arm carried a single pfpm2 copy (no amplification), confirming that piperaquine selection pressure had not yet driven pfpm2 duplication in that population at the time of sampling.",
+  "Risk Factors": "",
+  "Complications": "Where resistance-carrying P. falciparum parasites are present, standard first-line treatments may fail, prolonging illness and raising the risk of severe malaria. Specific concerns tied to the CNVs identified in these isolates include:\n- Reduced lumefantrine efficacy: pfmdr1 amplification lowers the parasite's sensitivity to lumefantrine, the partner drug in artemether-lumefantrine — the most widely deployed ACT in Africa\n- Mefloquine resistance: pfmdr1 amplification is also associated with reduced mefloquine sensitivity, limiting an alternative ACT option\n- Dihydroartemisinin-piperaquine (DHA-PPQ) failure: pfpm2 amplification is the primary molecular predictor of piperaquine resistance and DHA-PPQ treatment failure, a pattern already well-documented in Southeast Asia and potentially emerging in Africa",
+  "Prevention": "",
+  "Diagnosis": "Resistance marker detection relies on molecular techniques rather than routine clinical tests. Quantitative polymerase chain reaction (qPCR) determines gene copy number from parasite DNA extracted from patient blood; a single copy is the wild-type baseline, while two or more copies indicate amplification. In the Ugandan efficacy study, qPCR confirmed that 100% of baseline P. falciparum isolates in children receiving dihydroartemisinin-piperaquine carried a single plasmepsin-2 copy, ruling out pre-existing pfpm2 amplification. The Angola hospital study applied the same approach, identifying pfmdr1 and pfpm2 CNV prevalences of 8.9% and 9.8%, respectively. These molecular screens are surveillance and research tools — they are not point-of-care diagnostics available in most African clinical settings, where treatment decisions are still guided by clinical presentation and rapid diagnostic tests for malaria antigen detection.",
+  "Treatment": "The low pfmdr1 and pfpm2 CNV prevalence found in Lubango supports continued use of standard ACTs in this region. Resistance surveillance findings should be interpreted alongside clinical therapeutic efficacy data when shaping national treatment policy:\n- Artemether-lumefantrine remains appropriate where pfmdr1 amplification rates are low, as found in these Angola isolates (~9%)\n- Dihydroartemisinin-piperaquine remains viable where pfpm2 amplification is low or absent; the Ugandan baseline showed 0% amplification and Angola rates (~10%) remain below thresholds associated with documented DHA-PPQ failure in Southeast Asia\n- Rising CNV prevalence in sequential surveillance rounds should prompt formal therapeutic efficacy studies and review of treatment guidelines\n- Rational drug use — completing full treatment courses and avoiding subtherapeutic dosing — is key to slowing further resistance selection",
+  "Outlook/Prognosis": "The approximately 9% CNV prevalence for both pfmdr1 and pfpm2 in Lubango is a broadly reassuring signal: no dominant resistance clone is circulating, and current ACTs are unlikely to face immediate widespread failure in this southern Angolan population. Comparison with Uganda, where 100% of baseline dihydroartemisinin-piperaquine arm isolates carried a single pfpm2 copy (indicating no amplification), suggests plasmepsin-2 duplication remains rare across multiple African endemic settings. However, neither study reported confidence intervals, meaning the true prevalence of CNVs in the underlying parasite populations could be higher or lower than these point estimates suggest. Drug resistance can spread rapidly once selection pressure intensifies, as seen in Southeast Asia, where pfpm2 amplification rates climbed sharply within a decade of DHA-PPQ scale-up. Continued prospective molecular surveillance, linked to clinical outcome data, is the most reliable tool for detecting early resistance trends before they translate into treatment failures at scale.",
+  "The Gist": "Plasmodium falciparum malaria parasites can develop gene duplications that make standard malaria medicines less effective. In hospital patients from southern Angola, about 1 in 10 parasite samples carried these duplications in the pfmdr1 or pfpm2 genes — levels that are currently low, meaning first-line malaria treatments still work in this region. Regular monitoring of these resistance markers is needed to catch any rise early, before treatments begin to fail widely.",
+  "Tags": "plasmodium falciparum, malaria, drug resistance, copy number variation, cnv, pfmdr1, pfpm2, artemether-lumefantrine, dihydroartemisinin-piperaquine, DP, piperaquine resistance, lumefantrine resistance, mefloquine resistance, angola, lubango, sub-saharan africa, antimalarial resistance, molecular surveillance, plasmepsin-2, artemisinin-based combination therapy, ACT, malaria parasite genetics, qpcr, treatment failure",
+  "Sources": "PubMed:39794826 | PubMed:34952573"
+}
+```

@@ -1,0 +1,918 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>MedBrain TUI — visual mock</title>
+<style>
+  /* ============================================================
+     MedBrain Terminal — Design Tokens
+     opencode-inspired, WCAG-AA-tuned. Single source of truth.
+     ============================================================ */
+  :root{
+    /* --- backgrounds (warm near-black, progressively lighter) --- */
+    --bg-canvas:    #08070a;   /* page outside the terminal */
+    --bg-base:      #14110e;   /* terminal body */
+    --bg-elevated:  #1f1a15;   /* chrome, panel headers, modals */
+    --bg-sunken:    #0e0c0a;   /* inset surfaces, gist boxes, code */
+
+    /* --- text (warm cream, descending contrast) --- */
+    --fg-primary:   #ede4d3;   /* body text — 15.3:1 on --bg-base, AAA */
+    --fg-secondary: #b8a994;   /* secondary info — 9.8:1, AAA */
+    --fg-muted:     #8a7d6b;   /* labels, captions — 5.4:1, AA */
+    --fg-dim:       #564a3e;   /* placeholders, separators — 2.4:1 (decorative only) */
+
+    /* --- borders --- */
+    --border-subtle:  #261f19;  /* hairlines between rows */
+    --border-default: #3a3128;  /* panel borders */
+    --border-strong:  #5a4e42;  /* focused / selected */
+
+    /* --- brand (the signature amber) --- */
+    --brand:          #ff8c42;   /* primary accent — 10.2:1, AAA */
+    --brand-hover:    #ffaa6e;   /* hover */
+    --brand-soft:     #f5a85a;   /* gradient stop */
+    --brand-tint-08:  rgba(255,140,66,0.08);  /* selected-row bg */
+    --brand-tint-12:  rgba(255,140,66,0.12);  /* badge bg */
+    --brand-tint-30:  rgba(255,140,66,0.30);  /* tint borders */
+
+    /* --- semantic (warm-leaning, one cool note for "info") --- */
+    --success:        #8fbc6f;   /* olive green — 7.4:1 */
+    --success-tint:   rgba(143,188,111,0.12);
+    --warning:        #e6b35a;   /* amber-yellow — distinct from brand */
+    --warning-tint:   rgba(230,179,90,0.12);
+    --danger:         #d96852;   /* warm red */
+    --danger-tint:    rgba(217,104,82,0.12);
+    --info:           #7a9eb8;   /* soft slate-blue — only cool accent */
+    --info-tint:      rgba(122,158,184,0.12);
+
+    /* --- agents (used sparingly, all warm) --- */
+    --agent-student:  var(--brand);     /* primary agent gets the brand */
+    --agent-brain:    #c4a878;          /* warm tan */
+    --agent-dream:    #d77b9c;          /* muted rose — calmer than red */
+    --agent-graph:    var(--info);      /* graph = structure = cool blue */
+
+    /* --- type scale --- */
+    --text-xs:   10.5px;   /* labels, captions, key-hints */
+    --text-sm:   11.5px;   /* tree items, status bar */
+    --text-base: 12.5px;   /* body, cards */
+    --text-md:   13.5px;   /* card statements, modal h3 */
+    --text-lg:   15px;     /* detail h2 (claim statement) */
+
+    /* --- space scale (8px base, exposed for consistency) --- */
+    --space-1:  4px;
+    --space-2:  6px;
+    --space-3:  8px;
+    --space-4: 12px;
+    --space-5: 16px;
+    --space-6: 22px;
+    --space-7: 32px;
+
+    /* --- radius --- */
+    --r-sm: 3px;
+    --r-md: 6px;
+    --r-lg: 10px;
+
+    /* --- typography --- */
+    --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+
+    /* --- back-compat aliases so existing rules keep working
+           while we migrate; new code should use the tokens above --- */
+    --bg:      var(--bg-canvas);
+    --panel:   var(--bg-base);
+    --panel2:  var(--bg-elevated);
+    --line:    var(--border-subtle);
+    --line2:   var(--border-default);
+    --ink:     var(--fg-primary);
+    --muted:   var(--fg-muted);
+    --dim:     var(--fg-dim);
+    --accent:  var(--brand);
+    --accent2: var(--brand-soft);
+    --student: var(--agent-student);
+    --brain:   var(--agent-brain);
+    --dream:   var(--agent-dream);
+    --good:    var(--success);
+    --warn:    var(--warning);
+    --bad:     var(--danger);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg-canvas);color:var(--fg-primary);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+  body{padding:28px 24px 56px;max-width:1240px;margin:0 auto}
+  header{margin-bottom:18px}
+  h1{font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:.22em;margin:0;text-transform:uppercase;color:var(--ink)}
+  .lede{font-size:14px;color:var(--muted);margin-top:8px;max-width:720px;line-height:1.55}
+  .lede b{color:var(--ink);font-weight:500}
+
+  .tabs{display:flex;gap:2px;margin:var(--space-6) 0 var(--space-5);border-bottom:1px solid var(--border-default)}
+  .tab{font-family:var(--mono);font-size:var(--text-xs);letter-spacing:.14em;text-transform:uppercase;background:transparent;border:0;color:var(--fg-muted);padding:10px 14px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .12s ease,border-color .12s ease}
+  .tab:hover{color:var(--fg-primary)}
+  .tab.active{color:var(--fg-primary);border-bottom-color:var(--brand)}
+  .tab:focus-visible{outline:1px solid var(--brand);outline-offset:2px;border-radius:var(--r-sm)}
+
+  .view{display:none}
+  .view.active{display:block}
+
+  /* ====================== Terminal frame ====================== */
+  .term{
+    background:var(--bg-base);
+    border:1px solid var(--border-default);
+    border-radius:var(--r-lg);
+    overflow:hidden;
+    box-shadow:0 24px 48px -24px rgba(0,0,0,.75), 0 0 0 1px rgba(255,140,66,.05);
+    font-family:var(--mono);
+    font-size:var(--text-base);
+    line-height:1.5;
+    color:var(--fg-primary);
+  }
+  .term-chrome{
+    background:var(--bg-elevated);
+    border-bottom:1px solid var(--border-default);
+    padding:var(--space-3) var(--space-4);
+    display:flex;
+    align-items:center;
+    gap:var(--space-3);
+    font-size:var(--text-sm);
+    color:var(--fg-muted);
+    letter-spacing:.08em;
+  }
+  .term-chrome .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+  .term-chrome .dots{display:flex;gap:var(--space-2);margin-right:var(--space-2)}
+  /* traffic-light dots — semantic colors for cohesion */
+  .term-chrome .dot.r{background:var(--danger)}
+  .term-chrome .dot.y{background:var(--warning)}
+  .term-chrome .dot.g{background:var(--success)}
+  .term-chrome .path{color:var(--fg-primary);font-family:var(--mono)}
+  .term-chrome .spacer{flex:1}
+  .term-chrome .meta{font-family:var(--mono);font-size:var(--text-xs);letter-spacing:.08em;color:var(--fg-muted)}
+
+  /* Keybind hint strip */
+  .keys{
+    border-bottom:1px solid var(--border-subtle);
+    background:var(--bg-base);
+    padding:var(--space-2) var(--space-4);
+    display:flex;
+    flex-wrap:wrap;
+    gap:var(--space-4);
+    font-size:var(--text-sm);
+    color:var(--fg-muted);
+    letter-spacing:.04em;
+  }
+  .keys b{color:var(--brand);font-weight:600;font-family:var(--mono);margin-right:var(--space-1);font-size:var(--text-xs);background:var(--brand-tint-08);padding:1px var(--space-1);border-radius:var(--r-sm)}
+  .keys span{white-space:nowrap;display:inline-flex;align-items:center;gap:var(--space-1)}
+
+  /* Body grid — scoped to direct child of .term so the generic class name
+     doesn't collide with `<span class="body">` inside .q-list or
+     `<div class="body">` inside .detail .section. */
+  .term > .body{
+    display:grid;
+    grid-template-columns: 260px 1fr 320px;
+    min-height:520px;
+  }
+  .term > .body > .col{padding:14px 16px;border-right:1px solid var(--line);overflow:hidden;min-width:0}
+  .term > .body > .col:last-child{border-right:0}
+
+  /* ----------- left tree ----------- */
+  .grp{margin-bottom:var(--space-3)}
+  .grp .head{display:flex;align-items:center;justify-content:space-between;color:var(--fg-primary);font-size:var(--text-xs);letter-spacing:.14em;margin-bottom:var(--space-1);cursor:pointer;text-transform:uppercase;padding:2px 0}
+  .grp .head .count{color:var(--fg-dim);font-weight:400}
+  .grp .head::before{content:"▾ ";color:var(--fg-dim);margin-right:var(--space-1)}
+  .grp.collapsed .head::before{content:"▸ "}
+  .grp .items{display:block;font-size:var(--text-base);color:var(--fg-secondary);padding-left:14px}
+  .grp.collapsed .items{display:none}
+  .grp .items div{padding:1px 0;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .1s ease}
+  .grp .items div:hover{color:var(--fg-primary)}
+  .grp .items div.sel{color:var(--brand);background:var(--brand-tint-08);padding-left:var(--space-1);margin-left:-4px;border-left:2px solid var(--brand)}
+  .grp .items div .meta{color:var(--fg-dim);float:right;font-size:var(--text-xs);letter-spacing:0}
+
+  .filters{margin-top:var(--space-5);padding-top:var(--space-4);border-top:1px dashed var(--border-default);font-size:var(--text-sm);color:var(--fg-muted);letter-spacing:.04em}
+  .filters .head{text-transform:uppercase;color:var(--fg-secondary);margin-bottom:var(--space-2);letter-spacing:.14em;font-size:var(--text-xs)}
+  .filters label{display:flex;align-items:center;gap:var(--space-2);cursor:pointer;padding:2px 0;color:var(--fg-secondary)}
+  .filters label:hover{color:var(--fg-primary)}
+  .filters input{accent-color:var(--brand)}
+
+  /* ----------- centre viewer ----------- */
+  .doc-head{font-size:11px;letter-spacing:.14em;color:var(--dim);text-transform:uppercase;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:12px}
+  .doc-head .crumb{color:var(--muted)}
+  .doc-head .crumb b{color:var(--accent);font-weight:600}
+  .doc-head .badge{background:rgba(167,194,130,.12);color:var(--good);padding:2px 8px;border-radius:999px;font-size:10px;letter-spacing:.1em}
+  .doc h1, .doc h2, .doc h3{font-family:var(--mono);margin:14px 0 6px}
+  .doc h1{font-size:16px;color:var(--ink);letter-spacing:.04em}
+  .doc h2{font-size:13px;color:var(--accent);letter-spacing:.06em}
+  .doc h3{font-size:12px;color:var(--brain);letter-spacing:.06em}
+  .doc p{margin:6px 0;color:var(--ink);font-size:12.5px}
+  .doc ul{margin:4px 0;padding-left:18px;color:var(--ink)}
+  .doc li{margin:2px 0;font-size:12.5px}
+  .doc .cite{display:inline-block;background:rgba(255,140,66,.1);color:var(--accent);padding:0 5px;border-radius:3px;font-size:10.5px;letter-spacing:.04em}
+  .doc table{border-collapse:collapse;margin:8px 0;font-size:11.5px;width:100%}
+  .doc th, .doc td{border-bottom:1px solid var(--line);padding:4px 8px;text-align:left}
+  .doc th{color:var(--muted);font-weight:500;letter-spacing:.06em;text-transform:uppercase;font-size:10.5px}
+  .doc blockquote{margin:8px 0;border-left:2px solid var(--brain);padding:2px 12px;color:var(--muted);font-style:normal;font-size:12px}
+
+  /* ----------- right companions ----------- */
+  .panel-head{font-size:10.5px;letter-spacing:.18em;color:var(--dim);text-transform:uppercase;margin:14px 0 6px;display:flex;justify-content:space-between;align-items:baseline}
+  .panel-head:first-child{margin-top:0}
+  .panel-head b{color:var(--ink);font-weight:600}
+  .gist{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px;font-size:12px;line-height:1.55;color:var(--ink)}
+  .flash{display:flex;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--panel);margin-bottom:6px}
+  .flash .n{color:var(--dream);font-family:var(--mono);font-size:10.5px;font-weight:600;min-width:18px}
+  .flash .q{font-size:11.5px;color:var(--ink);margin-bottom:3px}
+  .flash .a{font-size:11px;color:var(--muted)}
+  .q-list{margin:0;padding:0;list-style:none;font-size:11.5px}
+  .q-list li{display:flex;gap:8px;padding:4px 0;border-bottom:1px solid var(--line)}
+  .q-list li:last-child{border-bottom:0}
+  .q-list .pri{font-family:var(--mono);font-size:10px;padding:1px 5px;border-radius:3px;height:fit-content}
+  .q-list .pri.p1{background:rgba(217,104,82,.12);color:var(--bad)}
+  .q-list .pri.p2{background:rgba(230,179,90,.12);color:var(--warn)}
+  .q-list .pri.p3{background:rgba(154,140,120,.12);color:var(--muted)}
+  .q-list .body{color:var(--ink);flex:1}
+  .ev{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .ev div{padding:6px 10px;border:1px solid var(--line);border-radius:6px;font-size:11px}
+  .ev div b{display:block;color:var(--accent);font-family:var(--mono);font-size:14px;font-weight:600;margin-bottom:2px}
+  .ev div span{color:var(--muted);letter-spacing:.04em}
+
+  /* ----------- status bar ----------- */
+  .status{
+    background:var(--panel2);
+    border-top:1px solid var(--line);
+    padding:6px 14px;
+    font-size:11px;
+    color:var(--muted);
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .status .pulse{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 0 var(--accent);animation:pulse 2s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 var(--accent)}70%{box-shadow:0 0 0 8px transparent}100%{box-shadow:0 0 0 0 transparent}}
+  .status .label{color:var(--accent);font-weight:600;letter-spacing:.08em}
+  .status .progress{flex:1;background:rgba(154,140,120,.1);height:3px;border-radius:999px;overflow:hidden;max-width:280px;margin:0 6px}
+  .status .progress > div{height:100%;background:linear-gradient(90deg, var(--accent), var(--accent2));width:33%;transition:width .4s}
+  .status .time{color:var(--dim)}
+
+  /* ----------- modal screens ----------- */
+  .modal{
+    position:absolute;
+    left:50%;
+    top:50%;
+    transform:translate(-50%, -50%);
+    width:calc(100% - 120px);
+    max-width:880px;
+    background:var(--bg-base);
+    border:1px solid var(--brand-tint-30);
+    border-radius:var(--r-lg);
+    box-shadow:0 18px 60px -16px rgba(0,0,0,.7), 0 0 0 1px var(--brand-tint-08);
+    padding:var(--space-6);
+    display:none;
+  }
+  .modal.shown{display:block}
+  .modal h3{margin:0 0 var(--space-1);font-family:var(--mono);font-size:var(--text-md);letter-spacing:.12em;color:var(--brand);text-transform:none}
+  .modal .help{font-size:var(--text-sm);color:var(--fg-secondary);margin-bottom:var(--space-5);line-height:1.55}
+  .modal .input{display:block;width:100%;background:var(--bg-sunken);border:1px solid var(--border-default);color:var(--fg-primary);padding:var(--space-3) var(--space-4);border-radius:var(--r-md);font-family:var(--mono);font-size:var(--text-base);transition:border-color .12s ease}
+  .modal .input::placeholder{color:var(--fg-dim)}
+  .modal .input:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-tint-08)}
+  .modal .suggestions{margin-top:var(--space-3);font-size:var(--text-sm)}
+  .modal .suggestions .s{padding:var(--space-2) var(--space-3);border-radius:var(--r-sm);display:flex;gap:var(--space-3);cursor:pointer;color:var(--fg-secondary);align-items:center}
+  .modal .suggestions .s:hover{background:var(--bg-sunken);color:var(--fg-primary)}
+  .modal .suggestions .s .pri{font-family:var(--mono);font-size:var(--text-xs);padding:1px var(--space-1);border-radius:var(--r-sm);background:var(--danger-tint);color:var(--danger);letter-spacing:.04em}
+  .modal .footer{margin-top:var(--space-5);display:flex;justify-content:flex-end;gap:var(--space-4);font-size:var(--text-sm);color:var(--fg-muted);letter-spacing:.04em}
+  .modal .footer b{color:var(--brand);font-family:var(--mono)}
+
+  /* Position relative so modal is in the term */
+  .term{position:relative}
+
+  /* ---------- review queue (human-faced redesign) ---------- */
+  .rev-list{padding:6px 0}
+  .rev-card{
+    padding:14px 16px;
+    border-bottom:1px solid var(--line);
+    cursor:pointer;
+    font-family:var(--sans);
+    line-height:1.55;
+  }
+  .rev-card:hover{background:rgba(255,140,66,.03)}
+  .rev-card.sel{background:rgba(255,140,66,.06);border-left:3px solid var(--accent);padding-left:13px}
+  .rev-card .topline{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:11px;color:var(--muted);font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase}
+  .rev-card .topline .badge{padding:2px 8px;border-radius:999px;font-size:10px;letter-spacing:.06em}
+  .rev-card .topline .badge.high{background:rgba(217,104,82,.14);color:var(--bad)}
+  .rev-card .topline .badge.med {background:rgba(230,179,90,.14);color:var(--warn)}
+  .rev-card .topline .badge.low {background:rgba(154,140,120,.14);color:var(--muted)}
+  .rev-card .topline .src{color:var(--dim)}
+  .rev-card .topline .spacer{flex:1}
+  .rev-card .topline .age{color:var(--dim)}
+  .rev-card .statement{
+    color:var(--ink);
+    font-size:13.5px;
+    margin-bottom:6px;
+  }
+  .rev-card .statement b{color:var(--accent);font-weight:500}
+  .rev-card .why{
+    font-size:11.5px;
+    color:var(--muted);
+  }
+  .rev-card .why .label{color:var(--warn);font-weight:500}
+
+  /* ---------- detail pane (right side) ---------- */
+  .detail{padding:18px 18px 24px;font-family:var(--sans);line-height:1.6}
+  .detail h2{
+    font-family:var(--sans);
+    font-size:15px;
+    color:var(--ink);
+    font-weight:500;
+    margin:0 0 14px;
+    line-height:1.35;
+  }
+  .detail h2 b{color:var(--accent);font-weight:600}
+  .detail .section{margin-top:18px}
+  .detail .section .title{
+    font-size:10.5px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-bottom:6px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .detail .section .title::before{
+    content:"";
+    width:14px;height:1px;background:var(--line2);
+  }
+  .detail .section .body{font-size:12.5px;color:var(--ink)}
+  .detail .section .body p{margin:4px 0}
+  .detail .section ul{margin:4px 0;padding-left:20px;font-size:12.5px;color:var(--ink)}
+  .detail .section ul li{margin:3px 0;list-style:disc}
+  .detail .section ul li::marker{color:var(--warn)}
+  .detail .section .muted{color:var(--muted);font-size:12px}
+  .detail .quote{
+    background:var(--panel);
+    border-left:2px solid var(--brain);
+    padding:8px 12px;
+    margin:6px 0 0;
+    font-size:12px;
+    color:var(--muted);
+    font-style:italic;
+  }
+  .detail .actions{
+    margin-top:22px;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+  }
+  .detail .actions button{
+    font-family:var(--sans);
+    font-size:12.5px;
+    padding:9px 12px;
+    border:1px solid var(--line2);
+    border-radius:6px;
+    background:var(--panel);
+    color:var(--ink);
+    cursor:pointer;
+    text-align:left;
+    line-height:1.35;
+  }
+  .detail .actions button:hover{border-color:var(--accent);color:var(--accent)}
+  .detail .actions button .key{
+    font-family:var(--mono);
+    font-size:10px;
+    background:var(--bg);
+    color:var(--accent);
+    padding:1px 5px;
+    border-radius:3px;
+    margin-right:6px;
+    letter-spacing:.06em;
+  }
+  .detail .actions button.approve{border-color:rgba(167,194,130,.4)}
+  .detail .actions button.approve:hover{background:rgba(167,194,130,.08);color:var(--good);border-color:var(--good)}
+  .detail .actions button.approve .key{color:var(--good)}
+  .detail .actions button.reject{border-color:rgba(217,104,82,.35)}
+  .detail .actions button.reject:hover{background:rgba(217,104,82,.08);color:var(--bad);border-color:var(--bad)}
+  .detail .actions button.reject .key{color:var(--bad)}
+  .detail .tech-toggle{
+    margin-top:14px;
+    font-family:var(--mono);
+    font-size:10.5px;
+    letter-spacing:.08em;
+    color:var(--dim);
+    cursor:pointer;
+    user-select:none;
+  }
+  .detail .tech-toggle::before{content:"▸ "}
+  .detail .tech-toggle.open::before{content:"▾ "}
+  .detail .tech-body{display:none;margin-top:6px;font-family:var(--mono);font-size:10.5px;color:var(--dim);background:var(--bg);padding:8px 10px;border-radius:4px;line-height:1.7}
+  .detail .tech-toggle.open + .tech-body{display:block}
+
+  footer{margin-top:22px;color:var(--dim);font-size:11px;font-family:var(--mono);letter-spacing:.12em;text-align:center}
+
+  @media (max-width:1000px){
+    .term > .body{grid-template-columns:200px 1fr 240px}
+  }
+  @media (max-width:760px){
+    .term > .body{grid-template-columns:1fr}
+    .term > .body > .col{border-right:0;border-bottom:1px solid var(--line)}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>MedBrain TUI · visual mock</h1>
+  <div class="lede">
+    Read-mostly terminal UI for curators. <b>Three panes</b> — corpus tree · focused .md · per-concept companions (gist + flashcards + open questions + evidence). Keyboard-driven; mouse optional. Reference: <b>opencode</b> / <b>amux</b> / <b>ATAC</b>. Stack: <b>Textual</b> (Python) so it embeds the agents directly and ships a web-serve mode for demos.
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" data-view="main">Main view</button>
+  <button class="tab" data-view="student">⇧S · Student modal</button>
+  <button class="tab" data-view="review">⇧R · Review queue</button>
+  <button class="tab" data-view="export">⇧E · Master sheet export</button>
+</div>
+
+<!-- ============ MAIN VIEW ============ -->
+<div class="view active" id="view-main">
+  <div class="term">
+    <div class="term-chrome">
+      <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+      <div class="path">~/think_kedhar  ·  medbrain</div>
+      <div class="spacer"></div>
+      <div class="meta">student/concepts/artemisinin-resistance.md · 6 KB · mod 2m ago</div>
+    </div>
+
+    <div class="keys">
+      <span><b>q</b>quit</span>
+      <span><b>/</b>search</span>
+      <span><b>⏎</b>open</span>
+      <span><b>↑↓</b>nav</span>
+      <span><b>⇧S</b>student</span>
+      <span><b>⇧B</b>brain</span>
+      <span><b>⇧D</b>dream</span>
+      <span><b>⇧E</b>export</span>
+      <span><b>⇧R</b>review</span>
+      <span><b>⇧Q</b>questions</span>
+      <span><b>e</b>edit in $EDITOR</span>
+    </div>
+
+    <div class="body">
+      <!-- LEFT: corpus tree -->
+      <div class="col">
+        <div class="grp">
+          <div class="head">Concepts <span class="count">52</span></div>
+          <div class="items">
+            <div>act-overall-efficacy <span class="meta">3d</span></div>
+            <div class="sel">artemisinin-resistance <span class="meta">2m</span></div>
+            <div>chloroquine-resistance <span class="meta">1d</span></div>
+            <div>kelch13 <span class="meta">4h</span></div>
+            <div>p-falciparum <span class="meta">2d</span></div>
+            <div>severe-plasmodium-falciparum-malaria <span class="meta">5d</span></div>
+            <div>uncomplicated-falciparum-malaria <span class="meta">5d</span></div>
+          </div>
+        </div>
+        <div class="grp">
+          <div class="head">Notes <span class="count">14</span></div>
+          <div class="items">
+            <div>resistance/ <span class="meta">8</span></div>
+            <div>treatment/ <span class="meta">4</span></div>
+            <div>etiology/ <span class="meta">2</span></div>
+          </div>
+        </div>
+        <div class="grp">
+          <div class="head">Questions <span class="count">14 open</span></div>
+          <div class="items">
+            <div>pediatric chloroquine dose <span class="meta">P1</span></div>
+            <div>IV artesunate in pregnancy <span class="meta">P1</span></div>
+            <div>R561H prevalence in West Africa <span class="meta">P2</span></div>
+          </div>
+        </div>
+        <div class="grp collapsed">
+          <div class="head">Memory <span class="count">18</span></div>
+          <div class="items"></div>
+        </div>
+        <div class="grp collapsed">
+          <div class="head">Flashcards <span class="count">8</span></div>
+          <div class="items"></div>
+        </div>
+        <div class="grp collapsed">
+          <div class="head">Archive <span class="count">142</span></div>
+          <div class="items"></div>
+        </div>
+
+        <div class="filters">
+          <div class="head">Filters</div>
+          <label><input type="checkbox"> pending review only</label>
+          <label><input type="checkbox" checked> recent &lt;7d</label>
+          <label><input type="checkbox" checked> malaria scope</label>
+        </div>
+      </div>
+
+      <!-- CENTRE: focused markdown -->
+      <div class="col">
+        <div class="doc-head">
+          <div class="crumb">student / concepts / <b>artemisinin-resistance.md</b></div>
+          <div class="badge">auto-promoted</div>
+        </div>
+        <div class="doc">
+          <h1># Artemisinin Resistance in P. falciparum</h1>
+          <blockquote>Partial resistance, driven by Kelch13 mutations, now documented across SE Asia, sub-Saharan Africa, and India. Resistance is not monolithic.</blockquote>
+
+          <h2>## Synthesis</h2>
+          <p>P. falciparum has evolved partial resistance to artemisinin (ART), driven by distinct genetic loci and at least two independent cellular survival pathways. <span class="cite">[c:a4f2b8c1]</span></p>
+
+          <h3>### Kelch13 (PfK13) — primary locus</h3>
+          <table>
+            <tr><th>Mutation</th><th>Region</th><th>Certainty</th><th>Grade</th></tr>
+            <tr><td>C580Y</td><td>Greater Mekong</td><td>High</td><td>Meta-analysis</td></tr>
+            <tr><td>R561H</td><td>NW Tanzania</td><td>High</td><td>Cohort</td></tr>
+            <tr><td>F476I, R539T</td><td>Sub-Saharan Africa</td><td>Moderate</td><td>Meta-analysis</td></tr>
+          </table>
+
+          <h2>## Status</h2>
+          <ul>
+            <li>C580Y dominant in Greater Mekong Subregion <span class="cite">[c:8e72b1d9]</span></li>
+            <li>Spread to East Africa (R561H, Tanzania) confirmed <span class="cite">[c:3a91d4f0]</span></li>
+            <li>WHO validated K13 markers; partner-drug resistance now the more pressing risk <span class="cite">[c:1f5cbe2a]</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- RIGHT: companions -->
+      <div class="col">
+        <div class="panel-head"><b>The Gist</b><span>brain/memory</span></div>
+        <div class="gist">
+          Partial artemisinin resistance has spread from the Greater Mekong to East Africa. C580Y dominates SE Asia; R561H is the marker to watch in Tanzania. Partner-drug failure now matters more than artemisinin failure alone.
+        </div>
+
+        <div class="panel-head"><b>Flashcards</b><span>12 cards · dream</span></div>
+        <div class="flash">
+          <span class="n">1</span>
+          <div>
+            <div class="q">Which Kelch13 mutation is dominant in the Greater Mekong Subregion?</div>
+            <div class="a">C580Y · meta-analysis grade <span class="cite">[c:a4f2b8c1]</span></div>
+          </div>
+        </div>
+        <div class="flash">
+          <span class="n">2</span>
+          <div>
+            <div class="q">What's the first-line for severe falciparum malaria when artemisinin resistance is suspected?</div>
+            <div class="a">IV artesunate remains first-line; pair with second ACT partner drug <span class="cite">[c:1f5cbe2a]</span></div>
+          </div>
+        </div>
+
+        <div class="panel-head"><b>Open Questions</b><span>3 here</span></div>
+        <ul class="q-list">
+          <li><span class="pri p1">P1</span><span class="body">Pediatric weight-band dosing for IV artesunate in resistance-suspected cases?</span></li>
+          <li><span class="pri p1">P1</span><span class="body">IV artesunate safety in 1st-trimester pregnancy — is the risk profile updated?</span></li>
+          <li><span class="pri p2">P2</span><span class="body">R561H regional prevalence: any AKI signal in the recent cohort data?</span></li>
+        </ul>
+
+        <div class="panel-head"><b>Evidence</b><span>16 claims</span></div>
+        <div class="ev">
+          <div><b>4</b><span>RCT</span></div>
+          <div><b>9</b><span>cohort</span></div>
+          <div><b>2</b><span>guideline</span></div>
+          <div><b>1</b><span>meta-analysis</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="status">
+      <span class="pulse"></span>
+      <span class="label">RUNNING</span>
+      <span>Student · ingesting "ACT regimen efficacy 2024–2026"</span>
+      <span class="progress"><div style="width:33%"></div></span>
+      <span>4/12 papers</span>
+      <span class="time">· 2m elapsed · est 5m remaining</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============ ⇧S STUDENT MODAL ============ -->
+<div class="view" id="view-student">
+  <div class="term">
+    <div class="term-chrome">
+      <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+      <div class="path">~/think_kedhar  ·  medbrain</div>
+      <div class="spacer"></div>
+      <div class="meta">student modal · ⇧S</div>
+    </div>
+    <div class="keys">
+      <span><b>Esc</b>cancel</span>
+      <span><b>⏎</b>run</span>
+      <span><b>↑↓</b>pick from suggestions</span>
+      <span><b>Tab</b>swap to free-text</span>
+    </div>
+    <div class="body" style="position:relative">
+      <div class="col" style="opacity:.3">
+        <div class="grp"><div class="head">Concepts <span class="count">52</span></div></div>
+      </div>
+      <div class="col" style="opacity:.3"><div class="doc-head"><div class="crumb">/</div></div></div>
+      <div class="col" style="opacity:.3"><div class="panel-head"><b>The Gist</b></div></div>
+
+      <div class="modal shown">
+        <h3>Student · new research session</h3>
+        <div class="help">Type a topic, or ⏎ on a suggested open question from <b>brain/questions.md</b>. The agent will plan a PubMed query set and ingest up to 30 papers, stopping at saturation.</div>
+        <input class="input" placeholder="e.g. artemisinin resistance in pregnancy" value="">
+
+        <div class="panel-head" style="margin-top:18px"><b>Suggested · top 3 open questions</b><span>from brain/questions.md</span></div>
+        <div class="suggestions">
+          <div class="s"><span class="pri">P1</span><span style="flex:1">Pediatric weight-band dosing for IV artesunate in resistance-suspected cases?</span><span style="color:var(--dim)">↵</span></div>
+          <div class="s"><span class="pri">P1</span><span style="flex:1">IV artesunate safety in 1st-trimester pregnancy — risk profile update?</span><span style="color:var(--dim)">↵</span></div>
+          <div class="s"><span class="pri" style="background:rgba(230,179,90,.12);color:var(--warn)">P2</span><span style="flex:1">R561H regional prevalence — recent cohort AKI signal?</span><span style="color:var(--dim)">↵</span></div>
+        </div>
+
+        <div class="footer"><span><b>⇧⏎</b> run with --max 3 (batch)</span><span><b>⏎</b> run single</span></div>
+      </div>
+    </div>
+    <div class="status"><span class="pulse" style="background:var(--warn);animation:none"></span><span class="label" style="color:var(--warn)">IDLE</span><span>Awaiting topic</span></div>
+  </div>
+</div>
+
+<!-- ============ ⇧R REVIEW QUEUE — human-faced ============ -->
+<div class="view" id="view-review">
+  <div class="term">
+    <div class="term-chrome">
+      <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+      <div class="path">~/think_kedhar  ·  medbrain</div>
+      <div class="spacer"></div>
+      <div class="meta">things needing your review · 23</div>
+    </div>
+    <div class="keys">
+      <span><b>↑↓</b>browse</span>
+      <span><b>a</b>looks correct — publish</span>
+      <span><b>r</b>looks wrong — reject</span>
+      <span><b>?</b>I need more research</span>
+      <span><b>s</b>skip for now</span>
+      <span><b>Esc</b>close</span>
+    </div>
+
+    <div class="body" style="grid-template-columns: 1fr 420px">
+      <!-- LEFT: queue list -->
+      <div class="col" style="padding:0">
+        <div style="padding:12px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px">
+          <div style="flex:1">
+            <div style="font-family:var(--sans);font-size:14px;color:var(--ink);font-weight:500">23 new findings waiting for your review</div>
+            <div style="font-size:11.5px;color:var(--muted);margin-top:2px">Sorted by how urgently they need a decision. Top of the list is most urgent.</div>
+          </div>
+          <div style="font-family:var(--mono);font-size:10.5px;color:var(--accent);letter-spacing:.08em">malaria · last 30 days</div>
+        </div>
+
+        <div class="rev-list">
+
+          <!-- Item 1 — selected -->
+          <div class="rev-card sel">
+            <div class="topline">
+              <span class="badge high">Needs review</span>
+              <span class="src">·  from a 2025 PubMed cohort study</span>
+              <span class="spacer"></span>
+              <span class="age">added 3 days ago</span>
+            </div>
+            <div class="statement">
+              <b>P. falciparum</b>, the parasite that causes malaria, may be becoming resistant to <b>artemisinin</b> — the main malaria medicine — in <b>West Africa</b>.
+            </div>
+            <div class="why">
+              <span class="label">Why it's waiting:</span> single cohort study (not a randomised trial), researchers rated their own confidence as low, no other studies in the database agree or disagree yet.
+            </div>
+          </div>
+
+          <!-- Item 2 -->
+          <div class="rev-card">
+            <div class="topline">
+              <span class="badge med">Looks solid — quick check</span>
+              <span class="src">·  from a 2024 randomised trial</span>
+              <span class="spacer"></span>
+              <span class="age">added 3 days ago</span>
+            </div>
+            <div class="statement">
+              <b>Artemether-lumefantrine</b> (an oral combination tablet) safely treats uncomplicated falciparum malaria in <b>pregnant women in their 2nd and 3rd trimesters</b>, and in children aged 6 months and older.
+            </div>
+            <div class="why">
+              <span class="label">Why it's waiting:</span> strong evidence, but the system held it back because the corresponding contraindication for 1st-trimester pregnancy isn't yet in the database — please confirm before publishing.
+            </div>
+          </div>
+
+          <!-- Item 3 -->
+          <div class="rev-card">
+            <div class="topline">
+              <span class="badge med">Possibly important</span>
+              <span class="src">·  from a 2025 case-control study, Tanzania</span>
+              <span class="spacer"></span>
+              <span class="age">added 5 days ago</span>
+            </div>
+            <div class="statement">
+              In Tanzanian malaria samples, the <b>R561H mutation</b> (a known resistance marker) is often found together with a second mutation in a parasite protein called <b>PfCoronin</b>.
+            </div>
+            <div class="why">
+              <span class="label">Why it's waiting:</span> a case-control study is medium-strength evidence; before we promote this we want a clinician to confirm the finding is medically meaningful (not just a statistical coincidence).
+            </div>
+          </div>
+
+          <!-- Item 4 -->
+          <div class="rev-card">
+            <div class="topline">
+              <span class="badge low">Routine — looks fine</span>
+              <span class="src">·  from a WHO 2024 guideline update</span>
+              <span class="spacer"></span>
+              <span class="age">added 6 days ago</span>
+            </div>
+            <div class="statement">
+              <b>Chloroquine should not be given</b> to people with <b>G6PD deficiency</b> — it can trigger severe red-blood-cell breakdown (haemolysis).
+            </div>
+            <div class="why">
+              <span class="label">Why it's waiting:</span> WHO guideline so confidence is high; held only because this is a contraindication (a "don't do this" statement), which the system always sends for human review.
+            </div>
+          </div>
+
+          <!-- Item 5 -->
+          <div class="rev-card">
+            <div class="topline">
+              <span class="badge low">Routine — looks fine</span>
+              <span class="src">·  from a WHO 2024 guideline update</span>
+              <span class="spacer"></span>
+              <span class="age">added 8 days ago</span>
+            </div>
+            <div class="statement">
+              People with <b>severe falciparum malaria</b> need to be admitted to a tertiary-care hospital and started on <b>intravenous artesunate</b> as the first-line medicine.
+            </div>
+            <div class="why">
+              <span class="label">Why it's waiting:</span> guideline-grade evidence; held because the existing entry on this in the knowledge base is older — the reviewer should confirm this should replace the old one.
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- RIGHT: detailed view of the selected item -->
+      <div class="col" style="padding:0;background:var(--bg)">
+        <div class="detail">
+          <h2>
+            <b>P. falciparum</b>, the parasite that causes malaria, may be becoming resistant to <b>artemisinin</b> — the main malaria medicine — in <b>West Africa</b>.
+          </h2>
+
+          <div class="section">
+            <div class="title">Why it's waiting for you</div>
+            <div class="body">
+              The system held this finding back for three reasons. Any one of them on its own would be enough to require a human review:
+              <ul>
+                <li>The finding comes from a single <b>cohort study</b> (researchers tracked one group of patients over time). Cohort studies are useful but weaker than randomised trials.</li>
+                <li>The researchers themselves rated their <b>confidence as low</b> — they're flagging it as a signal worth watching, not a settled conclusion.</li>
+                <li>The knowledge base has <b>no other studies yet</b> that either support or contradict this finding for West Africa. There's nothing to corroborate it.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="title">Where it came from</div>
+            <div class="body">
+              <p><b>"Emerging artemisinin tolerance signal in West African isolates"</b><br>
+              <span class="muted">Published 2025 in <i>Lancet Infectious Diseases</i> · PubMed ID 38321292 · cohort study of 412 patients across Mali, Burkina Faso, and Senegal</span></p>
+              <div class="quote">"Slow parasite clearance — a phenotype consistent with partial artemisinin resistance — was observed in 8.3% of treated patients across three West African sites, though no validated PfK13 mutations were identified."</div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="title">If you approve this</div>
+            <div class="body">
+              This finding will start showing up when someone looks up <b>"artemisinin resistance"</b>, <b>"West Africa malaria"</b>, or <b>"malaria treatment in pregnancy"</b>. It will be clearly labelled as <i>"low confidence — single cohort study"</i> so readers understand the strength of the evidence. The Brain agent will also add a research question to look for follow-up studies that confirm or contradict it.
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="approve"><span class="key">a</span>Looks correct — publish it</button>
+            <button class="reject"><span class="key">r</span>Looks wrong — reject</button>
+            <button><span class="key">?</span>I need more research first</button>
+            <button><span class="key">s</span>Skip — decide later</button>
+          </div>
+
+          <div class="tech-toggle" onclick="this.classList.toggle('open')">Technical details (for curators)</div>
+          <div class="tech-body">
+            claim_id          c:a4f2b8c1<br>
+            subject           P. falciparum<br>
+            predicate         resists<br>
+            object            artemisinin<br>
+            qualifiers        population.region = "West Africa"<br>
+            &nbsp;             &nbsp; certainty = "low"<br>
+            evidence_grade    cohort<br>
+            source            PubMed:38321292<br>
+            ingested_at       2026-05-10T14:22:08Z
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="status">
+      <span class="pulse" style="background:var(--warn);animation:none"></span>
+      <span class="label" style="color:var(--warn)">REVIEW</span>
+      <span>23 findings waiting · 2 reviewed today · oldest is 12 days old</span>
+      <span class="progress"><div style="width:8%"></div></span>
+      <span class="time">average decision time · 1m 40s</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============ ⇧E EXPORT MODAL ============ -->
+<div class="view" id="view-export">
+  <div class="term">
+    <div class="term-chrome">
+      <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+      <div class="path">~/think_kedhar  ·  medbrain</div>
+      <div class="spacer"></div>
+      <div class="meta">export modal · ⇧E</div>
+    </div>
+    <div class="keys">
+      <span><b>Esc</b>cancel</span>
+      <span><b>⏎</b>run</span>
+      <span><b>l</b>toggle --llm</span>
+      <span><b>o</b>open output dir</span>
+    </div>
+    <div class="body" style="position:relative">
+      <div class="col" style="opacity:.3"><div class="grp"><div class="head">Concepts <span class="count">52</span></div></div></div>
+      <div class="col" style="opacity:.3"><div class="doc-head"><div class="crumb">/</div></div></div>
+      <div class="col" style="opacity:.3"><div class="panel-head"><b>The Gist</b></div></div>
+
+      <div class="modal shown" style="max-width:860px">
+        <h3>Export · Master sheet xlsx</h3>
+        <div class="help">Mirrors <b>Master sheet.xlsx</b> exactly — same 9 tabs, same column headers. Output: <b>exports/master_sheet.xlsx</b>.</div>
+
+        <div class="panel-head" style="margin-top:var(--space-1)"><b>Mode</b><span>L toggles</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)">
+          <div style="border:1px solid var(--border-default);padding:var(--space-4);border-radius:var(--r-md);background:var(--bg-sunken)">
+            <div style="font-family:var(--mono);font-size:var(--text-xs);color:var(--fg-muted);letter-spacing:.1em">FAST · default</div>
+            <div style="font-size:var(--text-base);margin:var(--space-2) 0;color:var(--fg-primary);line-height:1.5">Lifts sections from <b>student/concepts/*.md</b> using heading aliases. ~2 seconds for the whole corpus.</div>
+            <div style="font-size:var(--text-sm);color:var(--fg-muted)">Cells are sparse where the corpus is thin.</div>
+          </div>
+          <div style="border:1px solid var(--brand);padding:var(--space-4);border-radius:var(--r-md);background:var(--brand-tint-08)">
+            <div style="font-family:var(--mono);font-size:var(--text-xs);color:var(--brand);letter-spacing:.1em">--LLM · reference-style</div>
+            <div style="font-size:var(--text-base);margin:var(--space-2) 0;color:var(--fg-primary);line-height:1.5">Claude rewrites each row in the Master-sheet style. ~15s × 8 condition rows = <b>~2 min</b>.</div>
+            <div style="font-size:var(--text-sm);color:var(--fg-muted)">Reviewer-ready prose. Empty cells where claims are missing — no hallucination.</div>
+          </div>
+        </div>
+
+        <div class="panel-head" style="margin-top:var(--space-5)"><b>What gets written</b><span>9 sheets · 1 populated</span></div>
+        <div style="display:grid;grid-template-columns:1.4fr 1fr 1.6fr;gap:0;font-size:var(--text-sm);border:1px solid var(--border-subtle);border-radius:var(--r-md);overflow:hidden">
+          <!-- header row -->
+          <div style="padding:var(--space-2) var(--space-3);background:var(--bg-elevated);color:var(--fg-muted);letter-spacing:.1em;text-transform:uppercase;font-size:var(--text-xs);border-bottom:1px solid var(--border-subtle)">Sheet</div>
+          <div style="padding:var(--space-2) var(--space-3);background:var(--bg-elevated);color:var(--fg-muted);letter-spacing:.1em;text-transform:uppercase;font-size:var(--text-xs);border-bottom:1px solid var(--border-subtle)">Status</div>
+          <div style="padding:var(--space-2) var(--space-3);background:var(--bg-elevated);color:var(--fg-muted);letter-spacing:.1em;text-transform:uppercase;font-size:var(--text-xs);border-bottom:1px solid var(--border-subtle)">Needs to fill</div>
+
+          <div style="padding:var(--space-2) var(--space-3);color:var(--fg-primary);border-bottom:1px solid var(--border-subtle)">Conditions</div>
+          <div style="padding:var(--space-2) var(--space-3);color:var(--success);border-bottom:1px solid var(--border-subtle)">● 8 rows (LLM)</div>
+          <div style="padding:var(--space-2) var(--space-3);color:var(--fg-secondary);border-bottom:1px solid var(--border-subtle)">malaria condition concepts → done</div>
+
+          <div style="padding:var(--space-2) var(--space-3);color:var(--fg-primary);border-bottom:1px solid var(--border-subtle)">Medications</div>
+          <div style="padding:var(--space-2) var(--space-3);color:var(--warning);border-bottom:1px solid var(--border-subtle)">○ schema only</div>
+          <div style="padding:var(--space-2) var(--space-3);color:var(--fg-secondary);border-bottom:1px solid var(--border-subtle)">drug concepts + dose_regimen qualifiers</div>
+
+          <div style="padding:var(--space-2) var(--space-3);color:var(--fg-primary);border-bottom:1px solid var(--border-subtle)">Lab tests</div>
+          <div style="padding:var(--space-2) var(--space-3);color:var(--warning);border-bottom:1px solid var(--border-subtle)">○ schema only</div>
+          <div style="padding:var(--space-2) var(--space-3);color:var(--fg-secondary);border-bottom:1px solid var(--border-subtle)">RDT / microscopy / PCR claims (not in corpus yet)</div>
+
+          <div style="padding:var(--space-2) var(--space-3);color:var(--fg-primary);border-bottom:1px solid var(--border-subtle)">RadiologyImaging</div>
+          <div style="padding:var(--space-2) var(--space-3);color:var(--warning);border-bottom:1px solid var(--border-subtle)">○ schema only</div>
+          <div style="padding:var(--space-2) var(--space-3);color:var(--fg-secondary);border-bottom:1px solid var(--border-subtle)">out of malaria scope; needs other domains</div>
+
+          <div style="padding:var(--space-2) var(--space-3);color:var(--fg-primary);border-bottom:1px solid var(--border-subtle)">Special Diagnostic Studies</div>
+          <div style="padding:var(--space-2) var(--space-3);color:var(--warning);border-bottom:1px solid var(--border-subtle)">○ schema only</div>
+          <div style="padding:var(--space-2) var(--space-3);color:var(--fg-secondary);border-bottom:1px solid var(--border-subtle)">EKG, EEG, PFTs — outside current scope</div>
+
+          <div style="padding:var(--space-2) var(--space-3);color:var(--fg-primary);border-bottom:1px solid var(--border-subtle)">HistopathologyCytology</div>
+          <div style="padding:var(--space-2) var(--space-3);color:var(--warning);border-bottom:1px solid var(--border-subtle)">○ schema only</div>
+          <div style="padding:var(--space-2) var(--space-3);color:var(--fg-secondary);border-bottom:1px solid var(--border-subtle)">biopsy / smear interpretation — outside scope</div>
+
+          <div style="padding:var(--space-2) var(--space-3);color:var(--fg-primary);border-bottom:1px solid var(--border-subtle)">SurgeriesProcedures</div>
+          <div style="padding:var(--space-2) var(--space-3);color:var(--warning);border-bottom:1px solid var(--border-subtle)">○ schema only</div>
+          <div style="padding:var(--space-2) var(--space-3);color:var(--fg-secondary);border-bottom:1px solid var(--border-subtle)">procedure literature — outside malaria scope</div>
+
+          <div style="padding:var(--space-2) var(--space-3);color:var(--fg-primary);border-bottom:1px solid var(--border-subtle)">Provider type &amp; Specialty</div>
+          <div style="padding:var(--space-2) var(--space-3);color:var(--info);border-bottom:1px solid var(--border-subtle)">◐ directory data</div>
+          <div style="padding:var(--space-2) var(--space-3);color:var(--fg-secondary);border-bottom:1px solid var(--border-subtle)">not from PubMed — needs ops/MOH data feed</div>
+
+          <div style="padding:var(--space-2) var(--space-3);color:var(--fg-primary)">Hospital Addressbook</div>
+          <div style="padding:var(--space-2) var(--space-3);color:var(--info)">◐ directory data</div>
+          <div style="padding:var(--space-2) var(--space-3);color:var(--fg-secondary)">not from PubMed — needs ops/MOH data feed</div>
+        </div>
+
+        <div style="margin-top:var(--space-3);font-size:var(--text-sm);color:var(--fg-muted);line-height:1.6">
+          <b style="color:var(--success)">●</b> populated · <b style="color:var(--warning)">○</b> headers written but needs corpus expansion · <b style="color:var(--info)">◐</b> needs non-PubMed data feed
+        </div>
+
+        <div class="footer"><span style="color:var(--warning)">estimated ~2 min with --llm</span><span><b>⏎</b> run</span></div>
+      </div>
+    </div>
+    <div class="status"><span class="pulse" style="background:var(--accent)"></span><span class="label">READY</span><span>Press ⏎ to export · last run 4h ago</span></div>
+  </div>
+</div>
+
+<footer>medbrain-tui.html · paired with docs/superpowers/specs/2026-05-13-medbrain-tui-design.md · stack: Textual · ratatui-style</footer>
+
+<script>
+  document.querySelectorAll('.tab').forEach(t => {
+    t.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+      document.querySelectorAll('.view').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      document.getElementById('view-' + t.dataset.view).classList.add('active');
+    });
+  });
+  document.querySelectorAll('.grp .head').forEach(h => {
+    h.addEventListener('click', () => h.parentElement.classList.toggle('collapsed'));
+  });
+</script>
+</body>
+</html>

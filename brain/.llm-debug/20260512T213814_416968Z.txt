@@ -1,0 +1,614 @@
+===== SYSTEM =====
+OUTPUT REQUIREMENT: Return VALID JSON ONLY. Your entire response must be parseable by json.loads(). First character of your output must be `{` or `[`. No prose. No explanations. No markdown fences. No apologies. If the requested data is unavailable, return the schema with empty/null values, still as valid JSON. Tools are intentionally disabled — do not request access to them.
+
+# Master sheet — Condition row
+
+You are filling ONE row of the **Conditions** sheet of `Master sheet.xlsx`, a clinical reference used by Nigerian healthcare providers and reviewed by physicians before publication.
+
+Your job: take the supplied claims and concept .md for one condition and emit a single JSON object whose keys are the Master-sheet column names. Each value is the prose that lands in that cell.
+
+## Style — match the existing sheet exactly
+
+The reference Master sheet is written for a **mixed audience** — a layperson with a high-school education AND a clinician scanning for the right answer. Both must come away with the right mental model.
+
+- **Plain language first.** Define a medical term parenthetically the first time it appears (e.g. "high blood pressure (hypertension)"), then use it freely.
+- **No throat-clearing.** Start cells with substance. Skip "It is important to note that…", "Generally speaking…", "This condition is characterised by…". Just state it.
+- **Dual depth.** A 4–10 sentence paragraph or a short paragraph + a bullet list, depending on the cell. See per-column guidance below.
+- **No bullet pollution.** Reserve bullets for genuine lists (symptoms, risk factors, complications, drugs). Use prose for narrative cells (Overview, Outlook).
+- **Active voice.** "Doctors diagnose…" not "It is diagnosed by…".
+- **Cite the source** at the end of the `Sources` cell using the same terse style as the reference: `MedlinePlus | Cleveland Clinic | Mayo Clinic` — no hyperlinks unless the claim set carries a URL.
+
+## Exact output schema — JSON only
+
+Return ONE JSON object. Keys MUST be exactly these strings, in this order. No extra keys. No missing keys (use empty string `""` only if the claim set genuinely doesn't support that cell — DO NOT invent content).
+
+```json
+{
+  "Completed": "Yes",
+  "Reviewed": "No",
+  "System": "<one of: Cardiovascular System (Heart and Blood Vessels) | Respiratory System | Digestive System (Gastrointestinal) | Nervous System | Endocrine System | Urinary System | Musculoskeletal System | Reproductive System | Integumentary System (Skin) | Hematologic / Immune System | Infectious Disease | Mental Health | Oncology | Other>",
+  "Condition": "<canonical condition name>",
+  "Overview": "<4–8 sentence plain-language paragraph: what it is, what's happening in the body, how common, who gets it>",
+  "Symptoms": "<short intro sentence + bullet list of symptoms, separated by linebreaks. Group by typical vs severe if the claim set supports it>",
+  "When to See a Doctor": "<bullet list of red flags. Start each bullet with an imperative: 'Seek emergency care immediately if…', 'See your doctor promptly when…'>",
+  "Causes": "<paragraph or bulleted list: organisms / mutations / triggers / exposures. Explain the pathogenesis in plain language>",
+  "Risk Factors": "<intro sentence + bullets. Separate modifiable from non-modifiable when the claim set supports it>",
+  "Complications": "<intro sentence + bullets of downstream consequences. Note severity (e.g. 'can be life-threatening')>",
+  "Prevention": "<intro sentence + bullets. Cover vaccines, prophylaxis, behaviour change, screening>",
+  "Diagnosis": "<paragraph or bullets. Cover: clinical exam, lab tests, imaging, biopsy. Mention sensitivity/specificity only if a claim provides it>",
+  "Treatment": "<paragraph + bullets. Lifestyle, medication classes (don't list specific brand names — those live on Medications sheet), procedures, supportive care>",
+  "Outlook/Prognosis": "<3–6 sentences in prose. Natural history, mortality with/without treatment, what good outcome looks like>",
+  "The Gist": "<2–3 sentence summary in the simplest possible language — for someone who skipped the rest. Often starts 'X means…' or 'X is when…'>",
+  "Tags": "<comma-separated keywords for search; lowercase, include common synonyms>",
+  "Sources": "<source citations exactly as the reference sheet formats them — terse names joined by pipes, e.g. 'MedlinePlus | Cleveland Clinic | Mayo Clinic'. If the claim set has PubMed PMIDs, format as 'PubMed:PMID1, PubMed:PMID2' joined by pipes>"
+}
+```
+
+## Hard rules
+
+1. **JSON only.** First character is `{`, last character is `}`. No prose before or after. No markdown fence around the whole reply.
+2. **No invented facts.** Every clinical assertion must trace back to a claim or the concept .md. If the claim set is thin on a column, leave it empty (`""`) — never make up dose ranges, mortality numbers, or treatment options.
+3. **No drug-specific dosing.** Specific drug doses live on the Medications sheet, not Conditions. On Conditions, refer to drug **classes** ("ACE inhibitors", "artemisinin-based combination therapy") not specific brands or mg-amounts.
+4. **The Gist is the shortest cell.** If The Gist runs longer than Overview, you've failed.
+5. **Sources cell uses the reference style.** Look at the supplied "Reference style examples" — match that format.
+
+## Reference style examples (verbatim from Master sheet.xlsx)
+
+> **Overview (Hypertension):** Hypertension, also called high blood pressure, is a condition where the force of blood pushing against your artery walls is consistently too high. Over time, this extra pressure can damage your blood vessels and lead to serious health problems, including heart disease, stroke, and kidney failure. It is one of the most common conditions worldwide, affecting nearly half of all adults, yet many people don't know they have it because it usually causes no symptoms.
+
+> **The Gist (Hypertension):** Hypertension, or high blood pressure, means the force of blood pushing against your artery walls is too high. It usually has no symptoms but can damage your heart, brain, kidneys, and eyes over time. Diagnosis is by repeated blood pressure readings, and treatment combines lifestyle changes with medicines.
+
+> **Symptoms (Heart failure):** Symptoms of heart failure often begin slowly and may only occur when you're active. As the condition worsens, symptoms can appear even at rest.
+> - Shortness of breath, especially when lying down or with activity
+> - Fatigue and weakness
+> - Swelling in your ankles, feet, and legs (edema)
+> - Rapid or irregular heartbeat
+> - Persistent cough or wheezing with white or pink mucus
+
+Match that register. Match that rhythm. Match that punctuation.
+
+
+===== USER =====
+# Entity slug
+plasmodium-falciparum-malaria
+
+# Concept .md (existing)
+
+## Concept Note: *Plasmodium falciparum* Malaria — Treatment & Resistance
+
+**Entity:** Plasmodium falciparum malaria
+**Claims synthesized:** 4 | **Date:** 2026-05-09
+
+---
+
+### Core Treatment Landscape
+
+Artemisinins and their combination therapies (ACTs) are backbone of *P. falciparum* treatment globally. Three claims (b864cb6a, f55e9829, 907989a6) converge on same predicate — `treats` — with high certainty, expert-opinion grade. Specific ACT regimens named: artemether-lumefantrine, artesunate-amodiaquine, dihydroartemisinin-piperaquine. ACTs positioned as **first-line** in malaria-endemic settings.
+
+### Resistance Threat
+
+Claim 49b5b0e4 breaks from treatment narrative: artemisinin **partial resistance** documented co-occurring with *P. falciparum* in **SE Asia and Africa**. Source (PMID:41959371, 2025) identifies double mutations in *Kelch13* driving resistance to next-generation artemisinin derivatives — expanding beyond legacy mutations. PMID:40964400 (Coronin-mediated resistance) and PMID:25874676 (molecular mechanism of resistance) reinforce that resistance is mechanistically multifactorial.
+
+### Synthesis
+
+| Dimension | Summary |
+|-----------|---------|
+| **Treatment** | ACTs = global standard, high certainty |
+| **Resistance** | Partial, spreading — SE Asia origin, now Africa |
+| **Mechanism** | Kelch13 double mutants + Coronin pathway |
+| **Risk** | Next-gen artemisinins also affected (2025 data) |
+
+### Evidence Gaps
+
+All 4 claims lack dose/regimen quantification (mg/kg, duration null). No RCT-grade evidence cited — all `expert_opinion`. Effect sizes absent across all claims. Population subgroups (pregnancy, pediatric, immunity) unspecified.
+
+### Implication
+
+Resistance now threatens both legacy and next-generation artemisinins. Pipeline pressure rising. ACT monotherapy components losing efficacy in key endemic regions. Surveillance of Kelch13 + Coronin mutations critical for treatment protocol updates.
+
+---
+
+*Sources: PMID:26545449, 41959371, 40964400, 25874676 | Status: all pending_review*
+
+
+# Brain memory / gist (existing)
+
+(empty)
+
+# Claims (12)
+```json
+[
+  {
+    "claim_id": "a830791e",
+    "subject": "uncomplicated Plasmodium falciparum malaria treatment with artemisinins or ozonides",
+    "predicate": "requires",
+    "object": "primaquine co-administration",
+    "qualifiers": {
+      "population": {
+        "age_range": "2-12 years",
+        "pregnancy": null,
+        "region": "coastal Kenya",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "primaquine",
+        "mg_per_kg": 0.25,
+        "frequency": "single dose at hour 24",
+        "duration": "single dose"
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "RCT",
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:34111412",
+      "title": "Arterolane-piperaquine-mefloquine versus arterolane-piperaquine and artemether-lumefantrine in the treatment of uncomplicated Plasmodium falciparum malaria in Kenyan children: a single-centre, open-label, randomised, non-inferiority trial."
+    }
+  },
+  {
+    "claim_id": "b864cb6a",
+    "subject": "Artemisinin combination therapies (ACTs)",
+    "predicate": "treats",
+    "object": "Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "global",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "first-line",
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "ACTs (artemether-lumefantrine, artesunate-amodiaquine, dihydroartemisinin-piperaquine)",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:26545449",
+      "title": "Optimum population-level use of artemisinin combination therapies: a modelling study."
+    }
+  },
+  {
+    "claim_id": "ddff5dc3",
+    "subject": "dihydroartemisinin-piperaquine",
+    "predicate": "treats",
+    "object": "uncomplicated Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "6 months to 10 years",
+        "pregnancy": null,
+        "region": "Uganda (three sentinel sites)",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "dihydroartemisinin-piperaquine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": "28-day follow-up"
+      },
+      "comparator": "artemether-lumefantrine",
+      "effect_size": {
+        "metric": "PCR-corrected 28-day cumulative efficacy",
+        "value": null,
+        "ci_low": 98.9,
+        "ci_high": 100.0
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:34952573",
+      "title": "Efficacy and safety of artemether-lumefantrine and dihydroartemisinin-piperaquine for the treatment of uncomplicated Plasmodium falciparum malaria and prevalence of molecular markers associated with artemisinin and partner drug resistance in Uganda."
+    }
+  },
+  {
+    "claim_id": "7f1794c4",
+    "subject": "artemether-lumefantrine",
+    "predicate": "treats",
+    "object": "uncomplicated Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": "6 months to 10 years",
+        "pregnancy": null,
+        "region": "Uganda (three sentinel sites)",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemether-lumefantrine",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": "28-day follow-up"
+      },
+      "comparator": "dihydroartemisinin-piperaquine",
+      "effect_size": {
+        "metric": "PCR-corrected 28-day cumulative efficacy",
+        "value": null,
+        "ci_low": 87.2,
+        "ci_high": 94.4
+      }
+    },
+    "certainty": "moderate",
+    "evidence_grade": "expert_opinion",
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:34952573",
+      "title": "Efficacy and safety of artemether-lumefantrine and dihydroartemisinin-piperaquine for the treatment of uncomplicated Plasmodium falciparum malaria and prevalence of molecular markers associated with artemisinin and partner drug resistance in Uganda."
+    }
+  },
+  {
+    "claim_id": "3054da09",
+    "subject": "intravenous artesunate",
+    "predicate": "treats",
+    "object": "severe Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "artesunate",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:38321292",
+      "title": "Emergence, transmission dynamics and mechanisms of artemisinin partial resistance in malaria parasites in Africa."
+    }
+  },
+  {
+    "claim_id": "a0b4fd86",
+    "subject": "artemisinin-based combination therapy (ACT)",
+    "predicate": "treats",
+    "object": "uncomplicated Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "outpatient",
+        "endemic_status": null
+      },
+      "dose_regimen": {
+        "drug": "artemisinin derivative plus partner drug",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:38321292",
+      "title": "Emergence, transmission dynamics and mechanisms of artemisinin partial resistance in malaria parasites in Africa."
+    }
+  },
+  {
+    "claim_id": "55ba697e",
+    "subject": "artemisinin-based regimens",
+    "predicate": "treats",
+    "object": "severe Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": "inpatient",
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinins (combination regimens)",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:38552654",
+      "title": "The emergence of artemisinin partial resistance in Africa: how do we respond?"
+    }
+  },
+  {
+    "claim_id": "3a5a7c78",
+    "subject": "artemisinin-based regimens",
+    "predicate": "treats",
+    "object": "uncomplicated Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "sub-Saharan Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinins (combination regimens)",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:38552654",
+      "title": "The emergence of artemisinin partial resistance in Africa: how do we respond?"
+    }
+  },
+  {
+    "claim_id": "c3c53e47",
+    "subject": "artemisinin partial resistance",
+    "predicate": "co_occurs",
+    "object": "Plasmodium falciparum malaria transmission in eastern Africa",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "eastern Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": null,
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": "prior confinement to southeast Asia",
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:38552654",
+      "title": "The emergence of artemisinin partial resistance in Africa: how do we respond?"
+    }
+  },
+  {
+    "claim_id": "49b5b0e4",
+    "subject": "artemisinin partial resistance",
+    "predicate": "co_occurs",
+    "object": "Plasmodium falciparum malaria in Southeast Asia and Africa",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "Southeast Asia and Africa",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinins",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:41959371",
+      "title": "Double Mutations in Plasmodium falciparum Kelch13 drive resistance to next-generation artemisinin derivatives in malaria parasites."
+    }
+  },
+  {
+    "claim_id": "f55e9829",
+    "subject": "artemisinin-based therapies",
+    "predicate": "treats",
+    "object": "Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": null,
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "malaria-endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:40964400",
+      "title": "Cellular and molecular basis of Pf Coronin function in artemisinin resistance in Plasmodium falciparum."
+    }
+  },
+  {
+    "claim_id": "907989a6",
+    "subject": "Artemisinins",
+    "predicate": "treats",
+    "object": "Plasmodium falciparum malaria",
+    "qualifiers": {
+      "population": {
+        "age_range": null,
+        "pregnancy": null,
+        "region": "global",
+        "immune_status": null,
+        "comorbidities": []
+      },
+      "setting": {
+        "care_level": null,
+        "endemic_status": "endemic"
+      },
+      "dose_regimen": {
+        "drug": "artemisinin",
+        "mg_per_kg": null,
+        "frequency": null,
+        "duration": null
+      },
+      "comparator": null,
+      "effect_size": {
+        "metric": null,
+        "value": null,
+        "ci_low": null,
+        "ci_high": null
+      }
+    },
+    "certainty": "high",
+    "evidence_grade": "expert_opinion",
+    "source": {
+      "type": "pubmed",
+      "external_id": "PMID:25874676",
+      "title": "A molecular mechanism of artemisinin resistance in Plasmodium falciparum malaria."
+    }
+  }
+]
+```
+
+
+===== STDOUT =====
+```json
+{
+  "Completed": "Yes",
+  "Reviewed": "No",
+  "System": "Infectious Disease",
+  "Condition": "Plasmodium falciparum Malaria",
+  "Overview": "Plasmodium falciparum malaria is a serious infectious disease caused by the parasite Plasmodium falciparum, transmitted to humans through the bite of infected female Anopheles mosquitoes. Once inside the body, the parasite invades and destroys red blood cells, triggering cycles of fever and, in severe cases, life-threatening organ damage. The disease is endemic across sub-Saharan Africa and parts of Southeast Asia, where it places the heaviest burden on young children and people with limited prior exposure to the parasite. It can present as uncomplicated malaria — fever and flu-like illness managed in an outpatient setting — or escalate rapidly to severe malaria that requires hospital admission. A growing threat is artemisinin partial resistance, which originated in Southeast Asia and has now spread to eastern Africa, putting the effectiveness of the main drug class used to treat this disease at risk.",
+  "Symptoms": "Symptoms depend on whether the infection is uncomplicated or severe. Uncomplicated malaria begins with flu-like illness but can worsen quickly without treatment.\n\nCommon symptoms:\n- High fever, often cycling with chills and drenching sweats\n- Headache and generalised body aches\n- Fatigue and weakness\n- Nausea and vomiting\n\nWarning signs of severe malaria:\n- High fever that does not settle with initial treatment\n- Altered consciousness, confusion, or seizures\n- Difficulty breathing or rapid breathing\n- Inability to eat, drink, or sit upright\n- Extreme pallor suggesting severe anaemia (low red blood cell count)",
+  "When to See a Doctor": "- Seek emergency care immediately if a child or adult develops fever with confusion, seizures, or loss of consciousness — these can signal severe or cerebral malaria, which is life-threatening.\n- Seek emergency care immediately if a young child in a malaria-endemic area is unable to feed, vomits repeatedly, or has difficulty breathing.\n- See your doctor promptly if you develop fever, chills, or flu-like symptoms while living in or after returning from a malaria-endemic area in sub-Saharan Africa or Southeast Asia.\n- See your doctor promptly if symptoms do not improve within 24–48 hours of starting antimalarial treatment, as artemisinin-partially-resistant parasites can cause slower-than-expected recovery.",
+  "Causes": "P. falciparum malaria is caused by the protozoan parasite Plasmodium falciparum, which enters the bloodstream through the bite of an infected female Anopheles mosquito. The parasite first matures in the liver, then invades red blood cells, replicates rapidly, and ruptures the cells — a repeating cycle that drives fever and tissue damage. The biology of resistance adds further complexity: mutations in the parasite's Kelch13 protein, including newly identified double mutations that affect next-generation artemisinin derivatives, allow parasites to tolerate drug exposure and clear more slowly from the blood. A separate pathway involving changes in the parasite's Coronin protein provides an additional mechanism of artemisinin resistance. These resistance mechanisms have emerged independently in Southeast Asia and have since spread to eastern Africa.",
+  "Risk Factors": "Anyone in a malaria-endemic area is at risk, but certain groups are far more likely to develop severe disease.\n\nNon-modifiable risk factors:\n- Living in or travelling to malaria-endemic regions of sub-Saharan Africa or Southeast Asia\n- Young children (under 10 years), who have not yet built immunity through repeated exposure\n- Non-immune visitors travelling from malaria-free countries\n\nModifiable or situational risk factors:\n- Sleeping without an insecticide-treated bed net in endemic areas\n- Travelling to endemic regions without antimalarial chemoprophylaxis (preventive medicine)\n- Delayed diagnosis or incomplete treatment, which increases the risk of progression to severe malaria and of selecting for drug-resistant parasites",
+  "Complications": "Without prompt and effective treatment, P. falciparum malaria can progress rapidly to severe, life-threatening illness.\n\n- Severe malaria with multi-organ failure — can be fatal without intravenous treatment and inpatient care\n- Cerebral malaria — parasites block small blood vessels in the brain, causing seizures, coma, and lasting neurological damage in survivors\n- Severe anaemia — mass destruction of red blood cells reduces the blood's ability to carry oxygen to vital organs\n- Respiratory distress — fluid accumulation in the lungs can lead to breathing failure\n- Treatment failure due to artemisinin partial resistance — parasites with Kelch13 or Coronin mutations persist longer in the blood even with standard ACT therapy, raising the risk of complications and relapse, particularly in eastern Africa and Southeast Asia",
+  "Prevention": "- Sleep under an insecticide-treated bed net (ITN) every night, especially for young children and pregnant women in endemic areas\n- Apply insect repellent and wear long-sleeved clothing after dusk to reduce mosquito bites\n- Take prescribed antimalarial chemoprophylaxis (preventive medicine) before, during, and after travel to malaria-endemic regions — consult a travel health clinic for the regimen appropriate for your destination\n- Seek immediate testing and treatment at the first sign of fever in an endemic area; early treatment stops uncomplicated malaria from becoming severe\n- Follow national malaria treatment guidelines, which are regularly updated to reflect evolving drug-resistance patterns — particularly important in regions where artemisinin partial resistance has been confirmed",
+  "Diagnosis": "Diagnosis requires laboratory confirmation; clinical symptoms alone are insufficient to distinguish P. falciparum from other causes of fever.\n\n- Rapid diagnostic tests (RDTs) detect P. falciparum-specific antigens from a fingerprick blood sample and deliver results within minutes; they are the main first-line tool in most African and Southeast Asian health facilities.\n- Microscopy (thick and thin blood smear) is the reference standard — it identifies the parasite species, quantifies parasite density, and helps monitor treatment response.\n- Polymerase chain reaction (PCR) testing provides the most sensitive confirmation and is used in resistance surveillance and clinical trials; PCR-corrected 28-day efficacy is the primary outcome measure in contemporary treatment studies.\n- Molecular testing for Kelch13 and Coronin gene mutations can detect artemisinin partial resistance and inform treatment decisions in areas where resistance is circulating.",
+  "Treatment": "Treatment is guided by disease severity, patient age, and local drug-resistance patterns.\n\nUncomplicated P. falciparum malaria:\n- Artemisinin-based combination therapies (ACTs) are the global first-line standard. The artemisinin component rapidly clears the bulk of parasites, while the partner drug eliminates remaining parasites and protects against resistance. Recommended ACT regimens include artemether-lumefantrine, artesunate-amodiaquine, and dihydroartemisinin-piperaquine; the preferred choice depends on national guidelines and local efficacy data.\n- A single low dose of primaquine added to the ACT course is recommended in some endemic settings (particularly for children) to block transmission by clearing gametocytes — the mosquito-infectious stage of the parasite.\n\nSevere P. falciparum malaria:\n- Intravenous artesunate is the standard treatment for hospitalised patients with severe malaria; it replaces older intravenous regimens.\n- Supportive inpatient care — including management of anaemia, seizures, and respiratory distress — is essential alongside antimalarial therapy.\n\nResistance considerations:\n- Artemisinin partial resistance, driven by Kelch13 double mutations and Coronin pathway changes, now threatens both conventional and next-generation ACT regimens in Southeast Asia and eastern Africa. Clinicians should monitor parasite clearance closely and consult current WHO and national guidelines, which continue to evolve in response to resistance data.",
+  "Outlook/Prognosis": "Uncomplicated P. falciparum malaria treated promptly with an effective ACT carries an excellent prognosis, with most patients recovering fully within days. Severe malaria has a substantially higher risk of death or lasting harm — including neurological damage from cerebral malaria — even with hospital-level care, making rapid diagnosis and treatment the most critical determinant of outcome. The spread of artemisinin partial resistance into eastern Africa is the most significant current threat to treatment success: parasites that clear more slowly from the blood increase the risk of treatment failure, recrudescence (return of infection), and complications at the population level. Long-term outlook depends on continued surveillance of resistance markers, access to effective ACTs, and timely updates to national treatment protocols.",
+  "The Gist": "P. falciparum malaria is a mosquito-borne parasite infection that destroys red blood cells and can become life-threatening within hours if untreated. Artemisinin-based combination therapies (ACTs) are the standard treatment, but drug-resistant parasites are spreading across Africa and Southeast Asia, making early diagnosis and following up-to-date treatment guidelines more important than ever.",
+  "Tags": "malaria, plasmodium falciparum, falciparum malaria, act, artemisinin, artemether-lumefantrine, dihydroartemisinin-piperaquine, artesunate-amodiaquine, artesunate, artemisinin resistance, kelch13, coronin, drug resistance, partial resistance, tropical disease, sub-saharan africa, southeast asia, eastern africa, mosquito-borne, vector-borne, infectious disease, fever, uncomplicated malaria, severe malaria, cerebral malaria, primaquine, gametocyte",
+  "Sources": "PubMed:26545449 | PubMed:34111412 | PubMed:34952573 | PubMed:38321292 | PubMed:38552654 | PubMed:40964400 | PubMed:41959371 | PubMed:25874676"
+}
+```
