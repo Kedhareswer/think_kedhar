@@ -15,6 +15,12 @@ class Predicate(str, enum.Enum):
     CO_OCCURS = "co_occurs"
     RECOMMENDS = "recommends"
     SUPERSEDES = "supersedes"
+    DIAGNOSES = "diagnoses"
+    TRANSMITS = "transmits"
+    COMPLICATES = "complicates"
+    CLASSIFIES_AS = "classifies_as"
+    AFFECTS = "affects"
+    HAS_LIFECYCLE_STAGE = "has_lifecycle_stage"
 
 
 class EvidenceGrade(str, enum.Enum):

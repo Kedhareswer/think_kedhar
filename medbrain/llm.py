@@ -24,6 +24,11 @@ from medbrain.config import BRAIN_DIR, LLM_MODEL
 LLM_DEBUG_DIR = BRAIN_DIR / ".llm-debug"
 LLM_DEBUG = os.getenv("MEDBRAIN_LLM_DEBUG", "1") not in ("0", "false", "")
 
+# Thinking-budget magic phrase prepended to every user prompt.
+# Claude Code CLI honors: "think" | "think hard" | "think harder" | "ultrathink".
+# Empty string disables.
+THINKING_HINT = os.getenv("MEDBRAIN_THINKING_HINT", "ultrathink").strip()
+
 
 class LLMError(RuntimeError):
     pass
@@ -78,6 +83,8 @@ def call(
     """
     exe = _resolve_cli()
     mdl = model or LLM_MODEL
+    if THINKING_HINT:
+        user = f"{THINKING_HINT}\n\n{user}"
     # Pipe user prompt via stdin. Avoids "Input must be provided either through
     # stdin or as a prompt argument" when --append-system-prompt eats the
     # positional slot, and dodges Windows command-line length limits for big

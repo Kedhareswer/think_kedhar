@@ -11,6 +11,15 @@ Write a focused concept note. The note will be re-generated on every change, so 
 ## Output structure (Markdown)
 
 ```
+---
+type: <condition|medication|gene|mutation|mechanism|vector|test|complication|lifecycle_stage|organism|other>
+species: [<plasmodium species if relevant, comma-separated; omit otherwise>]
+tags: [<area/sub-area>, ...]            # e.g. malaria/resistance, malaria/treatment
+evidence_grade_max: <meta_analysis|RCT|guideline|cohort|case_control|case_report|expert_opinion>
+claim_count: <int>
+last_regen: <ISO-8601 timestamp>
+---
+
 # <Entity name as written most often in the claim set>
 
 > Short one-paragraph orientation: what this entity IS in clinical context. ≤ 60 words.
@@ -82,3 +91,12 @@ Example shape:
 | F476I, R539T | Sub-Saharan Africa | Moderate | Meta-analysis |
 
 Keep column count ≤ 5 (terminal-width safe). When citing claims inside a table cell, append `[c:abc12345]` to the cell that's load-bearing on that claim.
+
+## Obsidian-friendly output (required)
+
+The brain is browsed via Obsidian as a vault. Your output MUST follow:
+
+1. **YAML frontmatter** at the very top, before the `# <title>` heading. Use the schema shown in the Output structure block above. `type` must be one of the listed enum values. `tags` use forward-slash hierarchy (e.g. `malaria/resistance`). `claim_count` is an integer equal to the number of distinct claim_ids you cite.
+2. **Wikilink cross-references.** When you mention another entity that has (or should have) its own concept page — drug names, organisms, genes, mutations, vectors, complications, diagnostic tests, lifecycle stages — wrap it as `[[entity-slug]]` on first mention in each section, plain text afterwards. Slugs are kebab-case matching the concept filename: `[[plasmodium-falciparum]]`, `[[artemether-lumefantrine]]`, `[[kelch13-c580y-mutation]]`. Do NOT wikilink verbs, dosages, generic phrases, or non-entities.
+3. **Mermaid diagrams allowed.** For pathways, lifecycles, decision trees, render as a fenced ```mermaid``` block. Trigger when claim set supports a 3+ step causal chain or 3+ stage lifecycle. Cite the load-bearing claim with `[c:<id>]` next to the diagram. Keep node labels ≤ 30 chars.
+4. **Citations are sacred.** Every claim_id in the input set that materially supports a statement you make MUST appear in your output as `[c:<8char>]`. Never invent a claim_id. The downstream regen pipeline rejects rewrites that fabricate citations or drop too many input claims without justification.

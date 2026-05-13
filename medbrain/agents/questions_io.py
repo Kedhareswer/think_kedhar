@@ -37,6 +37,7 @@ class Question:
     topic: str
     body: str
     updated: datetime | None = None
+    source: str | None = None  # "human" | "brain" | "regen_gate" | None
 
     def to_markdown(self) -> str:
         lines = [
@@ -48,6 +49,8 @@ class Question:
         if self.updated:
             lines.append(f"- updated: {self.updated.isoformat()}")
         lines.append(f"- topic: {self.topic}")
+        if self.source:
+            lines.append(f"- source: {self.source}")
         lines.append("")
         lines.append(self.body.strip())
         return "\n".join(lines)
@@ -104,15 +107,29 @@ class QuestionsFile:
         return {q.qid: q for q in self.questions}
 
     def merge(self, updates: list[Question]) -> tuple[int, int]:
-        """Apply updates: same qid replaces, new qid appends. Returns (added, updated_count)."""
+        """Apply updates: same qid replaces, new qid appends. Returns (added, updated_count).
+
+        Human-authored questions (source="human") are protected: a non-human
+        update can only re-emit them with status=in_progress (never resolved
+        or open-demoted); priority floor stays at the existing value or
+        better (lower number). Use `merge(force=True)` to bypass when needed.
+        """
         existing = self.by_id()
         added = 0
         updated_n = 0
         now = datetime.now(UTC)
         for u in updates:
             if u.qid in existing:
-                idx = self.questions.index(existing[u.qid])
-                u.created = existing[u.qid].created
+                old = existing[u.qid]
+                if old.source == "human" and u.source != "human":
+                    # Protect human-authored Qs from non-human overwrites.
+                    if u.status == "resolved":
+                        u.status = old.status
+                    if u.priority > old.priority:
+                        u.priority = old.priority
+                    u.source = "human"
+                idx = self.questions.index(old)
+                u.created = old.created
                 u.updated = now
                 self.questions[idx] = u
                 updated_n += 1
@@ -146,6 +163,7 @@ def _parse_block(qid: str, block: str) -> Question | None:
             topic=fields.get("topic", ""),
             body=body,
             updated=_parse_dt(fields.get("updated")),
+            source=fields.get("source") or None,
         )
     except (ValueError, KeyError):
         return None

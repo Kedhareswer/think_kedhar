@@ -11,6 +11,15 @@ Write a focused condition note. The note will be re-generated on every change; d
 ## Output structure
 
 ```
+---
+type: condition
+species: [<plasmodium species if condition is malaria-typed, else omit>]
+tags: [<area/sub-area>, ...]            # e.g. malaria/severe, malaria/complication
+evidence_grade_max: <meta_analysis|RCT|guideline|cohort|case_control|case_report|expert_opinion>
+claim_count: <int>
+last_regen: <ISO-8601 timestamp>
+---
+
 # <Condition name>
 
 ## Overview
@@ -80,3 +89,10 @@ Keep tables under five columns (terminal-width safe). Cite the load-bearing clai
 5. **No prose-padding.** Skip a section entirely if no claims populate it — leave the heading with a single line: `_No claims in current corpus._`
 6. **Status awareness.** `(pending review)` tag inline for non-promoted claims; supersedence handled by replacing the older claim entirely.
 7. **Output ONLY the Markdown.** No code fences, no preamble, no postamble.
+
+## Obsidian-friendly output (required)
+
+1. **YAML frontmatter** at the very top per the schema in the Output structure block. `type: condition` is fixed for this prompt.
+2. **Wikilink cross-references** for drugs, organisms, vectors, tests, complications, lifecycle stages on first mention per section. Kebab-case slugs (e.g. `[[plasmodium-falciparum]]`, `[[artemether-lumefantrine]]`, `[[cerebral-malaria]]`). Never wikilink verbs, doses, or non-entities.
+3. **Mermaid diagrams** allowed for pathophysiology cascades, treatment decision trees, or 3+ stage progressions. Fenced ```mermaid``` block. Cite load-bearing claim with `[c:<id>]` adjacent.
+4. **Citations are sacred.** Every claim_id supporting a clinical statement must appear as `[c:<8char>]`. Never fabricate. The regen pipeline rejects fabricated or mass-dropped citations.

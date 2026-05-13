@@ -73,7 +73,7 @@ DERIVATIVE_DIRS: dict[str, Path] = {
     "gaps": GAPS_DIR,
 }
 
-LLM_MODEL: str = os.getenv("LLM_MODEL", "claude-sonnet-4-6")
+LLM_MODEL: str = os.getenv("LLM_MODEL", "claude-opus-4-7")
 
 PUBMED_API_KEY: str | None = os.getenv("PUBMED_API_KEY") or None
 PUBMED_EMAIL: str = os.getenv("PUBMED_EMAIL", "anonymous@medbrain.local")

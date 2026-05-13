@@ -155,8 +155,13 @@ def test_run_brain_writes_memory_and_questions(tmp_brain: Path, monkeypatch: pyt
         if "concept notes" in user and "topic notes" in user and "Topic context" in user:
             return (
                 "# Questions\n\n"
-                "## Gaps\n\n"
-                "- priority: 1 — pediatric chloroquine — "
+                "Research backlog.\n\n"
+                "## Q-2026-05-13-001\n"
+                "- priority: 1\n"
+                "- status: open\n"
+                "- created: 2026-05-13T22:00:00+00:00\n"
+                "- topic: pediatric chloroquine\n"
+                "- source: brain\n\n"
                 "What is the pediatric weight-band dose of chloroquine?\n"
             )
         return (

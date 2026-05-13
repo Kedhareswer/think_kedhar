@@ -53,6 +53,26 @@ Known holes, deferred decisions, things the spec didn't pin down. One section pe
 **Gap:** New entity has zero query_count / citation_count → score = 0 → instantly archive-eligible. Need a grace period or default score.
 **Proposed resolution:** New entities start with `score = 1.0` for 30 days; decay only kicks in after.
 
+### ~~Brain ↔ active_learner format mismatch~~ — RESOLVED 2026-05-13 via path A
+
+Resolved by rewriting `prompts/brain_questions.md` to emit qid blocks, patching
+`medbrain/agents/brain.py` to parse + merge LLM output through
+`questions_io.QuestionsFile`, and updating
+`medbrain/tui/screens.py:_read_open_questions` to parse qid blocks. Defence in
+depth: even if the LLM violates the "re-emit human Qs verbatim" rule,
+`QuestionsFile.merge()` enforces human-source protection. 101/101 tests green.
+
+Original gap (kept for context):
+
+**Spec ref:** §7.2 + Phase 6 design.
+**Discovered:** 2026-05-13 while wiring human-question protection.
+**Gap:** `medbrain/agents/brain.py` writes `brain/questions.md` using the freeform "Answerable / Gaps" format from `prompts/brain_questions.md` (priorities `[P1] Q:`, no qid). `medbrain/agents/active_learner.py` reads `brain/questions.md` via `questions_io.QuestionsFile.parse`, which expects `## Q-YYYY-MM-DD-NNN` H2 blocks with `priority/status/created/topic/source` fields. Brain's output never produces qid blocks, so active_learner sees **zero open questions** even after a successful Brain run. Manually-added qid blocks (human-authored) work; Brain-emitted gaps are dead weight in the autonomous loop.
+**Why it matters:** Without this fix, the textbook re-run will ingest evidence, Brain will generate "Gaps requiring new research" prose, but the active learner will never pick those gaps up and re-research. Self-extending loop is broken.
+**Proposed resolution (two paths):**
+- **(A) Change Brain's questions prompt to emit qid blocks.** Rewrite `prompts/brain_questions.md` so the output is a sequence of `## Q-YYYY-MM-DD-NNN` blocks with the field/body format `questions_io` parses. Drop the "Answerable / Gaps" sectioning (or keep it as a comment preamble). Active learner loop closes immediately. Risk: the freeform format is also consumed by the TUI for human reading; need to verify TUI still works (`medbrain/tui/screens.py:124` reads `(priority, text)` lines — appears to expect prose, not qid blocks, so changing format may break TUI display).
+- **(B) Adapter layer.** Keep Brain's freeform output, add `medbrain/agents/questions_adapter.py` that parses the freeform "Gaps" section and emits qid blocks into a separate `brain/questions_inbox.md` that active_learner reads. Two files, more moving parts, no TUI breakage.
+**Recommendation:** (A). Single source of truth. Fix TUI parser at the same time.
+
 ---
 
 ## Resolved

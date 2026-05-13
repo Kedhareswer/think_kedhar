@@ -12,9 +12,20 @@ under the temp root rather than polluting the working tree.
 from __future__ import annotations
 
 import importlib
+import os
 from pathlib import Path
 
 import pytest
+
+
+@pytest.fixture(autouse=True)
+def _disable_citation_gate_in_tests(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Mocked LLM bodies in regen tests do not include `[c:<id>]` citations.
+    Force the gate off so the existing fixtures keep working. Real prod runs
+    leave MEDBRAIN_REGEN_GATE_DISABLE unset and get the full safety check.
+    Citation-gate behavior itself is tested directly in test_citation_gate.py
+    (which clears this env via monkeypatch.delenv)."""
+    monkeypatch.setenv("MEDBRAIN_REGEN_GATE_DISABLE", "1")
 
 
 def setup_tmp_root(monkeypatch: pytest.MonkeyPatch, tmp: Path) -> Path:

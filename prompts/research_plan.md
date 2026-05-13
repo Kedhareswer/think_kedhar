@@ -49,6 +49,43 @@ DO NOT invent additional keys. DO NOT include keys like `summary`, `background`,
 - **focused** (e.g. "artemisinin resistance in pregnancy", "metformin for heart failure"): decomposition optional (1-3 subtopics if useful). 1-3 queries, 5-15 papers each. Total cap 20-40.
 - **specific** (e.g. "tafenoquine pediatric dose under 30kg", a precise question): no decomposition. 1-2 queries, 10-20 papers. Total cap 10-25.
 
+## Domain template — malaria / plasmodium
+
+If the topic matches `malaria` or `plasmodium` and the chosen scope is `broad`
+or `very_broad`, you MUST emit a two-axis decomposition. Each surviving
+(species × clinical-axis) cell becomes one subtopic. This produces textbook-
+grade breadth instead of collapsing onto one sub-domain (e.g. resistance only).
+
+Species axis: P. falciparum, P. vivax, P. ovale, P. malariae, P. knowlesi, mixed-species.
+
+Clinical axes:
+- epidemiology & global burden (regional prevalence, mortality, age distribution)
+- lifecycle & vector biology (Anopheles spp., sporogonic + erythrocytic cycles)
+- diagnosis: microscopy / RDT (HRP2, pLDH) / PCR / serology
+- uncomplicated treatment: ACT regimens, partner-drug choice, dosing
+- severe / complicated treatment: IV artesunate, supportive care, post-artesunate haemolysis
+- chemoprevention: IPTp, IPTi, SMC, PMC, post-discharge prophylaxis
+- vaccines: RTS,S/AS01, R21/Matrix-M (efficacy, schedules, age windows)
+- resistance landscape: artemisinin partial resistance, partner-drug resistance, chloroquine, SP
+- special populations: pregnancy, <5y children, HIV co-infection, non-immune travelers, splenectomised, G6PD-deficient
+- prevention & vector control: ITN, IRS, larviciding, source reduction, environmental management
+- clinical complications: cerebral malaria, AKI, ARDS, hypoglycemia, blackwater fever, severe anemia
+- elimination & eradication strategy: surveillance, case management, importation, public health
+
+Cell-pruning rules:
+- Drop species×axis cells where literature is genuinely empty (e.g. P. ovale × vaccines).
+- Cells with shared evidence between species (e.g. ovale + malariae lifecycle) MAY merge into one subtopic.
+- Aim for 12–18 final subtopics when the malaria template fires.
+
+When the malaria template fires, override broad-scope defaults:
+- `max_papers` per subtopic: 8–12
+- `max_total_papers`: 120–180
+- `saturation_window`: 5
+- `duplicate_ratio_threshold`: 0.85
+
+Use MeSH where available: `"Malaria, Falciparum"[MeSH]`, `"Malaria, Vivax"[MeSH]`,
+`"Plasmodium knowlesi"[MeSH]`, `"Antimalarials"[MeSH]`, `"Insecticide-Treated Bednets"[MeSH]`.
+
 ## PubMed query syntax
 
 - Use MeSH tags where applicable: `Malaria/drug therapy[MeSH]`
@@ -65,8 +102,12 @@ Example queries:
 
 ## Saturation defaults
 
-- `saturation_window`: 3
-- `duplicate_ratio_threshold`: 0.7
+- `saturation_window`: 5
+- `duplicate_ratio_threshold`: 0.85
+
+Loosened from prior 3/0.7. Broad multi-subtopic plans share retrieval overlap
+across adjacent subtopics (same review papers surface in many cells); the old
+defaults early-tripped before the long tail of subtopics finished.
 
 ## Output rules
 

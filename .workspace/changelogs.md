@@ -4,6 +4,192 @@ Append-only log of build progress. Newest at top.
 
 ---
 
+## 2026-05-13
+
+### End-to-end orchestrator + Obsidian vault publish (build)
+
+Single CLI command drives the whole agentic loop from one user topic.
+Closes the "user types one prompt and the system self-extends" UX.
+
+- `medbrain/exporters/obsidian_vault.py` (NEW): `publish_to_vault()` mirrors
+  brain + dream artifacts into `student/` (the Obsidian vault root):
+  - `brain/memory.md` → `student/_brain/memory.md`
+  - `brain/questions.md` → `student/_brain/questions.md`
+  - `brain/questions/*.md` → `student/_brain/questions/*.md`
+  - `brain/graph/{graph.html, *.json}` → `student/_brain/graph/*`
+  - `dream/{mnemonics,analogies,gaps}/*.md` → `student/_dream/<sub>/*.md`
+  Underscore-prefix folders sort to bottom of Obsidian file explorer and
+  signal "agent-published, do not hand-edit". Atomic per-file writes.
+  Idempotent. `write_vault_index()` writes `student/_index.md` with
+  wikilinks into the main artifact folders.
+- `scripts/export_vault.py` (NEW): standalone CLI to run the exporter at
+  any time. `--vault <path>`, `--no-index`.
+- `medbrain/agents/orchestrator.py` (NEW): `run_loop(topic, ...)` drives
+  the full loop. Each iteration:
+    1. EXECUTE — seed: `Researcher.ingest_topic(topic, regen=True)`;
+       subsequent: `active_learner.run_once()`.
+    2. STORE — handled inside ingest (DB + regen with citation gate +
+       failure_log auto-emit on reject).
+    3. REFLECT — `run_brain()` synthesizes `brain/memory.md` and refreshes
+       qid blocks in `brain/questions.md` (Brain's LLM merges new gaps
+       into the existing backlog via `questions_io.QuestionsFile.merge`,
+       human-source protection enforced).
+    4. UPDATE — `publish_to_vault()` mirrors everything into the vault.
+    5. DREAM — only if cadence-due (default 7d).
+  Stop conditions: max_iterations, paper cap, wall-clock deadline, no
+  open Qs left, 3 consecutive iterations with errors. Seeds the user's
+  topic as a `source=human` priority-1 Q so the backlog always has at
+  least one entry to converge against; dedups on body so re-running with
+  the same topic doesn't pile up duplicates.
+- `scripts/orchestrate.py` (NEW): single-command CLI:
+    `python scripts/orchestrate.py "malaria"
+       --max-iterations 5 --max-papers 300 --max-minutes 360`
+  Prints per-iteration summary at the end (papers, claims, brain reads,
+  vault files, dream stats, errors).
+- `tests/test_obsidian_vault.py` (NEW, 4 tests): brain + dream artifact
+  publish, cold-start skip-without-error, dream subdirs, vault index.
+- `tests/test_orchestrator.py` (NEW, 3 tests): seed-Q insertion + body
+  dedup, paper-cap enforcement, full mock loop wires through.
+- 108/108 tests green (was 101).
+
+Usage now:
+```
+python scripts/orchestrate.py "malaria"
+# → seeds "malaria" as human Q, ingests via Researcher (planner now
+#   produces 12-18 species×axis subtopics), regens concepts/notes with
+#   citation gate, Brain synthesizes + emits gap Qs, vault mirrors
+#   everything into student/, repeats until convergence or cap.
+```
+Open `d:/MedBrain/student/` in Obsidian + Local REST API plugin to
+browse the live state. The user types ONE prompt; the system self-
+extends from there.
+
+---
+
+## 2026-05-13
+
+### Human-question protection + auto-emit on regen failure (build)
+
+Closes the human-feedback half of the loop.
+
+- `medbrain/agents/questions_io.py`: `Question` gains `source: str | None`
+  field; serializes as `- source: <value>`; parses from same. `merge()` now
+  protects `source="human"` questions: a non-human update cannot mark the Q
+  resolved or demote priority. Human can self-resolve (source stays human on
+  update). Brain can move to in_progress (working on it) without altering
+  ownership.
+- `prompts/brain_questions.md` rule 7: human-source Qs must be re-emitted
+  verbatim — Brain may add evidence under them but never resolve or demote.
+- `medbrain/regen/failure_log.py` (NEW): `emit_regen_failure_question(target, kind, result)`
+  appends a `Q-YYYY-MM-DD-NNN` block to `brain/questions.md` when the
+  citation gate rejects a regen. `source="regen_gate"`, `priority=2`,
+  `topic="[regenfail] <slug>"`. Dedups on topic — same failure won't queue
+  twice while still open or in_progress.
+- `regen/concepts.py` + `regen/notes.py`: on gate reject, call
+  `emit_regen_failure_question(...)` so the active learner re-researches
+  the entity on its next tick. Soft-fails (silent gate rejections) → loud
+  failures (open Q visible in `brain/questions.md` + Obsidian).
+- `tests/test_human_questions.py`: 6 new tests covering source roundtrip,
+  human-protection merge behavior, regen-failure emit + dedup.
+- 100/100 tests green (was 94).
+
+### Brain ↔ active_learner loop closed (path A)
+
+Pre-existing format-mismatch bug fixed in the same session.
+
+- `prompts/brain_questions.md`: complete rewrite. Output is a sequence of
+  `## Q-YYYY-MM-DD-NNN` qid blocks (priority/status/created/topic/source +
+  body) matching the format `questions_io.QuestionsFile.parse` consumes.
+  Old "Answerable / Gaps" prose scrapped. Rules 1–8 enforce: re-emit every
+  existing block, never delete, never resolve/demote `source: human`,
+  status-transition rules per source type, resolve criteria tied to
+  evidence_grade.
+- `medbrain/agents/brain.py`: questions step now (a) reads existing
+  `brain/questions.md` and passes it to the LLM as `# Existing backlog`
+  context, (b) parses the LLM response with `QuestionsFile.parse`,
+  (c) merges into the on-disk file via `disk_qfile.merge(llm_qfile.questions)`
+  so the human-source guard fires even if the LLM violates the prompt.
+- `medbrain/tui/screens.py:_read_open_questions`: rewritten to parse qid
+  blocks. Shows open + in_progress only, sorted by priority asc + created
+  desc. Human-source Qs prefixed `[H]` in the priority cell.
+- `tests/test_brain.py`: mock LLM output updated to emit a qid block.
+- `tests/test_human_questions.py`: new test simulating Brain LLM trying to
+  resolve/demote a human Q — merge layer restores source=human + original
+  status. Defence in depth verified.
+- 101/101 tests green.
+
+Autonomous loop now works end-to-end: human/regen_gate/brain Qs all land
+in the same file in the same format, active learner picks top open, regen
+failures self-heal, human ownership protected at parse-time.
+
+---
+
+## 2026-05-13
+
+### Textbook-breadth refit + Obsidian-ready output (build)
+
+Goal: a fresh "malaria" ingest should produce textbook-grade coverage (all species, all
+clinical axes, epidemiology included) rather than the previous artemisinin-niche collapse.
+Output should be readable directly in Obsidian as a vault.
+
+**Prompt + model changes**
+- `medbrain/enums.py`: `Predicate` gains `DIAGNOSES`, `TRANSMITS`, `COMPLICATES`,
+  `CLASSIFIES_AS`, `AFFECTS`, `HAS_LIFECYCLE_STAGE`. Existing opposing-predicate map
+  untouched (new predicates have no natural opposite).
+- `medbrain/config.py` + `.env.example`: `LLM_MODEL` default → `claude-opus-4-7`.
+  New env `MEDBRAIN_THINKING_HINT` (default `ultrathink`) prepended to every user
+  prompt in `medbrain/llm.py` for max thinking budget. Set to `""` to disable.
+- `prompts/research_plan.md`: new "Domain template — malaria/plasmodium" section
+  forces species × clinical-axis decomposition (12–18 subtopics). Caps bumped to
+  120–180 papers / 8–12 per subtopic. Saturation defaults loosened to
+  `window=5, threshold=0.85` to stop early-trip on broad multi-subtopic plans.
+- `prompts/student_extract.md`: predicate enum expanded; rule 6 rewritten to KEEP
+  epidemiology facts (regional burden, mortality, prevalence) as `affects` claims;
+  6 new positive examples (dx test, epi, vector, complication, lifecycle, classification).
+
+**Obsidian-friendly output**
+- `prompts/concept_note.md`, `concept_condition.md`, `concept_medication.md`,
+  `topic_note.md`: each prompt now requires YAML frontmatter (type, tags,
+  evidence_grade_max, claim_count, last_regen), `[[wikilinks]]` for entity
+  cross-references, and `mermaid` blocks for 3+ stage pathways/lifecycles.
+  Output is a working Obsidian vault when `d:/MedBrain/student/` is opened as one.
+
+**Citation-preservation gate**
+- New module `medbrain/regen/citation_gate.py` (and `tests/test_citation_gate.py`,
+  9 tests). Rejects regen output that fabricates `[c:<id>]` tokens or fails
+  to cite enough input claims (default `min_coverage=0.5`, `require_any=True`).
+  Wired into `regen/concepts.py` (`regenerate_concept` + `regenerate_concept_canonical`)
+  and `regen/notes.py` (`regenerate_topic`). On failure: log + skip write, prior
+  file stays intact.
+- Env `MEDBRAIN_REGEN_GATE_DISABLE=1` short-circuits the gate (used by unit tests
+  whose mocked LLM bodies don't include citations; available as a prod escape
+  hatch if the gate over-rejects). `tests/conftest.py` autouse-fixtures this on
+  for the suite; `test_citation_gate.py` clears it where needed.
+- 94/94 tests green (was 85).
+
+**Obsidian integration plan (not yet wired)**
+- CLI tool: `cli-anything-obsidian` from `HKUDS/CLI-Anything` (verified, 34.4k stars,
+  Obsidian harness merged 2026-04-13).
+- Install path: `npx skills add HKUDS/CLI-Anything --skill cli-anything-obsidian -g -y`
+  OR `cd <CLI-Anything>/obsidian/agent-harness && pip install -e .`
+- Auth: requires Obsidian "Local REST API" plugin installed + `OBSIDIAN_API_KEY`
+  env. Default host `https://localhost:27124`.
+- Commands: `vault {list,read,create,update,delete,append}`, `search {query,simple}`,
+  `note {active,open}`, `command {list,execute}`, `server status`.
+- Vault layout decision: open `d:/MedBrain/student/` as the Obsidian vault. `concepts/`,
+  `notes/`, `memory/` become top-level vault folders. `brain/memory.md` (cross-concept
+  synthesis) is OUTSIDE the vault; resolve by either (a) opening `d:/MedBrain/` as
+  vault and using `.obsidianignore` for `.venv/`, `scripts/`, `tests/`, or
+  (b) building a `medbrain/exporters/obsidian_vault.py` that publishes
+  `brain/memory.md` + `brain/derivative/` into `student/_brain/` on each Brain run.
+  Defer the exporter until first vault session shows what's missing.
+- Why no MCP yet: regen pipeline already writes the md files. A second MCP-driven
+  writer would race with regen + atomic_write. Use the CLI for *read-side* queries
+  (search, list, link traversal) initially; revisit MCP if Claude needs to *modify*
+  vault files outside the regen path.
+
+---
+
 ## 2026-05-04
 
 ### Phase 6 complete (build) — active learning loop

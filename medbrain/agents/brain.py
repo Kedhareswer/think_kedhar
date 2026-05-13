@@ -18,6 +18,7 @@ from pathlib import Path
 from sqlalchemy import select
 
 from medbrain import config
+from medbrain.agents.questions_io import QuestionsFile, load as load_questions
 from medbrain.db import session_scope
 from medbrain.llm import LLMError, call
 from medbrain.models import BrainRun
@@ -167,15 +168,20 @@ def run_brain(
     except LLMError as e:
         result.errors.append(f"synthesize: {e}")
 
-    # --- 2. Generate questions (Answerable / Gaps classification) ---
+    # --- 2. Generate questions (qid-block format, merged into existing backlog) ---
     try:
         q_system = QUESTIONS_PROMPT.read_text(encoding="utf-8")
+        existing_backlog = (
+            questions_path.read_text(encoding="utf-8") if questions_path.exists() else ""
+        )
         q_user = (
             "# TASK\n"
             "Emit a single Markdown document as your message text. No tools. "
             "Do NOT request permissions. The Python caller persists your output. "
             "First character MUST be `#`. Output ONLY the markdown.\n\n"
             f"# Topic context\n{label}\n\n"
+            f"# Existing backlog (re-emit every block, human-source blocks verbatim)\n\n"
+            f"{existing_backlog or '(empty)'}\n\n"
             f"# Source: concept notes ({len(concepts_payload)})\n\n"
             f"{_render_files(concepts_payload)}\n\n"
             f"# Source: topic notes ({len(topics_payload)})\n\n"
@@ -183,7 +189,13 @@ def run_brain(
             f"# Now\n{datetime.now(UTC).isoformat()}\n"
         )
         questions_body = call(q_system, q_user, timeout=180.0)
-        atomic_write_text(questions_path, questions_body.strip() + "\n")
+        # Parse LLM output, merge against the on-disk file so human-source
+        # protection in QuestionsFile.merge fires even if the LLM violates the
+        # prompt's "re-emit verbatim" rule. Defence in depth.
+        llm_qfile = QuestionsFile.parse(questions_body)
+        disk_qfile = load_questions(questions_path)
+        disk_qfile.merge(llm_qfile.questions)
+        atomic_write_text(questions_path, disk_qfile.serialize())
         result.questions_path = str(questions_path)
     except LLMError as e:
         result.errors.append(f"questions: {e}")

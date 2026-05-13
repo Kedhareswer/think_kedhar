@@ -121,25 +121,27 @@ ListView > ListItem.--highlight {
 
 
 def _read_open_questions(limit: int = 5) -> list[tuple[str, str]]:
-    """Return up to ``limit`` (priority, text) pairs from brain/questions.md."""
+    """Return up to ``limit`` (priority, text) pairs from brain/questions.md.
+
+    Parses the qid-block format emitted by Brain and consumed by the active
+    learner. Shows open + in_progress only (resolved hidden). Sorted by
+    priority asc, created desc. Human-source Qs are prefixed `[H]` in the
+    priority cell to make ownership visible.
+    """
+    from medbrain.agents.questions_io import load as load_questions
+
     if not config.QUESTIONS_FILE.exists():
         return []
+    qfile = load_questions(config.QUESTIONS_FILE)
+    active = [q for q in qfile.questions if q.status in ("open", "in_progress")]
+    active.sort(key=lambda q: (q.priority, -q.created.timestamp()))
     out: list[tuple[str, str]] = []
-    for line in config.QUESTIONS_FILE.read_text(encoding="utf-8").splitlines():
-        stripped = line.strip("- *• ").strip()
-        if not stripped:
-            continue
-        # Heuristic: a question line starts with a P1/P2/P3 marker or ends with a "?"
-        low = stripped.lower()
-        priority = "P?"
-        for tag in ("p1", "p2", "p3"):
-            if tag in low.replace(":", " ").split()[:3]:
-                priority = tag.upper()
-                break
-        if priority != "P?" or stripped.endswith("?"):
-            out.append((priority, stripped))
-        if len(out) >= limit:
-            break
+    for q in active[:limit]:
+        prio_tag = f"P{q.priority}"
+        if q.source == "human":
+            prio_tag = f"[H]{prio_tag}"
+        first_line = (q.body.splitlines()[0] if q.body else q.topic).strip()
+        out.append((prio_tag, first_line))
     return out
 
 
